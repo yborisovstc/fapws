@@ -1,0 +1,28 @@
+includedir = @includedir@/fapws
+
+AM_CPPFLAGS = -D_PLAT_LINUX_ -g -O0
+
+lib_LTLIBRARIES = libfapws.la
+
+libfapws_la_SOURCES = \
+		       fapbase.cpp \
+		       fapbase.h \
+		       fapext.cpp \
+		       fapext.h \
+		       fapfact.cpp \
+		       fapfact.h \
+		       faplogger.cpp \
+		       faplogger.h \
+		       fapws.cpp \
+		       fapws.h \
+		       fapplat.h
+
+
+include_HEADERS = \
+		  fapbase.h \
+		  fapext.h \
+		  fapfact.h \
+		  fapplat.h
+
+
+libfapws_la_LDFLAGS = -rdynamic -no-undefined

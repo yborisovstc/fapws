@@ -1,0 +1,31 @@
+
+fapws=/home/yborisov/projects/fap/work/fapg/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
+ autogen.sh
+ Makefile.am
+ configure.ac
+ AUTHORS
+ COPYING
+ ChangeLog
+ README
+ NEWS
+src=src CD=. filter="*.h *.cpp Makefile.am" {
+  fapbase.h
+  fapext.h
+  fapfact.h
+  faplogger.h
+  fapplat.h
+  fapws.h
+  panics.h
+  fapbase.cpp
+  fapext.cpp
+  fapfact.cpp
+  faplogger.cpp
+  fapws.cpp
+  Makefile.am
+} 
+debian=debian CD=. filter="rules changelog README.Debian copyright" {
+  rules
+  changelog
+  README.Debian
+}
+}
