@@ -32,7 +32,7 @@ FAPWS_API CAE_Env* CAE_Env::NewL(TInt aPriority, const char* aLogSpecFile, TInt 
 
 void CAE_Env::ConstructL(const char* aLogSpecFile)
 {
-	iRoot = CAE_Object::NewL(KRootName, NULL);
+	iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
 	iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile);
 	SetActive();
 //	TRequestStatus* pst = &iStatus;

@@ -1,4 +1,19 @@
-//************************************************************ // Finite automata programming base, level 1 prototype // Win32 platform port // Yuri Borisov  21/06/05              Initial version // Yuri Borisov  11/07/05  FAP_CR_001  Added link based on reconfiguring of inputs/outputs // Yuri Borisov  11/07/05  FAP_CR_002  Added panics // Yuri Borisov  13/07/05  FAP_CR_004  Corrected activity processing // Yuri Borisov  13/07/05  FAP_CR_005  Added Object activity processing // Yuri Borisov  15/07/05  FAP_CR_006  Added callback object for input transition // Yuri Borisov  18/07/05  FAP_CR_009  Added support of logging // Yuri Borisov  22/07/05  FAP_CR_014  Updated activating in the CAE_StateBase::SetNew // Yuri Borisov  25/07/05  FAP_CR_015  Reset flag "Update" if there wasn't update // Yuri Borisov  25/07/05  FAP_CR_016  Update CAE_Base class to move observer from state and object // Yuri Borisov  25/07/05  FAP_CR_017  Added operator = to the templated state // Yuri Borisov  25/07/05  FAPW_CR_001 Ported FAP service into Win32 platform // Yuri Borisov  18-Nov-08 FAPW_CR_003 Added type identification for objects
+//************************************************************ 
+// Finite automata programming base, level 1 prototype 
+// Win32 platform port 
+// Yuri Borisov  21/06/05              Initial version 
+// Yuri Borisov  11/07/05  FAP_CR_001  Added link based on reconfiguring of inputs/outputs 
+// Yuri Borisov  11/07/05  FAP_CR_002  Added panics 
+// Yuri Borisov  13/07/05  FAP_CR_004  Corrected activity processing 
+// Yuri Borisov  13/07/05  FAP_CR_005  Added Object activity processing 
+// Yuri Borisov  15/07/05  FAP_CR_006  Added callback object for input transition 
+// Yuri Borisov  18/07/05  FAP_CR_009  Added support of logging 
+// Yuri Borisov  22/07/05  FAP_CR_014  Updated activating in the CAE_StateBase::SetNew 
+// Yuri Borisov  25/07/05  FAP_CR_015  Reset flag "Update" if there wasn't update 
+// Yuri Borisov  25/07/05  FAP_CR_016  Update CAE_Base class to move observer from state and object 
+// Yuri Borisov  25/07/05  FAP_CR_017  Added operator = to the templated state 
+// Yuri Borisov  25/07/05  FAPW_CR_001 Ported FAP service into Win32 platform 
+// Yuri Borisov  18-Nov-08 FAPW_CR_003 Added type identification for objects
 // Yuri Borisov  15-Dec-08 FAPW_CR_011 Corrected to make compatible with fapwstst1
 //*************************************************************
 
@@ -433,8 +448,8 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, const MAE_Provider* aProvider):
-	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iProvider(aProvider), iFitness(0), 
-	iFitness1(0)
+	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iProvider(aProvider), 
+	iFitness(0), iFitness1(0)
 {
 }
 
@@ -455,6 +470,14 @@ FAPWS_API void* CAE_Object::DoGetObject(TInt aUid)
 
 
 FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom, const MAE_Provider* aProvider)
+{
+	CAE_Object* self = new CAE_Object(aInstName, aMan, aProvider);
+	self->SetChromosome(EChromOper_Copy, aChrom);
+	self->ConstructL();
+	return self;
+}
+
+FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const char* aChrom, const MAE_Provider* aProvider)
 {
 	CAE_Object* self = new CAE_Object(aInstName, aMan, aProvider);
 	self->SetChromosome(EChromOper_Copy, aChrom);
@@ -505,6 +528,14 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const TUint8* aChrom1
 		}
 	}
 }
+
+FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const char* aChrom1, const char* aChrom2)
+{
+    if (aChrom1 != NULL)
+    {
+    }
+}
+
 
 // On construction phase object is created from given chromosome
 // If chromosome isn't given and provider exists then chromosome is created randomly
