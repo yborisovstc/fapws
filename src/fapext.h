@@ -11,8 +11,9 @@
 #include "fapbase.h"
 
 class CAE_LogCtrl;
+class CAE_ChroManBase;
 
-class CAE_Env: public CActive
+class CAE_Env: public CActive, public MAE_Env
 {
 public:
 	enum
@@ -24,6 +25,12 @@ public:
 	FAPWS_API virtual ~CAE_Env();
 	FAPWS_API void AddL(CAE_Object* aComp);
 	FAPWS_API void Step();
+	FAPWS_API void AddChmanXml(const char *aXmlFileName);
+public:
+	// From MAE_Env
+	virtual MAE_Provider *Provider() const;
+	virtual MAE_ChroMan *Chman() const;
+	virtual MCAE_LogRec *Logger();
 protected:
 	FAPWS_API CAE_Env(TInt aPriority, TInt aLoad = KEnvLoadDefault);
 	FAPWS_API void ConstructL(const char* aLogSpecFile);
@@ -34,6 +41,8 @@ private:
 	TInt		iLoad;	// The number of step per one activity
 	CAE_LogCtrl* iLogger;
 	TUint32		iStepCount;
+	CAE_ChroManBase *iChroman; // Chromosome manager
+	MAE_Provider *iProvider;
 };
 
 

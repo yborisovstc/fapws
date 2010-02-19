@@ -11,6 +11,9 @@
 #include "panics.h"
 
 #include <stdarg.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 const char* KOldFileExtension = ".old";
 const char* KTimeFormat = "%02d.%02d:%02d:%06d ";
@@ -27,7 +30,7 @@ const char* KLogDirName = "C:\\LOGS\\FAP";
 #endif // _PLAT_WIN32_ 
 
 #if defined (_PLAT_LINUX_)  // Linux  platform
-const char* KLogFileName = "/tmp/LOGS/FAP/FAPLOG.TXT";
+const char* KLogFileName = "faplog.txt";
 const char* KLogDirName = "/tmp/LOGS/FAP";
 #endif  // Linux
 
@@ -60,14 +63,16 @@ void _splitpath(const char* path, char* drive, char* dir, char* fname, char* ext
 
 // CAE_LogRec
 
-CAE_LogRec::CAE_LogRec()
+CAE_LogRec::CAE_LogRec(): iLogFile(NULL), iLogFileName(NULL)
 {
 }
 
 CAE_LogRec::~CAE_LogRec()
 {
-	if (iLogFileValid) 
-		fclose(iLogFile);
+    if (iLogFileValid) 
+	fclose(iLogFile);
+    if (iLogFileName != NULL)
+	free(iLogFileName);
 }
 
 CAE_LogRec* CAE_LogRec::NewL(const char* aLogFileName)
@@ -79,62 +84,70 @@ CAE_LogRec* CAE_LogRec::NewL(const char* aLogFileName)
 
 void CAE_LogRec::ConstructL(const char* aLogFileName)
 {
-	iLogFileName = aLogFileName;
+    iLogFileName = strdup(aLogFileName);
     TInt ret= 0;
     if (CreateLog() == 0)
+    {
+	char drive[KLogFileNameDriveLen];
+	char dir[KLogFileNameDirLen];
+	char fname[KLogFileNameNameLen];
+	char ext[KLogFileNameExtLen];
+	char oldname[KLogFileNameLen];
+	//!! [YB] 12-Dec-08 - this functionality needs to be ported further
+	// It's just removed temporarily 
+	//		_splitpath(iLogFileName, drive, dir, fname, ext);
+	//		_makepath( oldname, drive, dir, fname, KOldFileExtension);
+	//		remove(oldname);
+	//		rename(iLogFileName, oldname);
+	remove(iLogFileName); //!! [YB] added instead of storing to old file
+	iLogFile = fopen(iLogFileName, "w+");
+	if(iLogFile)
 	{
-		char drive[KLogFileNameDriveLen];
-		char dir[KLogFileNameDirLen];
-		char fname[KLogFileNameNameLen];
-		char ext[KLogFileNameExtLen];
-		char oldname[KLogFileNameLen];
-//!! [YB] 12-Dec-08 - this functionality needs to be ported further
-// It's just removed temporarily 
-//		_splitpath(iLogFileName, drive, dir, fname, ext);
-//		_makepath( oldname, drive, dir, fname, KOldFileExtension);
-//		remove(oldname);
-//		rename(iLogFileName, oldname);
-		remove(iLogFileName); //!! [YB] added instead of storing to old file
-		iLogFile = fopen(iLogFileName, "w+");
-		if(iLogFile)
-		{
-			iLogFileValid=ETrue;
-			ret= fputs("----------New Log----------\015\012", iLogFile);
-			fflush(iLogFile);
-		}
-		else
-			iLogFileValid= EFalse;
+	    iLogFileValid=ETrue;
+	    ret= fputs("----------New Log----------\015\012", iLogFile);
+	    fflush(iLogFile);
 	}
 	else
-		iLogFileValid= EFalse;
+	    iLogFileValid= EFalse;
+    }
+    else
+	iLogFileValid= EFalse;
 }
 
 TInt CAE_LogRec::CreateLog()
 {
 //!! [YB] - temporarily removed creation of catalogue 
 #if (0)
-	TInt ret = -1;
-	char drive[KLogFileNameDriveLen];
-	char dir[KLogFileNameDirLen];
-	char fname[KLogFileNameNameLen];
-	char ext[KLogFileNameExtLen];
-	char path[KLogFileNameLen];
-	
-	_splitpath(iLogFileName, drive, dir, fname, ext);
-	_makepath( path, drive, dir, NULL, NULL);
-	TInt plen = strlen(path);
-	if (path[plen-1] == '\\')
-		path[plen-1] = 0x00;
+    TInt ret = -1;
+    char drive[KLogFileNameDriveLen];
+    char dir[KLogFileNameDirLen];
+    char fname[KLogFileNameNameLen];
+    char ext[KLogFileNameExtLen];
+    char path[KLogFileNameLen];
+
+    _splitpath(iLogFileName, drive, dir, fname, ext);
+    _makepath( path, drive, dir, NULL, NULL);
+    TInt plen = strlen(path);
+    if (path[plen-1] == '\\')
+	path[plen-1] = 0x00;
     ret = _access(path, 0x00);
     if (ret == -1)
-	{
-        ret = mkdir(path);
-	}
-	return ret;
-#else
-	return 1;
+    {
+	ret = mkdir(path);
+    }
+    return ret;
 #endif
+    const char *home_dir = getenv("HOME");
+    char *logfile = (char *) malloc(strlen(home_dir) + strlen(iLogFileName) + 1);
+    strcpy(logfile, home_dir);
+    strcat(logfile, "/");
+    strcat(logfile, iLogFileName);
+    printf("logfilename: %s\n", logfile);
 
+//    iLogFile = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+    iLogFile = fopen(logfile, "w+");
+    printf("logfile: %x\n", iLogFile);
+    return (iLogFile != NULL);
 }
 
 void CAE_LogRec::WriteRecord(const char* aText)

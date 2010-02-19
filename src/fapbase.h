@@ -24,6 +24,7 @@
 // 1 - Use current inputs state values in transition function
 //		New state value = Trans_fun(current value of input states)		 
 
+#include <stdarg.h>
 #include <string.h>
 #include "fapplat.h"
 #include <vector>
@@ -44,6 +45,16 @@ using namespace std;
 static void name##_S_(CAE_Object* aObject, CAE_State* aState) {((class*) aObject)->name(aState);};
 
 #define CAE_TRANS(name) name##_S_
+
+// Type of CAE element
+enum TCaeElemType
+{
+    ECae_Unknown = 0,
+    ECae_Object = 1,
+    ECae_State = 2,
+    ECae_Transf = 3,	// Transition transformation
+    ECae_Logspec = 4	// Logging specification
+};
 
 // Type UID of class mask 
 const TInt KObUid_BaseTypeMask = 0xffff0000;
@@ -186,9 +197,10 @@ public:
 	virtual void Update() = 0;
 	void SetActive();
 	void SetUpdated();
+	void SetName(const char *aName);
 	const char* InstName() const { return iInstName;};
 public:
-	const char* iInstName;
+	char* iInstName;
 	TBool	iUpdated, iActive;
 	CAE_Object* iMan;
 };
@@ -204,6 +216,7 @@ public:
 	};
 	enum StateType
 	{
+		EType_Unknown = 0,
 		EType_Input = 1,
 		EType_Reg = 2,
 		EType_Output = 3
@@ -235,6 +248,7 @@ private:
 	void AddOutputL(CAE_StateBase* aState);
 	void RemoveOutput(CAE_StateBase* aState);
 	void RemoveInput(CAE_StateBase* aState);
+	const char *AccessType() const;
 public:
 	void	*iCurr, *iNew;
 	TLogFormatFun iLogFormFun;
@@ -286,8 +300,10 @@ public:
 public:
 	static inline TInt ObjectUid(); 
 public:
-	FAPWS_API CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);
-	FAPWS_API static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);  
+	FAPWS_API CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
+		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);
+	FAPWS_API static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
+		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);  
 	// Set transition procedure. It may be callback function aFun or defined state operation
 	// In this case aFun, aCbo should be set to NULL
 	// The method verifies operation attempted and set the most passed operation if incorrect
@@ -369,7 +385,14 @@ template<> inline TInt CAE_TState<TBool>::DataTypeUid() {return KObUid_CAE_Var_S
 class MAE_ChroMan
 {
     public:
-	virtual void Copy(const void *aSrc, void *aDest) = 0;
+	virtual void CopySpec(const void *aSrc, void **aDest) = 0;
+	virtual void *GetChild(void *aSpec) = 0;
+	virtual void *GetNext(void *aChildSpec) = 0;
+	virtual char *GetType(void *aSpec) = 0;
+	virtual char *GetName(void *aSpec) = 0;
+	virtual CAE_StateBase::StateType GetAccessType(void *aSpec) = 0;
+	virtual int GetLen(void *aSpec) = 0;
+	virtual TCaeElemType FapType(void *aElement) = 0;
 };
 
 // Provider of CAE elements
@@ -377,10 +400,29 @@ class MAE_Provider
 {
 public:
 	virtual CAE_Base* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
+	virtual CAE_Base* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
 	virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
+};
+
+// Log recorder interface
+class MCAE_LogRec
+{
+public:
+	virtual void WriteRecord(const char* aText) = 0;
+	virtual void WriteFormat(const char* aFmt,...) = 0;
+	virtual void Flush() = 0;
+};
+
+
+// FAP environment interface
+class MAE_Env
+{
+    public:
+	virtual MAE_Provider *Provider() const = 0;
 	// Getting Cromosome manager
-	virtual MAE_ChroMan* Chman() const = 0;
+	virtual MAE_ChroMan *Chman() const = 0;
+	virtual MCAE_LogRec *Logger() = 0;
 };
 
 // Base class for object. Object is container and owner of its component and states
@@ -406,10 +448,11 @@ public:
 	};
 public:
 	static inline TInt ObjectUid(); 
+	inline MCAE_LogRec *Logger();
 	FAPWS_API virtual ~CAE_Object();
-	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, const MAE_Provider* aProvider = NULL);
+	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
-	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const char *aChrom = NULL, const MAE_Provider* aProvider = NULL);
+	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
 	inline void RegisterCompL(CAE_Base* aComp);
 	void UnregisterComp(CAE_Base* aComp);
 	FAPWS_API virtual void Update();
@@ -430,11 +473,13 @@ public:
 	// Create new inheritor of self. 
 	FAPWS_API CAE_Object* CreateNewL(const char* aInstName, TChromOper aOper, const CAE_Object* aParent2 = NULL);
 protected:
-	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, const MAE_Provider* aProvider = NULL);
+	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	FAPWS_API void ConstructL();
+	FAPWS_API void ConstructFromChromL();
+	FAPWS_API void ConstructFromChromXL();
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const TUint8* aChrom1 = NULL, const TUint8* aChrom2 = NULL);
 	// Version for XML-Chromosome
-	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const char* aChrom1 = NULL, const char* aChrom2 = NULL);
+	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 private:
 	FAPWS_API CAE_State* GetStateByInd(TUint32 aInd);
 	// Calculates the length of chromosome
@@ -450,10 +495,12 @@ private:
 	vector<CAE_Base*>* iCompReg;
 	TUint8*	iChrom;		// Chromosome, owned
 	void* iChromX;		// Chromosome, XML based
-	const MAE_Provider* iProvider;  // Elements provider, not owned
+	MAE_Env* iEnv;  // FAP Environment, not owned
 };
 
 inline TInt CAE_Object::ObjectUid() { return EObUid | EObStypeUid;} 
+
+inline MCAE_LogRec *CAE_Object::Logger() {return iEnv->Logger(); }
 
 inline void  CAE_Object::RegisterCompL(CAE_Base* aComp) { iCompReg->push_back(aComp); aComp->iMan = this;};
 	

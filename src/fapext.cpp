@@ -7,19 +7,25 @@
 #include "fapbase.h"
 #include "fapext.h"
 #include "faplogger.h"
+#include "fapfact.h"
 #include "panics.h"
 
 const char* KRootName = "Root";
 
 CAE_Env::CAE_Env(TInt aPriority, TInt aLoad): CActive(aPriority),
-	iLoad(aLoad), iLogger(NULL), iStepCount(0)
+	iLoad(aLoad), iLogger(NULL), iStepCount(0), iChroman(NULL)
 {
 }
 
 FAPWS_API CAE_Env::~CAE_Env()
 {
-	delete iRoot;
-	delete iLogger;
+    delete iRoot;
+    if (iChroman != NULL)
+    {
+	delete iChroman;
+	iChroman = NULL;
+    }
+    delete iLogger;
 }
 
 
@@ -32,11 +38,12 @@ FAPWS_API CAE_Env* CAE_Env::NewL(TInt aPriority, const char* aLogSpecFile, TInt 
 
 void CAE_Env::ConstructL(const char* aLogSpecFile)
 {
-	iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
-	iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile);
-	SetActive();
-//	TRequestStatus* pst = &iStatus;
-//	User::RequestComplete(pst, KErrNone);
+    iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
+    iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile);
+    iProvider = CAE_Fact::NewL();
+    SetActive();
+    //	TRequestStatus* pst = &iStatus;
+    //	User::RequestComplete(pst, KErrNone);
 }
 
 FAPWS_API void CAE_Env::RunL()
@@ -76,3 +83,30 @@ FAPWS_API void CAE_Env::AddL(CAE_Object* aComp)
 {
 	iRoot->RegisterCompL(aComp);
 }
+
+
+
+MAE_Provider *CAE_Env::Provider() const
+{
+    return iProvider;
+}
+
+MCAE_LogRec *CAE_Env::Logger()
+{
+    return iLogger->LogRec();
+}
+
+FAPWS_API MAE_ChroMan* CAE_Env::Chman() const 
+{ 
+    return iChroman;
+}
+
+FAPWS_API void CAE_Env::AddChmanXml(const char *aXmlFileName)
+{
+    // Create Chromosome manager. There is only one for now.
+    // So don't provide the functionality of selecting of manager
+    // TODO [YB] Consider adding selection of manager
+    _FAP_ASSERT(iChroman == NULL);
+    iChroman = CAE_ChroManXFact::CreateChroManX(aXmlFileName);
+}
+

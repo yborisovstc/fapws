@@ -11,15 +11,6 @@
 #include "fapbase.h"
 #include "fapplat.h"
 
-// Log recorder interface
-class MCAE_LogRec
-{
-public:
-	virtual void WriteRecord(const char* aText) = 0;
-	virtual void WriteFormat(const char* aFmt,...) = 0;
-	virtual void Flush() = 0;
-};
-
 // File logger record
 class CAE_LogRec: public MCAE_LogRec
 {
@@ -40,7 +31,7 @@ protected:
 	TInt CreateLog();
 private:
 	FILE* iLogFile;
-	const char*	iLogFileName;
+	char*	iLogFileName;
 	TBool iLogFileValid;
 };
 
@@ -99,6 +90,7 @@ public:
 	static CAE_LogCtrl* NewL(CAE_Object* aFapRoot, const char* aSpecFileName);
 	~CAE_LogCtrl();
 	void DoLogL(TInt aStep);
+	inline MCAE_LogRec *LogRec();
 protected:
 	void ConstructL(const char* aSpecFileName);
 	CAE_LogCtrl(CAE_Object* aFapRoot);
@@ -111,5 +103,6 @@ private:
 };
 
 
+inline MCAE_LogRec *CAE_LogCtrl::LogRec() { return iRec; }
 
 #endif // __FAP_LOGGER_H

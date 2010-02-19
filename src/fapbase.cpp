@@ -28,6 +28,7 @@ const TInt KNameSeparator  = '.';
 const TInt KNameSeparatorLen = 1;
 const TInt KNameMaxLen = 50;
 
+
 // Length of bite automata word 
 const int KBaWordLen = 32;
 
@@ -39,8 +40,11 @@ void Panic(TInt aRes)
 // CAE_Base
 
 CAE_Base::CAE_Base(const char* aInstName, CAE_Object* aMan):
-	iInstName(aInstName), iMan(aMan), iUpdated(ETrue), iActive(ETrue)
-{};
+	iInstName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue)
+{
+    if (aInstName != NULL) 
+	iInstName = strdup(aInstName);
+};
 
 
 void CAE_Base::SetActive() 
@@ -53,10 +57,20 @@ void CAE_Base::SetUpdated()
 	iUpdated= ETrue; if (iMan) iMan->SetUpdated();
 };
 
+void CAE_Base::SetName(const char *aName)
+{
+    if (iInstName != NULL)
+	free(iInstName);
+    if (aName != NULL) 
+	iInstName = strdup(aName);
+}
+
 FAPWS_API CAE_Base::~CAE_Base()
 {
-	if (iMan != NULL)
-		iMan->UnregisterComp(this);
+    if (iMan != NULL)
+	iMan->UnregisterComp(this);
+    if (iInstName != NULL)
+	free(iInstName);
 }
 
 
@@ -76,6 +90,7 @@ FAPWS_API void CAE_StateBase::ConstructL()
 	iMan->RegisterCompL(this);
 	iInputsList = new vector<CAE_StateBase*>;
 	iOutputsList = new vector<CAE_StateBase*>;
+	iMan->Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
 }	
 
 FAPWS_API CAE_StateBase::~CAE_StateBase()
@@ -97,6 +112,11 @@ FAPWS_API CAE_StateBase::~CAE_StateBase()
 
 	delete iInputsList;
 	delete iOutputsList;
+}
+
+const char *CAE_StateBase::AccessType() const
+{
+    return (iStateType == CAE_StateBase::EType_Input) ? "Inp" : ((iStateType == CAE_StateBase::EType_Reg) ? "Reg" : "Out");
 }
 
 FAPWS_API void CAE_StateBase::Confirm()
@@ -447,8 +467,8 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 //*********************************************************
 
 
-FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, const MAE_Provider* aProvider):
-	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iProvider(aProvider), 
+FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
+	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iEnv(aEnv), 
 	iFitness(0), iFitness1(0)
 {
 }
@@ -469,17 +489,17 @@ FAPWS_API void* CAE_Object::DoGetObject(TInt aUid)
 }
 
 
-FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom, const MAE_Provider* aProvider)
+FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom, MAE_Env* aEnv)
 {
-	CAE_Object* self = new CAE_Object(aInstName, aMan, aProvider);
+	CAE_Object* self = new CAE_Object(aInstName, aMan, aEnv);
 	self->SetChromosome(EChromOper_Copy, aChrom);
 	self->ConstructL();
 	return self;
 }
 
-FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const char* aChrom, const MAE_Provider* aProvider)
+FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const void* aChrom, MAE_Env* aEnv)
 {
-	CAE_Object* self = new CAE_Object(aInstName, aMan, aProvider);
+	CAE_Object* self = new CAE_Object(aInstName, aMan, aEnv);
 	self->SetChromosome(EChromOper_Copy, aChrom);
 	self->ConstructL();
 	return self;
@@ -529,10 +549,11 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const TUint8* aChrom1
 	}
 }
 
-FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const char* aChrom1, const char* aChrom2)
+FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, const char* aChrom2)
 {
     if (aChrom1 != NULL)
     {
+	iEnv->Chman()->CopySpec(aChrom1, &iChromX);	
     }
 }
 
@@ -551,77 +572,122 @@ FAPWS_API void CAE_Object::ConstructL()
 	// Create object from chromosome if exists
 	if (iChrom != NULL)
 	{
-		TUint8* ploc = iChrom; // Current locus
-		TUint8 vectlen = *ploc/KAdp_ObjStInfoLen;
-		_FAP_ASSERT(vectlen <= KAdp_ObjCromMaxLen);
-		ploc++; // States types
-		// Create the states vector
-		TInt i = 0;
-		for (i = 0; i < vectlen; i++)
-		{
-			TUint8 sttype = *ploc;
-			if (sttype != 0)
-			{
-				// Create the state
-				if ((sttype&KAdp_ObjStType_AccessMsk) == KAdp_ObjStType_NU)
-					sttype = KAdp_ObjStType_Reg | ECState_Uint8; 
-				else	
-					sttype = (sttype&KAdp_ObjStType_AccessMsk) | ECState_Uint8; 
-				CAE_Base* state = iProvider->CreateStateL(sttype, NULL, this);
-				_FAP_ASSERT(state != NULL);
-				*ploc = sttype;
-			}
-			ploc += KAdp_ObjStInfoLen;
-		}
-		// Create Transitions
-		ploc = iChrom + KAdp_ObjChromLen_Len; // Return to the description of the first state
-		for (i = 0; i < vectlen; i++)
-		{
-			// Avoid the state type
-			ploc++;
-			CAE_State* state = GetStateByInd(i);
-			if (state != NULL)
-			{
-				TUint8 sinp1ind = *ploc++;	// Input_1
-				if (state->IsInput()) sinp1ind = 0xff;
-				if (sinp1ind != 0xff)
-				{
-					CAE_State* sinp = GetStateByInd(sinp1ind);
-					if (sinp == NULL)
-					{
-						sinp1ind = (vectlen*rand())/RAND_MAX;
-						sinp = GetStateByInd(sinp1ind);
-					}
-					if (sinp != NULL)
-						state->AddInputL(sinp);
-				}
-				*(ploc-1) = sinp1ind;
-				TUint8 sinp2ind = *ploc++;	// Input_2
-				if (state->IsInput()) sinp2ind = 0xff;
-				if (sinp2ind != 0xff)
-				{
-					if (sinp2ind == sinp1ind)
-						sinp2ind = ((sinp1ind+1) == vectlen)?0:(sinp1ind+1);
-					CAE_State* sinp = GetStateByInd(sinp2ind);
-					if (sinp == NULL)
-					{
-						sinp2ind = (vectlen*rand())/RAND_MAX;
-						if (sinp2ind == sinp1ind)
-							sinp2ind = ((sinp1ind+1) == vectlen)?0:(sinp1ind+1);
-						sinp = GetStateByInd(sinp2ind);
-					}
-					if (sinp != NULL)
-						state->AddInputL(sinp);
-				}
-				*(ploc-1) = sinp2ind;
-				TUint8 opr = *ploc++;	// Operation code
-				_FAP_ASSERT(state != NULL);
-				state->SetTrans(TTransInfo(opr));
-				opr = state->GetTrans().iOpInd;
-				*(ploc-1) = opr;
-			} // state != NULL
-		}
+	    ConstructFromChromL();
 	}
+	else if (iChromX != NULL)
+	{
+	    ConstructFromChromXL();
+	}
+}
+
+FAPWS_API void CAE_Object::ConstructFromChromL()
+{
+    TUint8* ploc = iChrom; // Current locus
+    TUint8 vectlen = *ploc/KAdp_ObjStInfoLen;
+    _FAP_ASSERT(vectlen <= KAdp_ObjCromMaxLen);
+    ploc++; // States types
+    // Create the states vector
+    TInt i = 0;
+    for (i = 0; i < vectlen; i++)
+    {
+	TUint8 sttype = *ploc;
+	if (sttype != 0)
+	{
+	    // Create the state
+	    if ((sttype&KAdp_ObjStType_AccessMsk) == KAdp_ObjStType_NU)
+		sttype = KAdp_ObjStType_Reg | ECState_Uint8; 
+	    else	
+		sttype = (sttype&KAdp_ObjStType_AccessMsk) | ECState_Uint8; 
+	    CAE_Base* state = iEnv->Provider()->CreateStateL(sttype, NULL, this);
+	    _FAP_ASSERT(state != NULL);
+	    *ploc = sttype;
+	}
+	ploc += KAdp_ObjStInfoLen;
+    }
+    // Create Transitions
+    ploc = iChrom + KAdp_ObjChromLen_Len; // Return to the description of the first state
+    for (i = 0; i < vectlen; i++)
+    {
+	// Avoid the state type
+	ploc++;
+	CAE_State* state = GetStateByInd(i);
+	if (state != NULL)
+	{
+	    TUint8 sinp1ind = *ploc++;	// Input_1
+	    if (state->IsInput()) sinp1ind = 0xff;
+	    if (sinp1ind != 0xff)
+	    {
+		CAE_State* sinp = GetStateByInd(sinp1ind);
+		if (sinp == NULL)
+		{
+		    sinp1ind = (vectlen*rand())/RAND_MAX;
+		    sinp = GetStateByInd(sinp1ind);
+		}
+		if (sinp != NULL)
+		    state->AddInputL(sinp);
+	    }
+	    *(ploc-1) = sinp1ind;
+	    TUint8 sinp2ind = *ploc++;	// Input_2
+	    if (state->IsInput()) sinp2ind = 0xff;
+	    if (sinp2ind != 0xff)
+	    {
+		if (sinp2ind == sinp1ind)
+		    sinp2ind = ((sinp1ind+1) == vectlen)?0:(sinp1ind+1);
+		CAE_State* sinp = GetStateByInd(sinp2ind);
+		if (sinp == NULL)
+		{
+		    sinp2ind = (vectlen*rand())/RAND_MAX;
+		    if (sinp2ind == sinp1ind)
+			sinp2ind = ((sinp1ind+1) == vectlen)?0:(sinp1ind+1);
+		    sinp = GetStateByInd(sinp2ind);
+		}
+		if (sinp != NULL)
+		    state->AddInputL(sinp);
+	    }
+	    *(ploc-1) = sinp2ind;
+	    TUint8 opr = *ploc++;	// Operation code
+	    _FAP_ASSERT(state != NULL);
+	    state->SetTrans(TTransInfo(opr));
+	    opr = state->GetTrans().iOpInd;
+	    *(ploc-1) = opr;
+	} // state != NULL
+    }
+}
+
+FAPWS_API void CAE_Object::ConstructFromChromXL()
+{
+    MAE_ChroMan *chman = iEnv->Chman();
+    _FAP_ASSERT(chman != NULL);
+    char *name = chman->GetName(iChromX);
+    if (name != NULL && strlen(name) != 0)
+    {
+	SetName(name);
+    }
+    Logger()->WriteFormat("Object constructing. Name: %s", InstName());
+    // Pass thru children
+    void *child = NULL;
+    // Go thru children list in spec and create the children
+    for (child = chman->GetChild(iChromX); child != NULL; child = chman->GetNext(child))
+    {
+	TCaeElemType ftype = chman->FapType(child);
+	if (ftype == ECae_Object)
+	{
+	    CAE_Object::NewL(NULL, this, child, iEnv);
+	}
+	else if (ftype == ECae_State)
+	{
+	    char *type = chman->GetType(child); 
+	    char *name = chman->GetName(child); 
+	    int len = chman->GetLen(child); 
+	    CAE_StateBase::StateType access = chman->GetAccessType(child);
+
+	    CAE_State::NewL(name, len, this,  TTransInfo(), access);  
+	}
+	else
+	{
+	    // TODO Exception to be raised
+	}
+    }
 }
 
 FAPWS_API CAE_Object::~CAE_Object()
@@ -641,7 +707,7 @@ FAPWS_API CAE_Object::~CAE_Object()
 		delete iChrom;
 		iChrom = NULL;
 	}
-	iProvider = NULL; // Not owned
+	iEnv = NULL; // Not owned
 };
 
 FAPWS_API TBool CAE_Object::IsTheSame(CAE_Object* aObj) const
@@ -924,7 +990,7 @@ FAPWS_API void CAE_Object::Reset()
 
 FAPWS_API CAE_Object* CAE_Object::CreateNewL(const char* aInstName, TChromOper aOper, const CAE_Object* aParent2)
 {
-	CAE_Object* sinheritor = new CAE_Object(aInstName, iMan, iProvider);
+	CAE_Object* sinheritor = new CAE_Object(aInstName, iMan, iEnv);
 	sinheritor->SetChromosome(aOper, iChrom, aParent2?aParent2->iChrom:NULL);
 	sinheritor->ConstructL();
 	return sinheritor;

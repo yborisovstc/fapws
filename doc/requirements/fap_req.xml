@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+
+<!DOCTYPE article SYSTEM "/usr/share/sgml/docbook/dtd/xml/4.5/docbookx.dtd">
+
+
+<!--
+To transform to html:
+!xsltproc /usr/share/xml/docbook/stylesheet/nwalsh/html/onechunk.xsl fap_req.xml
+-->
+
+
+<article>
+    <title>Finite automata environment. Requirements.</title>
+
+    <articleinfo>
+	<author>Yuri Borisov</author>
+    </articleinfo>
+
+    <bibliolist>
+	<title>References</title>
+
+	<biblioentry id="ref_deb_howto">
+	    <abbrev>DEBS_HOWTO</abbrev>
+	    <productname><ulink url="file:///home/yborisov/projects/linux-study/debianisation.howto"/></productname>
+	    <subtitle>Debianization How-to (from Levichev Egor)</subtitle>
+	</biblioentry>
+
+    </bibliolist>
+
+
+    
+    <sect1>
+	<title>General</title>
+	<sect2><title>FAP_REQ_GEN_001 Creating object from spec</title>
+	</sect2>
+    </sect1>
+
+    <sect1><title>Use cases</title>
+	<sect2><title>FAP_UC_001 Making changes in the object</title>
+	    <simplelist>
+		<member>There was a spec for object creation provided.</member>
+		<member>Object was created from the spec.</member>
+		<member>Some changes get required for the object.</member>
+		<member>There is mechanism of making change from dedicated change spec</member>
+	    </simplelist>
+	</sect2>
+    </sect1>
+
+</article>

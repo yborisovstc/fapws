@@ -9,7 +9,25 @@
 #include <fapbase.h>
 #include <vector>
 
-class CAE_ChroManBase;
+
+//*********************************************************
+// Factory of Chromosome manager for XML based chromosome
+//*********************************************************
+
+class CAE_ChroManBase: public MAE_ChroMan
+{
+    public:
+	virtual ~CAE_ChroManBase() {};
+};
+
+
+// Chromosome manager for XML based chromosome
+class CAE_ChroManXFact
+{
+    public:
+	static CAE_ChroManBase *CreateChroManX(const char *aFileName);
+};
+
 
 
 // Base class of provider implementation
@@ -28,12 +46,11 @@ class CAE_Fact: public MAE_Provider
 	FAPWS_API static CAE_Fact* NewL();
 	FAPWS_API virtual ~CAE_Fact();
 	FAPWS_API void AddProviderL(CAE_ProviderBase* aProv);
-	FAPWS_API void AddChmanXml(const char *aXmlFileName);
 	// From MAE_Provider
 	FAPWS_API virtual CAE_Base* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const;
+	FAPWS_API virtual CAE_Base* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
-	virtual MAE_ChroMan* Chman() const;
     protected:
 	FAPWS_API CAE_Fact();
 	FAPWS_API void ConstructL();
@@ -41,7 +58,6 @@ class CAE_Fact: public MAE_Provider
 	CAE_ProviderBase* GetProviderAt(TInt aInd) const;
     private:
 	vector<CAE_ProviderBase*>* iProviders;
-	CAE_ChroManBase *iChroman; // Chromosome manager
 };
 
 
@@ -53,32 +69,9 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	FAPWS_API virtual ~CAE_ProviderGen();
 	// From MAE_Provider
 	FAPWS_API virtual CAE_Base* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const;
+	FAPWS_API virtual CAE_Base* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
 };
-
-// Base of chromosome manager
-class CAE_ChroManBase: public MAE_ChroMan
-{
-    public:
-	FAPWS_API virtual ~CAE_ChroManBase() {};
-    protected:
-	FAPWS_API CAE_ChroManBase() {};
-};
-
-// Chromosome manager for XML based chromosome
-class CAE_ChroManX: public CAE_ChroManBase
-{
-    public:
-	static CAE_ChroManX *New(const char *aFileName);
-	virtual ~CAE_ChroManX();
-	virtual void Copy(const void *aSrc, void *aDest);
-    protected:
-	void Construct(const char *aFileName);
-	CAE_ChroManX();
-    private:
-	void *iDoc;	// XML document
-};
-
 
 #endif // __FAP_FACT_H
