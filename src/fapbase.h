@@ -53,7 +53,8 @@ enum TCaeElemType
     ECae_Object = 1,
     ECae_State = 2,
     ECae_Transf = 3,	// Transition transformation
-    ECae_Logspec = 4	// Logging specification
+    ECae_Logspec = 4,	// Logging specification
+    ECae_Dep = 5	// Dependency
 };
 
 // Type UID of class mask 
@@ -151,7 +152,7 @@ class CAE_State;
 class CAE_StateBase;
 
 typedef void (*TTransFun)(CAE_Object* aObject, CAE_State* aState);
-typedef void (*TLogFormatFun)(char* aBuf, CAE_StateBase* aState);
+typedef char *(*TLogFormatFun)(CAE_StateBase* aState, TBool aCurr);
 
 // Object provider interface. That's like the similar in the Symbian OS but 
 // static method is used to obtain type UID. That should allow to provide templated classed instance
@@ -230,7 +231,7 @@ public:
 	TInt Len() const {return iLen; };
 	FAPWS_API void AddInputL(CAE_StateBase* aState);
 	FAPWS_API void Set(void* aNew);
-	void* Value() const { return iCurr;}
+	const void* Value() const { return iCurr;}
 	void RefreshOutputs();
 	void RefreshOutput(CAE_StateBase* aState);
 	FAPWS_API CAE_StateBase* Input(TInt aInd);
@@ -249,6 +250,8 @@ private:
 	void RemoveOutput(CAE_StateBase* aState);
 	void RemoveInput(CAE_StateBase* aState);
 	const char *AccessType() const;
+	static char *FmtData(void *aData, int aLen);
+	void LogUpdate();
 public:
 	void	*iCurr, *iNew;
 	TLogFormatFun iLogFormFun;
@@ -271,17 +274,33 @@ struct TOperationInfo
 	TUint32 iType1; // Type of the first operand
 	TUint32 iType2; // Type of the second operand, 0 if operation is unary
 };
+// Formatter of CAE element
 
+class CAE_Formatter
+{
+    public:
+	CAE_Formatter(int aUid, TLogFormatFun aFun);
+	~CAE_Formatter();
+    public:
+	TLogFormatFun iFun;
+	// UID of state data for wich formatter is applicable
+	int iStateDataUid;
+};
+
+// State transition transformation
+// TODO YB iId represents constant Id. Consider universal solution
 class TTransInfo
 {
 public:
-	TTransInfo(): iFun(NULL), iOpInd(0), iCbo(NULL) {}
-	TTransInfo(TTransFun aFun, CAE_Object* aCbo = NULL): iFun(aFun), iCbo(aCbo), iOpInd(0) {}
+	TTransInfo(): iFun(NULL), iOpInd(0), iCbo(NULL), iId(NULL) {}
+	TTransInfo(TTransFun aFun, const char* aId = NULL, CAE_Object* aCbo = NULL):
+	    iFun(aFun), iCbo(aCbo), iOpInd(0), iId(aId) {}
 	TTransInfo(TUint32 aOpInd): iFun(NULL), iOpInd(aOpInd) {}
 public:
 	TTransFun iFun;
 	CAE_Object* iCbo; // Keep Cbo in order to be compatible with legacy projects
 	TUint32 iOpInd;
+	const char *iId;	// Unique identificator of Transition
 };
 
 // Base class for state with transition function
@@ -290,6 +309,7 @@ public:
 // #1 Regular state. It has the transition function with only one argument- the pointer to state itself
 // #2 Special state. It has the transition function with two arguments- the pointer to object and to the state
 // Special state transition function can access to object data. So it should be used in the rare cases 
+// TODO YB: Consider to combine CAE_State with CAE_StateBase
 class CAE_State: public CAE_StateBase
 {
 public:
@@ -323,6 +343,7 @@ public:
 	TTransInfo iTrans;
 protected:
 	// UID of type of data. This is variant of object type. 
+	// TODO YB Migrate to string based data type
 	TInt iDataTypeUid;
 };
 
@@ -352,6 +373,7 @@ public:
 	static inline TInt DataTypeUid();
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
+	static char *LogFormFun(CAE_StateBase* aState, TBool aCurr);
 private:
 	FAPWS_API virtual void DoOperation();
 };
@@ -359,7 +381,7 @@ private:
 template <class T>
 inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr) 
 { 
-	return aPtr->IsDataType(DataTypeUid())?static_cast<CAE_TState<T>*>(aPtr):NULL; 
+    return aPtr->IsDataType(DataTypeUid())?static_cast<CAE_TState<T>*>(aPtr):NULL; 
 }; 
 
 template <class T>
@@ -393,6 +415,8 @@ class MAE_ChroMan
 	virtual CAE_StateBase::StateType GetAccessType(void *aSpec) = 0;
 	virtual int GetLen(void *aSpec) = 0;
 	virtual TCaeElemType FapType(void *aElement) = 0;
+	virtual char *GetStrAttr(void *aSpec, const char *aName) = 0;
+	virtual int GetAttrInt(void *aSpec, const char *aName) = 0;
 };
 
 // Provider of CAE elements
@@ -403,6 +427,10 @@ public:
 	virtual CAE_Base* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
 	virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
+	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
+	virtual void RegisterTransf(const TTransInfo *aName) = 0;
+	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
+	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
 };
 
 // Log recorder interface
@@ -482,6 +510,7 @@ protected:
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 private:
 	FAPWS_API CAE_State* GetStateByInd(TUint32 aInd);
+	FAPWS_API CAE_State* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
 	// Returns true if given index points to chromosome control tag

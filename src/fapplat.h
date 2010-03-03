@@ -59,7 +59,7 @@ typedef bool TBool;
 
 typedef int TInt; 
 typedef long int TUint32; 
-typedef short int TUint8; 
+typedef unsigned char TUint8; 
 typedef bool TBool; 
 #define ETrue 1
 #define EFalse 0

@@ -18,6 +18,7 @@
 //*************************************************************
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "fapplat.h"
 #include "panics.h"
 #include "fapbase.h"
@@ -28,6 +29,9 @@ const TInt KNameSeparator  = '.';
 const TInt KNameSeparatorLen = 1;
 const TInt KNameMaxLen = 50;
 
+// Parameters of XML spec
+const char *KXTransAttr_State = "state";
+const char *KXTransAttr_Type = "type";
 
 // Length of bite automata word 
 const int KBaWordLen = 32;
@@ -121,35 +125,70 @@ const char *CAE_StateBase::AccessType() const
 
 FAPWS_API void CAE_StateBase::Confirm()
 {
-	if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    {
+	void* nthis = this;
+	if (memcmp(iCurr, iNew, iLen))
 	{
-		void* nthis = this;
-		if (memcmp(iCurr, iNew, iLen))
-		{
-			for (TInt i = 0; i < iOutputsList->size(); i++)
-				((CAE_StateBase*) iOutputsList->at(i))->SetActive();
-		}
-		memcpy(iCurr, iNew, iLen); // iCurr << iNew
+	    for (TInt i = 0; i < iOutputsList->size(); i++)
+		((CAE_StateBase*) iOutputsList->at(i))->SetActive();
 	}
+	memcpy(iCurr, iNew, iLen); // iCurr << iNew
+    }
+}
+
+char *CAE_StateBase::FmtData(void *aData, int aLen)
+{
+    char* buf = (char *) malloc(aLen*4);
+    memset(buf, 0, aLen*4);
+    char fmtsmb[10] = "";
+    for (TInt i=0; i < aLen; i++)
+    {
+	int symb = ((TUint8*) aData)[i];
+	fmtsmb[0] = 0;
+	sprintf(fmtsmb, "%02x ", symb);
+	strcat(buf, fmtsmb);
+    }
+    return buf;
+}
+
+void CAE_StateBase::LogUpdate()
+{
+    char* buf_cur = NULL;
+    char* buf_new = NULL;
+    if (iLogFormFun != NULL)
+    {
+	buf_cur = iLogFormFun(this, ETrue);
+	buf_new = iLogFormFun(this, EFalse);
+    }
+    else
+    {
+	buf_cur = FmtData(iCurr, iLen);
+	buf_new = FmtData(iNew, iLen);
+    }
+    iMan->Logger()->WriteFormat("State update:: Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
+    free (buf_cur);
+    free (buf_new);
 }
 
 FAPWS_API void CAE_StateBase::Update()
 {
-	void* nthis = this;
-	if (iStateType != EType_Input || iStateType == EType_Input && iInputsList->size())
-	{
-		DoTrans();
-	}
+    void* nthis = this;
+    if (iStateType != EType_Input || iStateType == EType_Input && iInputsList->size())
+    {
+	DoTrans();
+	LogUpdate();
+    }
 }
 
 FAPWS_API void CAE_StateBase::Set(void* aNew) 
 {
-	if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
-	{
-		if (memcmp(aNew, iNew, iLen))
-				SetUpdated();
-		memcpy(iNew, aNew, iLen); 
-	}
+    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    {
+	if (memcmp(aNew, iNew, iLen))
+	    SetUpdated();
+	memcpy(iNew, aNew, iLen); 
+    }
 };
 
 FAPWS_API void* CAE_StateBase::DoGetObject(TInt aUid)
@@ -274,13 +313,15 @@ FAPWS_API void CAE_StateBase::Reset()
 
 const char* KCAE_StateName = "State";
 
-FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid, TLogFormatFun aLogFormFun):
-	CAE_StateBase(aInstName, aLen, aMan, aType, aLogFormFun), iTrans(aTrans)
+FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, 
+	TInt aDataTypeUid, TLogFormatFun aLogFormFun):
+    CAE_StateBase(aInstName, aLen, aMan, aType, aLogFormFun), iTrans(aTrans)
 {
 	iDataTypeUid = aDataTypeUid;
 };
 
-FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid, TLogFormatFun aLogFormFun)
+FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, 
+	TInt aDataTypeUid, TLogFormatFun aLogFormFun)
 {
 	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType, aDataTypeUid, aLogFormFun);
 	self->ConstructL();
@@ -437,6 +478,18 @@ template<> FAPWS_API void CAE_TState<TUint32>::DoOperation()
 {
 }
 
+template<> FAPWS_API char *CAE_TState<TUint32>::LogFormFun(CAE_StateBase* aState, TBool aCurr)
+{
+    CAE_State *state = aState->GetObject(state); 
+    if (!state->IsDataType(DataTypeUid()))
+	return NULL;
+    TUint32 data = *((TUint32 *) (aCurr  ? aState->iCurr : aState->iNew));
+    char* buf = (char *) malloc(10);
+    memset(buf, 0, 10);
+    sprintf(buf, "%d ", data);
+    return buf;
+}
+
 template<> FAPWS_API TBool CAE_TState<TInt>::SetTrans(TTransInfo aTinfo)
 {
 	TBool res = ETrue;
@@ -461,11 +514,24 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 {
 }
 
+//*********************************************************
+// CAE element logging formatter
+//*********************************************************
+
+CAE_Formatter::CAE_Formatter(int aUid, TLogFormatFun aFun):
+    iStateDataUid(aUid), iFun(aFun)
+{
+}
+
+
+CAE_Formatter::~CAE_Formatter()
+{
+}
+
 
 //*********************************************************
 // CAE_Object
 //*********************************************************
-
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
 	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iEnv(aEnv), 
@@ -657,6 +723,7 @@ FAPWS_API void CAE_Object::ConstructFromChromL()
 FAPWS_API void CAE_Object::ConstructFromChromXL()
 {
     MAE_ChroMan *chman = iEnv->Chman();
+    MAE_Provider *prov = iEnv->Provider();
     _FAP_ASSERT(chman != NULL);
     char *name = chman->GetName(iChromX);
     if (name != NULL && strlen(name) != 0)
@@ -676,12 +743,39 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	}
 	else if (ftype == ECae_State)
 	{
-	    char *type = chman->GetType(child); 
+	    int datatype = chman->GetAttrInt(child, KXTransAttr_Type); 
 	    char *name = chman->GetName(child); 
 	    int len = chman->GetLen(child); 
 	    CAE_StateBase::StateType access = chman->GetAccessType(child);
+	    const CAE_Formatter *form = prov->GetFormatter(datatype);
+	    TLogFormatFun formfun = form ? form->iFun : NULL; 
 
-	    CAE_State::NewL(name, len, this,  TTransInfo(), access);  
+	    CAE_State::NewL(name, len, this,  TTransInfo(), access, datatype, formfun);  
+	}
+	else if (ftype == ECae_Transf)
+	{
+	    void *dep = NULL;
+	    char *name = chman->GetName(child); 
+	    const TTransInfo *trans = prov->GetTransf(name);
+	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
+	    CAE_State* state = GetStateByName(state_name);
+	    if (state != NULL)
+	    {
+		state->SetTrans(*trans);
+	    }
+	    // Set dependencies
+	    for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
+	    {
+		char *dep_name = chman->GetStrAttr(dep,"id"); 
+		if (dep_name != NULL)
+		{
+		    CAE_State* dstate = GetStateByName(dep_name);
+		    if (dstate != NULL)
+		    {
+			state->AddInputL(dstate);
+		    }
+		}
+	    }
 	}
 	else
 	{
@@ -953,6 +1047,22 @@ FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 		}
 	}
 	return res;
+}
+
+FAPWS_API CAE_State* CAE_Object::GetStateByName(const char *aName)
+{
+    CAE_State* res = NULL;
+    for (TInt i = 0; i < iCompReg->size(); i++)
+    {
+	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	CAE_State* state = (CAE_State*) comp->GetObject(state);
+	if (state != NULL && (strcmp(aName, state->InstName()) == 0))
+	{
+	    res = state; 
+	    break;
+	}
+    }
+    return res;
 }
 
 

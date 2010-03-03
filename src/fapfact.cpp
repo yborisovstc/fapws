@@ -16,6 +16,7 @@ const char* KCaeElTypeObject = "object";
 const char* KCaeElTypeState = "state";
 const char* KCaeElTypeTransf = "transf";
 const char* KCaeElTypeLogspec = "logspec";
+const char* KCaeElTypeDep = "dep";
 
 //*********************************************************
 // Base class of provider implementation
@@ -37,10 +38,45 @@ FAPWS_API CAE_ProviderBase::~CAE_ProviderBase()
 
 FAPWS_API CAE_ProviderGen::CAE_ProviderGen()
 {
+    iTransfs = new vector<const TTransInfo*>;
+    iFormatters = new vector<CAE_Formatter*>;
+    // Register formatterw
+    RegisterFormatter(CAE_TState<TUint32>::DataTypeUid(), CAE_TState<TUint32>::LogFormFun);
 }
 
 FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
 {
+    if (iTransfs != NULL)
+    {
+    /* YB no need as trans info is constant ref for now
+	TInt count = iTransfs->size();
+	for (TInt i = 0; i < count; i++)
+	{
+	    TTransInfo* elem = static_cast<TTransInfo*>(iTransfs->at(i));
+	    if (elem != NULL)
+	    {
+		delete elem;
+	    }
+	}
+	*/
+	delete iTransfs;
+	iTransfs = NULL;
+    }
+    if (iFormatters != NULL)
+    {
+	TInt count = iFormatters->size();
+	for (TInt i = 0; i < count; i++)
+	{
+	    CAE_Formatter* elem = static_cast<CAE_Formatter*>(iFormatters->at(i));
+	    if (elem != NULL)
+	    {
+		delete elem;
+	    }
+	}
+	delete iFormatters;
+	iFormatters = NULL;
+    }
+
 }
 
 FAPWS_API CAE_Base* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const
@@ -83,6 +119,57 @@ FAPWS_API  CAE_Base* CAE_ProviderGen::CreateObjectL(const char *aName) const
     return res;
 }
 
+const TTransInfo* CAE_ProviderGen::GetTransf(const char *aName) const
+{
+    _FAP_ASSERT(aName != NULL);
+    const TTransInfo *res = NULL;
+    int count = iTransfs->size();
+    for (int i = 0; i < count; i++)
+    {
+	const TTransInfo* trans =   static_cast<const TTransInfo*>(iTransfs->at(i));
+	if (strcmp(trans->iId, aName) == 0)
+	{
+	    res = trans;
+	    break;
+	}
+    }
+    return res;
+}
+
+void CAE_ProviderGen::RegisterTransf(const TTransInfo *aTrans)
+{
+    _FAP_ASSERT(aTrans != NULL);
+    iTransfs->push_back(aTrans);
+}
+
+const CAE_Formatter* CAE_ProviderGen::GetFormatter(int aUid) const
+{
+    const CAE_Formatter *res = NULL;
+    int count = iFormatters->size();
+    for (int i = 0; i < count; i++)
+    {
+	const CAE_Formatter* elem =   static_cast<const CAE_Formatter*>(iFormatters->at(i));
+	if (elem->iStateDataUid == aUid)
+	{
+	    res = elem;
+	    break;
+	}
+    }
+    return res;
+
+}
+
+void CAE_ProviderGen::RegisterFormatter(CAE_Formatter *aForm)
+{
+    _FAP_ASSERT(aForm != NULL);
+    iFormatters->push_back(aForm);
+}
+
+void CAE_ProviderGen::RegisterFormatter(int aUid, TLogFormatFun aFun)
+{
+    RegisterFormatter(new CAE_Formatter(aUid, aFun));
+}
+
 //*********************************************************
 // Chromosome manager for XML based chromosome
 //*********************************************************
@@ -105,6 +192,8 @@ class CAE_ChroManX: public CAE_ChroManBase
 	virtual int GetLen(void *aSpec);
 	virtual CAE_StateBase::StateType GetAccessType(void *aSpec);
 	virtual TCaeElemType FapType(void *aElement);
+	virtual char *GetStrAttr(void *aSpec, const char *aName);
+	virtual int GetAttrInt(void *aSpec, const char *aName);
     protected:
 	void Construct(const char *aFileName);
 	CAE_ChroManX();
@@ -193,6 +282,10 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Object;
     else if (strcmp(type, KCaeElTypeState) == 0)
 	res = ECae_State;
+    else if (strcmp(type, KCaeElTypeTransf) == 0)
+	res = ECae_Transf;
+    else if (strcmp(type, KCaeElTypeDep) == 0)
+	res = ECae_Dep;
     return res;
 }
 
@@ -246,6 +339,27 @@ CAE_StateBase::StateType CAE_ChroManX::GetAccessType(void *aSpec)
 CAE_ChroManBase *CAE_ChroManXFact::CreateChroManX(const char *aFileName)
 {
     return CAE_ChroManX::New(aFileName);
+}
+
+char *CAE_ChroManX::GetStrAttr(void *aSpec, const char *aName)
+{
+    _FAP_ASSERT(aSpec!= NULL);
+    xmlNodePtr node = (xmlNodePtr) aSpec;
+    xmlChar *attr = xmlGetProp(node, (const xmlChar *) aName);
+    return (char *) attr;
+}
+
+int CAE_ChroManX::GetAttrInt(void *aSpec, const char *aName)
+{
+    int res = -1;
+    _FAP_ASSERT(aSpec!= NULL);
+    xmlNodePtr node = (xmlNodePtr) aSpec;
+    xmlChar *attr = xmlGetProp(node, (const xmlChar *) aName);
+    if (attr != NULL)
+    {
+	res = atoi((const char *) attr);
+    }
+    return res;
 }
 
 
@@ -347,5 +461,53 @@ FAPWS_API CAE_Base* CAE_Fact::CreateObjectL(const char *aName) const
 {
     CAE_Base* res = NULL;
     return res;
+}
+
+const TTransInfo* CAE_Fact::GetTransf(const char *aName) const
+{
+    const TTransInfo* res = NULL;
+    for (TInt i = 0; i < iProviders->size(); i++)
+    {
+	CAE_ProviderBase* prov = GetProviderAt(i);
+	_FAP_ASSERT(prov != NULL);
+	res = prov->GetTransf(aName);
+	if (res != NULL)
+	    break;
+    }
+    return res;
+}
+
+void CAE_Fact::RegisterTransf(const TTransInfo *aTrans)
+{
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->RegisterTransf(aTrans);
+    }
+}
+
+const CAE_Formatter* CAE_Fact::GetFormatter(int aUid) const
+{
+    const CAE_Formatter* res = NULL;
+    for (TInt i = 0; i < iProviders->size(); i++)
+    {
+	CAE_ProviderBase* prov = GetProviderAt(i);
+	_FAP_ASSERT(prov != NULL);
+	res = prov->GetFormatter(aUid);
+	if (res != NULL)
+	    break;
+    }
+    return res;
+}
+
+void CAE_Fact::RegisterFormatter(CAE_Formatter *aForm)
+{
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->RegisterFormatter(aForm);
+    }
 }
 

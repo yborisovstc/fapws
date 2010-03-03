@@ -349,7 +349,7 @@ void CAE_LogCtrl::FormatState(CAE_StateBase* aState, char* aRes)
 {
 	if (aState->iLogFormFun != NULL)
 	{
-		aState->iLogFormFun(aRes, aState);
+		//aState->iLogFormFun(aRes, aState);
 	}
 	else
 	{ // Format function not defined, use default format
