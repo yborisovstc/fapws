@@ -137,6 +137,30 @@ FAPWS_API void CAE_StateBase::Confirm()
     }
 }
 
+char *CAE_StateBase::GetFmtData(TBool aCurr)
+{
+    char* buf = NULL;
+    if (iLogFormFun != NULL)
+    {
+	buf = iLogFormFun(this, aCurr);
+    }
+    else
+    {	
+	buf = (char *) malloc(iLen*4);
+	memset(buf, 0, iLen*4);
+	char fmtsmb[10] = "";
+	void *data = aCurr ? iCurr : iNew;
+	for (TInt i=0; i < iLen; i++)
+	{
+	    int symb = ((TUint8*) data)[i];
+	    fmtsmb[0] = 0;
+	    sprintf(fmtsmb, "%02x ", symb);
+	    strcat(buf, fmtsmb);
+	}
+    }
+    return buf;
+}
+
 char *CAE_StateBase::FmtData(void *aData, int aLen)
 {
     char* buf = (char *) malloc(aLen*4);
@@ -154,21 +178,19 @@ char *CAE_StateBase::FmtData(void *aData, int aLen)
 
 void CAE_StateBase::LogUpdate()
 {
-    char* buf_cur = NULL;
-    char* buf_new = NULL;
-    if (iLogFormFun != NULL)
-    {
-	buf_cur = iLogFormFun(this, ETrue);
-	buf_new = iLogFormFun(this, EFalse);
-    }
-    else
-    {
-	buf_cur = FmtData(iCurr, iLen);
-	buf_new = FmtData(iNew, iLen);
-    }
-    iMan->Logger()->WriteFormat("State update:: Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
+    char *buf_cur = GetFmtData(ETrue);
+    char *buf_new = GetFmtData(EFalse);
+    iMan->Logger()->WriteFormat("State update - Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
     free (buf_cur);
     free (buf_new);
+    // Loggin inputs
+    for (int i = 0; i < iInputsList->size(); i++)
+    {
+	CAE_StateBase* state = (CAE_StateBase*) iInputsList->at(i);
+	char* buf = state->GetFmtData(ETrue);
+	iMan->Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
+	free(buf);	
+    }
 }
 
 FAPWS_API void CAE_StateBase::Update()

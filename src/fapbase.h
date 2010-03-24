@@ -240,6 +240,7 @@ public:
 	FAPWS_API void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
 	TBool IsOutput() { return iStateType == EType_Output;}
+	char *GetFmtData(TBool aCurr);
 	// From MObjectProvider
 	FAPWS_API virtual void* DoGetObject(TInt aUid);
 protected:

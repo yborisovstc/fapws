@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+
+<!DOCTYPE  CAEObject [
+
+<!-- Logging data. States the data of FAP element that should be logged -->
+<!ELEMENT logdata EMPTY>
+<!-- Logspec includes attribute "levent" and assosiated logging data set -->
+<!ELEMENT logspec (logdata+)>
+<!ELEMENT state (logspec*)>
+<!ELEMENT object (object* , state*, logspec*)>
+
+<!ATTLIST state 
+  name CDATA #REQUIRED
+  type (Int | Boolean) #REQUIRED
+>
+<!ATTLIST logspec levent (Updated) #REQUIRED>
+<!ATTLIST logdata ldata (Data) #REQUIRED>
+
+]> <!-- Doctype-->
+
+<object>
+    <object></object>
+</object>
+
