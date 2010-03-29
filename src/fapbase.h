@@ -163,6 +163,16 @@ public:
 	template <class T> T* GetObject(T* aInst) {return aInst = static_cast<T*>(DoGetObject(aInst->ObjectUid())); };
 };
 
+// Log recorder interface
+class MCAE_LogRec
+{
+public:
+	virtual void WriteRecord(const char* aText) = 0;
+	virtual void WriteFormat(const char* aFmt,...) = 0;
+	virtual void Flush() = 0;
+};
+
+
 
 class CAE_Base: public MObjectProvider
 {
@@ -253,6 +263,7 @@ private:
 	const char *AccessType() const;
 	static char *FmtData(void *aData, int aLen);
 	void LogUpdate();
+	inline MCAE_LogRec *Logger();
 public:
 	void	*iCurr, *iNew;
 	TLogFormatFun iLogFormFun;
@@ -266,6 +277,7 @@ protected:
 };
 
 inline TInt CAE_StateBase::ObjectUid() { return KObUid_CAE_StateBase;} 
+
 
 // Parameters of operation
 struct TOperationInfo
@@ -434,16 +446,6 @@ public:
 	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
 };
 
-// Log recorder interface
-class MCAE_LogRec
-{
-public:
-	virtual void WriteRecord(const char* aText) = 0;
-	virtual void WriteFormat(const char* aFmt,...) = 0;
-	virtual void Flush() = 0;
-};
-
-
 // FAP environment interface
 class MAE_Env
 {
@@ -530,9 +532,14 @@ private:
 
 inline TInt CAE_Object::ObjectUid() { return EObUid | EObStypeUid;} 
 
-inline MCAE_LogRec *CAE_Object::Logger() {return iEnv->Logger(); }
+inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
 
-inline void  CAE_Object::RegisterCompL(CAE_Base* aComp) { iCompReg->push_back(aComp); aComp->iMan = this;};
+inline void  CAE_Object::RegisterCompL(CAE_Base* aComp) 
+{ 
+    iCompReg->push_back(aComp); 
+    aComp->iMan = this;
+    if (aComp->iUpdated) SetUpdated();
+};
 	
 // Bit based authomata 
 class CAE_ObjectBa: public CAE_Object
@@ -678,5 +685,7 @@ private:
 	CAE_ObjectAs* iObs;
 };
 
+
+inline MCAE_LogRec *CAE_StateBase::Logger() { return iMan ? iMan->Logger(): NULL;}
 
 #endif // __FAP_BASE_H

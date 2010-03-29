@@ -83,6 +83,7 @@ FAPWS_API CAE_Base::~CAE_Base()
 CAE_StateBase::CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aStateType, TLogFormatFun aLogFormFun): 
 	CAE_Base(aInstName, aMan), iLen(aLen), iStateType(aStateType), iFlags(0x00), iLogFormFun(aLogFormFun)
 {
+    _FAP_ASSERT (iMan != NULL);
 }
 	
 FAPWS_API void CAE_StateBase::ConstructL()
@@ -91,10 +92,13 @@ FAPWS_API void CAE_StateBase::ConstructL()
 	iNew = (void*) new  TUint8[iLen];
 	memset(iCurr, 0x00, iLen);
 	memset(iNew, 0x00, iLen);
-	iMan->RegisterCompL(this);
+	// TODO [YB] Do we need to assert iMan?
+	if (iMan)
+	    iMan->RegisterCompL(this);
 	iInputsList = new vector<CAE_StateBase*>;
 	iOutputsList = new vector<CAE_StateBase*>;
-	iMan->Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
+	if (Logger())
+	    Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
 }	
 
 FAPWS_API CAE_StateBase::~CAE_StateBase()
@@ -180,7 +184,8 @@ void CAE_StateBase::LogUpdate()
 {
     char *buf_cur = GetFmtData(ETrue);
     char *buf_new = GetFmtData(EFalse);
-    iMan->Logger()->WriteFormat("State update - Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
+    if (Logger())
+	Logger()->WriteFormat("State update - Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
     free (buf_cur);
     free (buf_new);
     // Loggin inputs
@@ -188,7 +193,8 @@ void CAE_StateBase::LogUpdate()
     {
 	CAE_StateBase* state = (CAE_StateBase*) iInputsList->at(i);
 	char* buf = state->GetFmtData(ETrue);
-	iMan->Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
+	if (Logger())
+	    Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
 	free(buf);	
     }
 }
@@ -368,8 +374,9 @@ FAPWS_API void CAE_State::DoTrans()
 		_FAP_ASSERT(iLen == ((CAE_StateBase*) iInputsList->at(0))->Len());
 		memcpy(iNew, ((CAE_StateBase*) iInputsList->at(0))->iCurr, iLen);
 	}
-	else
-		memcpy(iNew, iCurr, iLen);
+// [YB] Default transition denied (ref FAP_REQ_STA_01, bug#133)
+//	else
+//		memcpy(iNew, iCurr, iLen);
 };
 
 // The base class has the trivial implementation of operation

@@ -224,15 +224,19 @@ CAE_LogSpecCon::CAE_LogSpecCon(const char* aSpecFileName):
 
 CAE_LogSpecCon::~CAE_LogSpecCon()
 {
+    if (iSpecsFile)
+    {
 	fclose(iSpecsFile);
-	if (iSpecs != NULL)
+	iSpecsFile = NULL;
+    }
+    if (iSpecs != NULL)
+    {
+	for (TInt i= 0; i < iSpecs->size(); i++)
 	{
-		for (TInt i= 0; i < iSpecs->size(); i++)
-		{
-			delete iSpecs->at(i);
-		}
-		delete iSpecs;
+	    delete iSpecs->at(i);
 	}
+	delete iSpecs;
+    }
 }
 
 CAE_LogSpecCon* CAE_LogSpecCon::NewL(const char* aSpecFileName)

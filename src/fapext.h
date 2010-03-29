@@ -26,6 +26,7 @@ public:
 	FAPWS_API void AddL(CAE_Object* aComp);
 	FAPWS_API void Step();
 	FAPWS_API void AddChmanXml(const char *aXmlFileName);
+	FAPWS_API inline CAE_Object *Root();
 public:
 	// From MAE_Env
 	virtual MAE_Provider *Provider() const;
@@ -46,5 +47,6 @@ private:
 };
 
 
+inline CAE_Object *CAE_Env::Root() { return iRoot;}
 
 #endif // __FAP_EXT_H
