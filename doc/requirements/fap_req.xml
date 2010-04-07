@@ -27,11 +27,10 @@ To transform to html:
 
     </bibliolist>
 
-
     
-    <sect1>
-	<title>General</title>
+    <sect1> <title>General</title>
 	<sect2><title>FAP_REQ_GEN_001 Creating object from spec</title>
+	    <simpara>Framework shall support creation object from spec</simpara>
 	</sect2>
     </sect1>
 
