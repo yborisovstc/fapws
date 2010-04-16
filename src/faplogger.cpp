@@ -142,11 +142,11 @@ TInt CAE_LogRec::CreateLog()
     strcpy(logfile, home_dir);
     strcat(logfile, "/");
     strcat(logfile, iLogFileName);
-    printf("logfilename: %s\n", logfile);
+//    printf("\nFAP logfilename: %s\n", logfile);
 
 //    iLogFile = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     iLogFile = fopen(logfile, "w+");
-    printf("logfile: %x\n", iLogFile);
+//    printf("logfile: %x\n", iLogFile);
     return (iLogFile != NULL);
 }
 
@@ -302,17 +302,17 @@ CAE_LogCtrl::~CAE_LogCtrl()
 	delete iRec;
 }
 
-void CAE_LogCtrl::ConstructL(const char* aSpecFileName)
+void CAE_LogCtrl::ConstructL(const char* aSpecFileName, const char *aLogFileName)
 {
-	iRec = CAE_LogRec::NewL(KLogFileName);
+	iRec = CAE_LogRec::NewL(aLogFileName ? aLogFileName : KLogFileName);
 	iSpecs = CAE_LogSpecCon::NewL(aSpecFileName);
 }
 
 
-CAE_LogCtrl* CAE_LogCtrl::NewL(CAE_Object* aFapRoot, const char* aSpecFileName)
+CAE_LogCtrl* CAE_LogCtrl::NewL(CAE_Object* aFapRoot, const char* aSpecFileName, const char *aLogFileName)
 {
 	CAE_LogCtrl* self = new  CAE_LogCtrl(aFapRoot);
-	self->ConstructL(aSpecFileName);
+	self->ConstructL(aSpecFileName, aLogFileName);
 	return self;
 }
 

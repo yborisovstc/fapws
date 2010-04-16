@@ -21,7 +21,7 @@ public:
 		KEnvLoadDefault = 3
 	};
 public:
-	FAPWS_API static CAE_Env* NewL(TInt aPriority, const char* aLogSpecFile, TInt aLoad = KEnvLoadDefault);
+	FAPWS_API static CAE_Env* NewL(TInt aPriority, const char* aLogSpecFile, const char *aLogFileName = NULL, TInt aLoad = KEnvLoadDefault);
 	FAPWS_API virtual ~CAE_Env();
 	FAPWS_API void AddL(CAE_Object* aComp);
 	FAPWS_API void Step();
@@ -34,7 +34,7 @@ public:
 	virtual MCAE_LogRec *Logger();
 protected:
 	FAPWS_API CAE_Env(TInt aPriority, TInt aLoad = KEnvLoadDefault);
-	FAPWS_API void ConstructL(const char* aLogSpecFile);
+	FAPWS_API void ConstructL(const char* aLogSpecFile, const char *aLogFileName = NULL);
 	FAPWS_API virtual void DoCancel();
 	FAPWS_API virtual void RunL();
 private:

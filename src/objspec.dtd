@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+
+<!DOCTYPE  CAEObject [
+
+<!-- State data types -->
+<!ENTITY dtype_uint '2'>
+
+<!-- Logging data. States the data of FAP element that should be logged -->
+<!ELEMENT logdata EMPTY>
+<!-- Logspec includes attribute "levent" and assosiated logging data set -->
+<!ELEMENT logspec (logdata+)>
+<!ELEMENT state (logspec*)>
+<!ELEMENT object (object* , state*, logspec*, transf*)>
+<!ELEMENT caeenv (object*)>
+<!-- Transition function -->
+<!ELEMENT transf (dep*)>
+
+<!ATTLIST state 
+  name CDATA #REQUIRED
+  type (Int | Boolean) #REQUIRED
+  init CDATA
+>
+<!ATTLIST logspec event (Creation, Updated) #REQUIRED>
+<!ATTLIST logdata ldata (Data) #REQUIRED>
+<!ATTLIST object type (CDATA) id (CDATA) #REQUIRED>
+<!-- 
+type - type of state
+datatype - data type (how state data can be interpreted
+id - identification of instance
+-->
+<!ATTLIST state type CDATA id CDATA len CDATA access (Reg, Inp, Out) #REQUIRED>
+
+<!-- Transition function -->
+<!ATTLIST transf state (CDATA) id (CDATA) #REQUIRED>
+
+<!-- Transition dependency -->
+<!ATTLIST dep id (CDATA) #REQUIRED>
+
+]> <!-- Doctype-->
+

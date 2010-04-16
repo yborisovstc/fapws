@@ -54,7 +54,8 @@ enum TCaeElemType
     ECae_State = 2,
     ECae_Transf = 3,	// Transition transformation
     ECae_Logspec = 4,	// Logging specification
-    ECae_Dep = 5	// Dependency
+    ECae_Dep = 5,	// Dependency
+    ECae_Logdata = 6	// Logging data
 };
 
 // Type UID of class mask 
@@ -172,6 +173,32 @@ public:
 	virtual void Flush() = 0;
 };
 
+// Logging events
+enum TLeBase 
+{
+    KBaseLe_None = 0,
+    KBaseLe_Updated = 1, // On element is updated
+    KBaseLe_Any = 2,	// Any time
+    KBaseLe_END__ = KBaseLe_Any
+};
+
+// Logging data
+enum TLdBase
+{
+    KBaseDa_None = 0,
+    KBaseDa_Name = 1,
+    KBaseDa_New = 2,	// New value of state
+    KBaseDa_Curr = 4,	// Current value of state
+    KBaseDa_Dep = 8,	// Dependencies of state (current value)
+};
+
+// Logging spec
+struct TLogSpecBase
+{
+    TLogSpecBase(TInt aEvent, TInt aData): iEvent(aEvent), iData(aData) {};
+    TInt  iEvent;  // Event of logging - TLeBase
+    TInt  iData;   // Data to log TLdBase
+};
 
 
 class CAE_Base: public MObjectProvider
@@ -180,26 +207,6 @@ public:
 	enum
 	{
 		KAbase_NameLen = 12
-	};
-	// Logging events
-	enum TLeBase 
-	{
-	    KBaseLe_None = 0,
-	    KBaseLe_Updated = 1, // On element is updated
-	    KBaseLe_Any = 2,	// Any time
-	    KBaseLe_END__ = KBaseLe_Any
-	};
-	// Logging data
-	enum TLdBase
-	{
-	    KBaseDa_Name = 1
-	};
-public:
-	// Logging spec
-	struct TLogSpecBase
-	{
-	    TInt  iEvent;  // Event of logging - TLeBase
-	    TInt  iData;   // Data to log TLeBase
 	};
 public:
 	CAE_Base(const char* aInstName, CAE_Object* aMan);
@@ -210,10 +217,14 @@ public:
 	void SetUpdated();
 	void SetName(const char *aName);
 	const char* InstName() const { return iInstName;};
+	void AddLogSpec(TInt aEvent, TInt aData);
+protected:
+	TInt GetLogSpecData(TInt aEvent) const;
 public:
 	char* iInstName;
 	TBool	iUpdated, iActive;
 	CAE_Object* iMan;
+	vector<TLogSpecBase>* iLogSpec;
 };
 
 
@@ -262,7 +273,7 @@ private:
 	void RemoveInput(CAE_StateBase* aState);
 	const char *AccessType() const;
 	static char *FmtData(void *aData, int aLen);
-	void LogUpdate();
+	void LogUpdate(TInt aLogData);
 	inline MCAE_LogRec *Logger();
 public:
 	void	*iCurr, *iNew;
@@ -497,6 +508,7 @@ public:
 	FAPWS_API CAE_Object* GetNextCompByType(TInt aUid, int* aCtx = NULL) const;
 	FAPWS_API CAE_Base* FindName(const char* aName) const;
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
+	FAPWS_API CAE_State* GetInput(const char *aName);
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
 	FAPWS_API void DoMutation();
 	FAPWS_API void Reset();

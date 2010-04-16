@@ -16,6 +16,7 @@ const char* KCaeElTypeObject = "object";
 const char* KCaeElTypeState = "state";
 const char* KCaeElTypeTransf = "transf";
 const char* KCaeElTypeLogspec = "logspec";
+const char* KCaeElTypeLogdata = "logdata";
 const char* KCaeElTypeDep = "dep";
 
 //*********************************************************
@@ -42,6 +43,7 @@ FAPWS_API CAE_ProviderGen::CAE_ProviderGen()
     iFormatters = new vector<CAE_Formatter*>;
     // Register formatterw
     RegisterFormatter(CAE_TState<TUint32>::DataTypeUid(), CAE_TState<TUint32>::LogFormFun);
+    RegisterFormatter(CAE_TState<TBool>::DataTypeUid(), CAE_TState<TBool>::LogFormFun);
 }
 
 FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
@@ -286,6 +288,10 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Transf;
     else if (strcmp(type, KCaeElTypeDep) == 0)
 	res = ECae_Dep;
+    else if (strcmp(type, KCaeElTypeLogspec) == 0)
+	res = ECae_Logspec;
+    else if (strcmp(type, KCaeElTypeLogdata) == 0)
+	res = ECae_Logdata;
     return res;
 }
 

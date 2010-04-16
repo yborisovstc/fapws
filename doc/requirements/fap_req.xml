@@ -9,12 +9,20 @@ To transform to html:
 -->
 
 
-<article>
-    <title>Finite automata environment. Requirements.</title>
+<article> <title>Finite automata environment. Requirements.</title>
 
     <articleinfo>
 	<author>Yuri Borisov</author>
     </articleinfo>
+
+    <revhistory>
+	<revision> <revnumber>0.01</revnumber> <date>11-Mar-2010</date>
+	    <authorinitials>Yuri Borisov</authorinitials>
+	    <revremark>Initial version</revremark> </revision>
+	<revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date>
+	    <authorinitials>Yuri Borisov</authorinitials>
+	    <revremark>Added section <xref linkend="sec_obj_spec"/>, requirement <xref linkend="req_log_03"/></revremark> </revision>
+    </revhistory>
 
     <bibliolist>
 	<title>References</title>
@@ -24,13 +32,12 @@ To transform to html:
 	    <productname><ulink url="file:///home/yborisov/projects/linux-study/debianisation.howto"/></productname>
 	    <subtitle>Debianization How-to (from Levichev Egor)</subtitle>
 	</biblioentry>
-
     </bibliolist>
 
     
     <sect1> <title>General</title>
-	<sect2><title>FAP_REQ_GEN_001 Creating object from spec</title>
-	    <simpara>Framework shall support creation object from spec</simpara>
+	<sect2 id="req_gen_01"><title>FAP_REQ_GEN_01 Creating object from specfication</title>
+	    <simpara>Framework shall support creation object from specfication</simpara>
 	</sect2>
     </sect1>
 
@@ -46,12 +53,41 @@ To transform to html:
     </sect1>
 
     <sect1><title>States</title>
-	<sect2 id = "fap_req_sta_01"><title> FAP_REQ_STA_01 Transition by default </title>
+	<sect2 id = "req_sta_01"><title> FAP_REQ_STA_01 Transition by default </title>
 	    <simpara>If no transion function nor operation is specified for the state then there shall the following default transition be done:</simpara>
 	     <itemizedlist>
 		 <listitem>Copying the first input current value if it is compatible to state.</listitem>
 	    </itemizedlist>
 	    <simpara>NOTE: Earlier one more default transition was used: copying current value of the state to new value. Denied currently.</simpara>
+	</sect2>
+    </sect1>
+
+    <sect1 id="sec_obj_spec"><title>Object specification</title>
+	<sect2><title>General</title>
+	    <simpara>Refer to <xref linkend="req_gen_01"/></simpara>
+	</sect2>
+	<sect2><title>FAP_REQ_SPC_01 Initial value of state</title>
+	    <simpara>There shall be possibility to specify initial value of state in object specification</simpara>
+	</sect2>
+    </sect1>
+
+    <sect1><title>Logging</title>
+	<sect2 id="req_log_01"><title>FAP_REQ_LOG_01 Logging error on construction phase</title>
+	    <simpara>Logging shall record errors happend on construction phase</simpara>
+	</sect2>
+	<sect2 id="req_log_02"><title>FAP_REQ_LOG_02 Log file specifying</title>
+	    <simpara>FAP API shall allow requesting the logging into specific log file.</simpara>
+	    <simpara>If this is not requested then FAP shall use default log file.</simpara>
+	</sect2>
+	<sect2 id="req_log_03"><title>FAP_REQ_LOG_03 Logging in transition functions</title>
+	    <simpara>Framework shall allow using logging from transition function</simpara>
+	</sect2>
+	<sect2 id="req_log_04"><title>FAP_REQ_LOG_04 Logging specification</title>
+	    <simpara>Framework shall allow to specify logging parameters shall in two ways:</simpara>
+	    <itemizedlist>
+		<listitem>In object specification (ref <xref linkend="sec_obj_spec"/>)</listitem>
+		<listitem>In dedicated logging specification</listitem>
+	    </itemizedlist>
 	</sect2>
     </sect1>
 

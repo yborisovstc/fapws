@@ -32,6 +32,8 @@ const TInt KNameMaxLen = 50;
 // Parameters of XML spec
 const char *KXTransAttr_State = "state";
 const char *KXTransAttr_Type = "type";
+const char *KXTransAttr_LogEvent = "event";
+const char *KXTransAttr_LogData = "id";
 
 // Length of bite automata word 
 const int KBaWordLen = 32;
@@ -44,7 +46,7 @@ void Panic(TInt aRes)
 // CAE_Base
 
 CAE_Base::CAE_Base(const char* aInstName, CAE_Object* aMan):
-	iInstName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue)
+	iInstName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iLogSpec(NULL)
 {
     if (aInstName != NULL) 
 	iInstName = strdup(aInstName);
@@ -75,6 +77,30 @@ FAPWS_API CAE_Base::~CAE_Base()
 	iMan->UnregisterComp(this);
     if (iInstName != NULL)
 	free(iInstName);
+    if (iLogSpec != NULL)
+	delete iLogSpec;
+}
+
+void CAE_Base::AddLogSpec(TInt aEvent, TInt aData)
+{
+    if (iLogSpec == NULL)
+    {
+	iLogSpec = new vector<TLogSpecBase>;
+    }
+    _FAP_ASSERT (iLogSpec != NULL);
+    iLogSpec->push_back(TLogSpecBase(aEvent, aData));
+}
+
+TInt CAE_Base::GetLogSpecData(TInt aEvent) const
+{	
+    TInt res = KBaseDa_None;
+    for (TInt i = 0; iLogSpec && i < iLogSpec->size(); i++)
+    {
+	const TLogSpecBase& spec = iLogSpec->at(i);
+	if (spec.iEvent == aEvent)
+	    res = spec.iData; break;
+    }
+    return res;
 }
 
 
@@ -180,32 +206,41 @@ char *CAE_StateBase::FmtData(void *aData, int aLen)
     return buf;
 }
 
-void CAE_StateBase::LogUpdate()
+void CAE_StateBase::LogUpdate(TInt aLogData)
 {
+    if (Logger() == NULL) return;
     char *buf_cur = GetFmtData(ETrue);
     char *buf_new = GetFmtData(EFalse);
-    if (Logger())
-	Logger()->WriteFormat("State update - Name: %s, new: %s, prev: %s", iInstName, buf_new, buf_cur);
+    if (aLogData & KBaseDa_New && aLogData & KBaseDa_Curr)
+	Logger()->WriteFormat("Updated state [%s]: %s <= %s", iInstName, buf_new, buf_cur);
+    else if (aLogData & KBaseDa_New)
+	Logger()->WriteFormat("Updated state [%s]: %s", iInstName, buf_new);
     free (buf_cur);
     free (buf_new);
     // Loggin inputs
-    for (int i = 0; i < iInputsList->size(); i++)
+    if (aLogData & KBaseDa_Dep)
     {
-	CAE_StateBase* state = (CAE_StateBase*) iInputsList->at(i);
-	char* buf = state->GetFmtData(ETrue);
-	if (Logger())
-	    Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
-	free(buf);	
+	for (int i = 0; i < iInputsList->size(); i++)
+	{
+	    CAE_StateBase* state = (CAE_StateBase*) iInputsList->at(i);
+	    char* buf = state->GetFmtData(ETrue);
+	    if (Logger())
+		Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
+	    free(buf);	
+	}
     }
 }
 
 FAPWS_API void CAE_StateBase::Update()
 {
     void* nthis = this;
+    TInt logdata = KBaseDa_None;
     if (iStateType != EType_Input || iStateType == EType_Input && iInputsList->size())
     {
 	DoTrans();
-	LogUpdate();
+	TInt logdata = GetLogSpecData(KBaseLe_Updated);
+	if (logdata != KBaseDa_None)
+	    LogUpdate(logdata);
     }
 }
 
@@ -543,6 +578,19 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 {
 }
 
+template<> FAPWS_API char *CAE_TState<TBool>::LogFormFun(CAE_StateBase* aState, TBool aCurr)
+{
+    CAE_State *state = aState->GetObject(state); 
+    if (!state->IsDataType(DataTypeUid()))
+	return NULL;
+    TBool data = *((TBool *) (aCurr  ? aState->iCurr : aState->iNew));
+    char* buf = (char *) malloc(10);
+    memset(buf, 0, 10);
+    sprintf(buf, "%s ", data ? "True" : "False");
+    return buf;
+}
+
+
 //*********************************************************
 // CAE element logging formatter
 //*********************************************************
@@ -779,13 +827,50 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	    const CAE_Formatter *form = prov->GetFormatter(datatype);
 	    TLogFormatFun formfun = form ? form->iFun : NULL; 
 
-	    CAE_State::NewL(name, len, this,  TTransInfo(), access, datatype, formfun);  
+	    CAE_State *state = CAE_State::NewL(name, len, this,  TTransInfo(), access, datatype, formfun);  
+	    if (state == NULL)
+		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
+	    else
+	    {
+		// Set logspec
+		for (void *stelem = chman->GetChild(child); stelem != NULL; stelem = chman->GetNext(stelem))
+		{
+		    TCaeElemType stetype = chman->FapType(stelem);
+		    if (stetype == ECae_Logspec)
+		    {
+			TInt event = chman->GetAttrInt(stelem, KXTransAttr_LogEvent);
+			// Get logging data
+			TInt ldata = 0;
+			for (void *lselem = chman->GetChild(stelem); lselem != NULL; lselem = chman->GetNext(lselem))
+			{
+			    TCaeElemType lstype = chman->FapType(lselem);
+			    if (lstype == ECae_Logdata)
+			    {
+				TInt data = chman->GetAttrInt(lselem, KXTransAttr_LogData);
+				ldata |= data;
+			    }
+			    else
+			    {
+				Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(lselem));
+			    }
+			}
+			state->AddLogSpec(event, ldata);
+		    }
+		    else
+		    {
+			Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(stelem));
+		    }
+		}
+	    }
 	}
 	else if (ftype == ECae_Transf)
 	{
 	    void *dep = NULL;
 	    char *name = chman->GetName(child); 
 	    const TTransInfo *trans = prov->GetTransf(name);
+	    if (trans == NULL)
+		Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
+	    _FAP_ASSERT(trans != NULL);
 	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
 	    CAE_State* state = GetStateByName(state_name);
 	    if (state != NULL)
@@ -1042,6 +1127,12 @@ FAPWS_API CAE_State* CAE_Object::GetInput(TUint32 aInd)
 		}
 	}
 	return res;
+}
+
+FAPWS_API CAE_State* CAE_Object::GetInput(const char *aName)
+{
+    CAE_State* state = GetStateByName(aName);
+    return (state != NULL && state->IsInput()) ? state : NULL;
 }
 
 FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)

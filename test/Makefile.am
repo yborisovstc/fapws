@@ -4,6 +4,8 @@ ut_fapws_lib_SOURCES = \
 	ut_fapws_main.cpp \
 	ut_simple_increase.cpp \
 	ut_simple_increase.h \
+	ut_spec_creat.cpp \
+	ut_spec_creat.h \
 	ut_game_xo.cpp \
 	ut_game_xo.h
 

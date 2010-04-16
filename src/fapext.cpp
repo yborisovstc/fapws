@@ -29,17 +29,17 @@ FAPWS_API CAE_Env::~CAE_Env()
 }
 
 
-FAPWS_API CAE_Env* CAE_Env::NewL(TInt aPriority, const char* aLogSpecFile, TInt aLoad)
+FAPWS_API CAE_Env* CAE_Env::NewL(TInt aPriority, const char* aLogSpecFile, const char *aLogFileName, TInt aLoad)
 {
 	CAE_Env* self = new CAE_Env(aPriority, aLoad);
-	self->ConstructL(aLogSpecFile);
+	self->ConstructL(aLogSpecFile, aLogFileName);
 	return self;
 }
 
-void CAE_Env::ConstructL(const char* aLogSpecFile)
+void CAE_Env::ConstructL(const char* aLogSpecFile, const char *aLogFileName)
 {
     iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
-    iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile);
+    iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
     SetActive();
     //	TRequestStatus* pst = &iStatus;

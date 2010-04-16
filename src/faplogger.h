@@ -87,12 +87,12 @@ class CAE_StateBase;
 class CAE_LogCtrl
 {
 public:
-	static CAE_LogCtrl* NewL(CAE_Object* aFapRoot, const char* aSpecFileName);
+	static CAE_LogCtrl* NewL(CAE_Object* aFapRoot, const char* aSpecFileName, const char *aLogFileName = NULL);
 	~CAE_LogCtrl();
 	void DoLogL(TInt aStep);
 	inline MCAE_LogRec *LogRec();
 protected:
-	void ConstructL(const char* aSpecFileName);
+	void ConstructL(const char* aSpecFileName, const char *aLogFileName = NULL);
 	CAE_LogCtrl(CAE_Object* aFapRoot);
 	TInt ResolveSpec(TInt aInd);
 	void FormatState(CAE_StateBase* aState, char* aRes);
