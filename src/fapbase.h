@@ -382,7 +382,7 @@ public:
 	const T& Value() { return *((T*) CAE_StateBase::Value()); }
 	const T& operator() () { return Value(); }
 	T& operator! () { return *((T*)iNew); };
-	T operator= (T aVal) { Set(&aVal); return aVal;};
+	CAE_TState<T>& operator= (T aVal) { Set(&aVal); return *this;};
 	static inline TInt DataTypeUid();
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
