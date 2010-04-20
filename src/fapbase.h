@@ -52,7 +52,7 @@ enum TCaeElemType
     ECae_Unknown = 0,
     ECae_Object = 1,
     ECae_State = 2,
-    ECae_Transf = 3,	// Transition transformation
+    ECae_Conn = 3,	// Connection
     ECae_Logspec = 4,	// Logging specification
     ECae_Dep = 5,	// Dependency
     ECae_Logdata = 6	// Logging data

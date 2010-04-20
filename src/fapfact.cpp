@@ -14,7 +14,7 @@
 // XML CAE spec parameters
 const char* KCaeElTypeObject = "object";
 const char* KCaeElTypeState = "state";
-const char* KCaeElTypeTransf = "transf";
+const char* KCaeElTypeConn = "conn";
 const char* KCaeElTypeLogspec = "logspec";
 const char* KCaeElTypeLogdata = "logdata";
 const char* KCaeElTypeDep = "dep";
@@ -284,8 +284,8 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Object;
     else if (strcmp(type, KCaeElTypeState) == 0)
 	res = ECae_State;
-    else if (strcmp(type, KCaeElTypeTransf) == 0)
-	res = ECae_Transf;
+    else if (strcmp(type, KCaeElTypeConn) == 0)
+	res = ECae_Conn;
     else if (strcmp(type, KCaeElTypeDep) == 0)
 	res = ECae_Dep;
     else if (strcmp(type, KCaeElTypeLogspec) == 0)

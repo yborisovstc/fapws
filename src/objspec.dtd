@@ -9,32 +9,36 @@
 <!ELEMENT logdata EMPTY>
 <!-- Logspec includes attribute "levent" and assosiated logging data set -->
 <!ELEMENT logspec (logdata+)>
+
 <!ELEMENT state (logspec*)>
-<!ELEMENT object (object* , state*, logspec*, transf*)>
+
+<!ELEMENT object (object* , state*, logspec*, conn*)>
+
 <!ELEMENT caeenv (object*)>
+
 <!-- Transition function -->
 <!ELEMENT transf (dep*)>
 
-<!ATTLIST state 
-  name CDATA #REQUIRED
-  type (Int | Boolean) #REQUIRED
-  init CDATA
->
+
 <!ATTLIST logspec event (Creation, Updated) #REQUIRED>
 <!ATTLIST logdata ldata (Data) #REQUIRED>
 <!ATTLIST object type (CDATA) id (CDATA) #REQUIRED>
-<!-- 
-type - type of state
-datatype - data type (how state data can be interpreted
-id - identification of instance
--->
-<!ATTLIST state type CDATA id CDATA len CDATA access (Reg, Inp, Out) #REQUIRED>
 
-<!-- Transition function -->
-<!ATTLIST transf state (CDATA) id (CDATA) #REQUIRED>
+<!-- State's attributes:
+  type - type of state
+  datatype - data type (how state data can be interpreted
+  id - identification of instance
+  transf - transtion function -->
+<!ATTLIST state 
+   type CDATA #REQUIRED
+   id CDATA #REQUIRED
+   len CDATA #REQUIRED
+   access (Reg, Inp, Out) #REQUIRED
+   transf CDATA 
+   init CDATA >
 
-<!-- Transition dependency -->
-<!ATTLIST dep id (CDATA) #REQUIRED>
+<!-- Connections to state -->
+<!ATTLIST conn state (CDATA) id (CDATA) #REQUIRED>
 
 ]> <!-- Doctype-->
 

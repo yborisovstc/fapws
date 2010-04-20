@@ -20,15 +20,21 @@
     <object type="test" id="main_test">
 	<object type="generator" id="generator">
 	    <logspec> <logevent event="Creation"> <logdata ldata="Data"/> </logevent> </logspec>
-	    <state type="&dtype_bool;" id="event" len="4" access="Out"> 
+	    <state type="&dtype_bool;" id="event" len="4" access="Out" transf="trans_event"> 
 		<logspec event="&levent_update;">
 		    <logdata id="&ldata_new;"/>
 		</logspec> 
 	    </state>
-	    <state type="&dtype_uint;" id="timer" len="4" access="Reg"> </state>
-	    <state type="&dtype_uint;" id="period" len="4" access="Inp" init="5"> </state>
-	    <transf state="event" id="trans_event"> <dep id="event"/> <dep id="timer"/></transf>
-	    <transf state="timer" id="trans_timer"> <dep id="timer"/> <dep id="period"/></transf>
+	    <state type="&dtype_uint;" id="timer" len="4" access="Reg" transf="trans_timer"> 
+		<logspec event="&levent_update;">
+		    <logdata id="&ldata_new;"/> </logspec> 
+	    </state>
+	    <state type="&dtype_uint;" id="period" len="4" access="Inp" init="11"> 
+		<logspec event="&levent_update;">
+		    <logdata id="&ldata_new;"/> </logspec> 
+	    </state>
+	    <conn state="event"> <dep id="event"/> <dep id="timer"/></conn>
+	    <conn state="timer"> <dep id="timer"/> <dep id="period"/></conn>
 	</object>
     </object>
 </caeenv>

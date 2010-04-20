@@ -34,6 +34,7 @@ const char *KXTransAttr_State = "state";
 const char *KXTransAttr_Type = "type";
 const char *KXTransAttr_LogEvent = "event";
 const char *KXTransAttr_LogData = "id";
+const char *KXStateAttr_Transf = "transf";
 
 // Length of bite automata word 
 const int KBaWordLen = 32;
@@ -823,11 +824,20 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	    int datatype = chman->GetAttrInt(child, KXTransAttr_Type); 
 	    char *name = chman->GetName(child); 
 	    int len = chman->GetLen(child); 
+	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
 	    CAE_StateBase::StateType access = chman->GetAccessType(child);
 	    const CAE_Formatter *form = prov->GetFormatter(datatype);
 	    TLogFormatFun formfun = form ? form->iFun : NULL; 
-
-	    CAE_State *state = CAE_State::NewL(name, len, this,  TTransInfo(), access, datatype, formfun);  
+	    TTransInfo tinfo;
+	    const TTransInfo *trans = &tinfo;
+	    if (transf_name != NULL)
+	    {
+		trans = prov->GetTransf(transf_name);
+		if (trans == NULL)
+		    Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
+		_FAP_ASSERT(trans != NULL);
+	    }
+	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
 	    if (state == NULL)
 		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
 	    else
@@ -863,21 +873,11 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		}
 	    }
 	}
-	else if (ftype == ECae_Transf)
+	else if (ftype == ECae_Conn)
 	{
 	    void *dep = NULL;
-	    char *name = chman->GetName(child); 
-	    const TTransInfo *trans = prov->GetTransf(name);
-	    if (trans == NULL)
-		Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
-	    _FAP_ASSERT(trans != NULL);
 	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
 	    CAE_State* state = GetStateByName(state_name);
-	    if (state != NULL)
-	    {
-		state->SetTrans(*trans);
-	    }
-	    // Set dependencies
 	    for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
 	    {
 		char *dep_name = chman->GetStrAttr(dep,"id"); 

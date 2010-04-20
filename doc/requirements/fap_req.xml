@@ -22,6 +22,9 @@ To transform to html:
 	<revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date>
 	    <authorinitials>Yuri Borisov</authorinitials>
 	    <revremark>Added section <xref linkend="sec_obj_spec"/>, requirement <xref linkend="req_log_03"/></revremark> </revision>
+	<revision> <revnumber>0.03</revnumber> <date>20-Apr-2010</date>
+	    <authorinitials>Yuri Borisov</authorinitials>
+	    <revremark>Added section requirement <xref linkend="req_spc_02"/></revremark> </revision>
     </revhistory>
 
     <bibliolist>
@@ -68,6 +71,10 @@ To transform to html:
 	</sect2>
 	<sect2><title>FAP_REQ_SPC_01 Initial value of state</title>
 	    <simpara>There shall be possibility to specify initial value of state in object specification</simpara>
+	</sect2>
+	<sect2 id="req_spc_02"><title>FAP_REQ_SPC_02 State incapsulaton</title>
+	    <simpara>Specification shall describe state with high level of incapsulation.</simpara>
+	    <simpara>NOTE: this conforms with approach of representation the system as a set of state machines.</simpara>
 	</sect2>
     </sect1>
 
