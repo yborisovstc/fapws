@@ -71,7 +71,7 @@ void UT_FAP_SpecCreat::test_SpecCreat_main()
     CPPUNIT_ASSERT_MESSAGE("Fail to get period", period != 0);
     CAE_TState<TUint32> *tper = CAE_TState<TUint32>::Interpret(period);
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret period", tper != 0);
-    (*tper) = 5;
+//    (*tper) = 5;// Implemented state init from spec
     
 
 

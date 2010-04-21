@@ -35,6 +35,7 @@ const char *KXTransAttr_Type = "type";
 const char *KXTransAttr_LogEvent = "event";
 const char *KXTransAttr_LogData = "id";
 const char *KXStateAttr_Transf = "transf";
+const char *KXStateAttr_Init = "init";
 
 // Length of bite automata word 
 const int KBaWordLen = 32;
@@ -173,9 +174,22 @@ char* CAE_StateBase::DataToStr(TBool aCurr) const
     return FmtData(aCurr ? iCurr : iNew, iLen);
 }
 
-void CAE_StateBase::DataFromStr(TBool aCurr, const char* aStr) const
+void CAE_StateBase::DataFromStr(const char* aStr, void *aData) const
 {
+    char *str = strdup(aStr);
+    char *bf = strtok(str, " ");
+    int elem;
+    int res = 0;
+    int i = 0;
+    while (bf != NULL && res != EOF && i < iLen)
+    {
+	res = sscanf(bf, "%02x", &elem);
+	((TUint8 *) aData)[i++] = elem;
+	bf = strtok(NULL, " ");
+    }
+    free(str);
 }
+
 
 char *CAE_StateBase::FmtData(void *aData, int aLen)
 {
@@ -224,9 +238,6 @@ FAPWS_API void CAE_StateBase::Update()
     if (iStateType != EType_Input || iStateType == EType_Input && iInputsList->size())
     {
 	DoTrans();
-	TInt logdata = GetLogSpecData(KBaseLe_Updated);
-	if (logdata != KBaseDa_None)
-	    LogUpdate(logdata);
     }
 }
 
@@ -235,10 +246,27 @@ FAPWS_API void CAE_StateBase::Set(void* aNew)
     if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
     {
 	if (memcmp(aNew, iNew, iLen))
+	{
 	    SetUpdated();
-	memcpy(iNew, aNew, iLen); 
+	    memcpy(iNew, aNew, iLen); 
+	    TInt logdata = GetLogSpecData(KBaseLe_Updated);
+	    if (logdata != KBaseDa_None)
+		LogUpdate(logdata);
+	}
     }
 };
+
+FAPWS_API void CAE_StateBase::SetFromStr(const char *aStr)
+{
+    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    {
+	void *data = malloc(iLen);
+	memset(data, 0, iLen);
+	DataFromStr(aStr, data);
+	Set(data);
+	free(data);
+    }
+}
 
 FAPWS_API void* CAE_StateBase::DoGetObject(TInt aUid)
 {
@@ -521,8 +549,9 @@ template<> FAPWS_API TBool CAE_TState<TUint32>::SetTrans(TTransInfo aTinfo)
 	return res;
 }
 
-template<> void CAE_TState<TUint8>::DataFromStr(TBool aCurr, const char* aStr) const
+template<> void CAE_TState<TUint8>::DataFromStr(const char* aStr, void *aData) const
 {
+    CAE_StateBase::DataFromStr(aStr, aData);
 }
 
 template<> char *CAE_TState<TUint8>::DataToStr(TBool aCurr) const
@@ -538,8 +567,9 @@ template<> FAPWS_API void CAE_TState<TUint32>::DoOperation()
 {
 }
 
-template<> void CAE_TState<TUint32>::DataFromStr(TBool aCurr, const char* aStr) const
+template<> void CAE_TState<TUint32>::DataFromStr(const char* aStr, void *aData) const
 {
+    sscanf(aStr, "%d", (TUint32 *) aData);
 }
 
 template<> char *CAE_TState<TUint32>::DataToStr(TBool aCurr) const
@@ -562,8 +592,9 @@ template<> FAPWS_API void CAE_TState<TInt>::DoOperation()
 {
 }
 
-template<> void CAE_TState<TInt>::DataFromStr(TBool aCurr, const char* aStr) const
+template<> void CAE_TState<TInt>::DataFromStr(const char* aStr, void *aData) const
 {
+    sscanf(aStr, "%d", (TInt *) aData);
 }
 
 template<> char *CAE_TState<TInt>::DataToStr(TBool aCurr) const
@@ -588,8 +619,9 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 {
 }
 
-template<> void CAE_TState<TBool>::DataFromStr(TBool aCurr, const char* aStr) const
+template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) const
 {
+    CAE_StateBase::DataFromStr(aStr, aData);
 }
 
 template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const
@@ -845,6 +877,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		    Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
 		_FAP_ASSERT(trans != NULL);
 	    }
+	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
 	    CAE_State *state = prov->CreateStateL(datatype, name, this, access);  
 	    state->SetTrans(*trans);
 //	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
@@ -881,6 +914,8 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 			Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(stelem));
 		    }
 		}
+		if (init != NULL)
+		    state->SetFromStr(init);
 	    }
 	}
 	else if (ftype == ECae_Conn)

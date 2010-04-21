@@ -37,7 +37,7 @@ _TEMPLATE_ void CAE_TState<CF_TField>::DoOperation()
 {
 }
 
-_TEMPLATE_ void CAE_TState<CF_TField>::DataFromStr(TBool aCurr, const char* aStr) const
+_TEMPLATE_ void CAE_TState<CF_TField>::DataFromStr(const char* aStr, void *aData) const
 {
 }
 

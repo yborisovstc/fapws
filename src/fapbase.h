@@ -252,6 +252,7 @@ public:
 	TInt Len() const {return iLen; };
 	FAPWS_API void AddInputL(CAE_StateBase* aState);
 	FAPWS_API void Set(void* aNew);
+	FAPWS_API void SetFromStr(const char *aStr);
 	const void* Value() const { return iCurr;}
 	void RefreshOutputs();
 	void RefreshOutput(CAE_StateBase* aState);
@@ -262,7 +263,7 @@ public:
 	TBool IsInput() { return iStateType == EType_Input;}
 	TBool IsOutput() { return iStateType == EType_Output;}
 	virtual char* DataToStr(TBool aCurr) const;
-	virtual void DataFromStr(TBool aCurr, const char* aStr) const;
+	virtual void DataFromStr(const char* aStr, void *aData) const;
 	// From MObjectProvider
 	FAPWS_API virtual void* DoGetObject(TInt aUid);
 protected:
@@ -397,7 +398,7 @@ public:
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	virtual char* DataToStr(TBool aCurr) const;
-	virtual void DataFromStr(TBool aCurr, const char* aStr) const;
+	virtual void DataFromStr(const char* aStr, void *aData) const;
 private:
 	FAPWS_API virtual void DoOperation();
 };
