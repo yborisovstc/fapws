@@ -244,7 +244,7 @@ public:
 		EType_Output = 3
 	};
 public:
-	CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aType= CAE_StateBase::EType_Reg, TLogFormatFun aLogFormFun = NULL);
+	CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aType= CAE_StateBase::EType_Reg);
 	static inline TInt ObjectUid(); 
 	FAPWS_API virtual ~CAE_StateBase();
 	FAPWS_API virtual void Confirm();
@@ -261,7 +261,8 @@ public:
 	FAPWS_API void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
 	TBool IsOutput() { return iStateType == EType_Output;}
-	char *GetFmtData(TBool aCurr);
+	virtual char* DataToStr(TBool aCurr) const;
+	virtual void DataFromStr(TBool aCurr, const char* aStr) const;
 	// From MObjectProvider
 	FAPWS_API virtual void* DoGetObject(TInt aUid);
 protected:
@@ -277,7 +278,6 @@ private:
 	inline MCAE_LogRec *Logger();
 public:
 	void	*iCurr, *iNew;
-	TLogFormatFun iLogFormFun;
 protected:
 	TInt iLen;
 protected:
@@ -298,6 +298,7 @@ struct TOperationInfo
 	TUint32 iType1; // Type of the first operand
 	TUint32 iType2; // Type of the second operand, 0 if operation is unary
 };
+
 // Formatter of CAE element
 
 class CAE_Formatter
@@ -345,9 +346,9 @@ public:
 	static inline TInt ObjectUid(); 
 public:
 	FAPWS_API CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);
+		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified);
 	FAPWS_API static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified, TLogFormatFun aLogFormFun = NULL);  
+		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified);  
 	// Set transition procedure. It may be callback function aFun or defined state operation
 	// In this case aFun, aCbo should be set to NULL
 	// The method verifies operation attempted and set the most passed operation if incorrect
@@ -384,11 +385,9 @@ class CAE_TState: public CAE_State
 public:
 	static inline TInt ObjectUid() { return CAE_State::ObjectUid() | DataTypeUid();}; 
 public:
-	CAE_TState(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TLogFormatFun aLogFormFun = NULL):
-	  CAE_State(aInstName, sizeof(T), aMan, aTrans, aType, KObUid_CAE_Var_NotSpecified, aLogFormFun) {iDataTypeUid = DataTypeUid();};
-	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TLogFormatFun aLogFormFun = NULL);
+	CAE_TState(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg):
+	  CAE_State(aInstName, sizeof(T), aMan, aTrans, aType, KObUid_CAE_Var_NotSpecified) {iDataTypeUid = DataTypeUid();};
+	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg);
 	T& operator~ () { return *((T*)iCurr); };
 	const T& Value() { return *((T*) CAE_StateBase::Value()); }
 	const T& operator() () { return Value(); }
@@ -397,7 +396,8 @@ public:
 	static inline TInt DataTypeUid();
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
-	static char *LogFormFun(CAE_StateBase* aState, TBool aCurr);
+	virtual char* DataToStr(TBool aCurr) const;
+	virtual void DataFromStr(TBool aCurr, const char* aStr) const;
 private:
 	FAPWS_API virtual void DoOperation();
 };
@@ -409,9 +409,9 @@ inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr)
 }; 
 
 template <class T>
-CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TLogFormatFun aLogFormFun)
+CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType)
 { 
-	CAE_TState* self = new CAE_TState(aInstName, aMan, aTrans, aType, aLogFormFun);
+	CAE_TState* self = new CAE_TState(aInstName, aMan, aTrans, aType);
 	self->ConstructL();
 	return self;
 }
@@ -447,8 +447,10 @@ class MAE_ChroMan
 class MAE_Provider
 {
 public:
-	virtual CAE_Base* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
-	virtual CAE_Base* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
+	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, 
+		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const = 0;
+	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, 
+		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const = 0;
 	virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;

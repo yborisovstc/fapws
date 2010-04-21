@@ -107,8 +107,8 @@ TInt CAE_Base::GetLogSpecData(TInt aEvent) const
 
 // CAE_StateBase
 
-CAE_StateBase::CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aStateType, TLogFormatFun aLogFormFun): 
-	CAE_Base(aInstName, aMan), iLen(aLen), iStateType(aStateType), iFlags(0x00), iLogFormFun(aLogFormFun)
+CAE_StateBase::CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aStateType): 
+	CAE_Base(aInstName, aMan), iLen(aLen), iStateType(aStateType), iFlags(0x00)
 {
     _FAP_ASSERT (iMan != NULL);
 }
@@ -168,28 +168,13 @@ FAPWS_API void CAE_StateBase::Confirm()
     }
 }
 
-char *CAE_StateBase::GetFmtData(TBool aCurr)
+char* CAE_StateBase::DataToStr(TBool aCurr) const
 {
-    char* buf = NULL;
-    if (iLogFormFun != NULL)
-    {
-	buf = iLogFormFun(this, aCurr);
-    }
-    else
-    {	
-	buf = (char *) malloc(iLen*4);
-	memset(buf, 0, iLen*4);
-	char fmtsmb[10] = "";
-	void *data = aCurr ? iCurr : iNew;
-	for (TInt i=0; i < iLen; i++)
-	{
-	    int symb = ((TUint8*) data)[i];
-	    fmtsmb[0] = 0;
-	    sprintf(fmtsmb, "%02x ", symb);
-	    strcat(buf, fmtsmb);
-	}
-    }
-    return buf;
+    return FmtData(aCurr ? iCurr : iNew, iLen);
+}
+
+void CAE_StateBase::DataFromStr(TBool aCurr, const char* aStr) const
+{
 }
 
 char *CAE_StateBase::FmtData(void *aData, int aLen)
@@ -210,8 +195,8 @@ char *CAE_StateBase::FmtData(void *aData, int aLen)
 void CAE_StateBase::LogUpdate(TInt aLogData)
 {
     if (Logger() == NULL) return;
-    char *buf_cur = GetFmtData(ETrue);
-    char *buf_new = GetFmtData(EFalse);
+    char *buf_cur = DataToStr(ETrue);
+    char *buf_new = DataToStr(EFalse);
     if (aLogData & KBaseDa_New && aLogData & KBaseDa_Curr)
 	Logger()->WriteFormat("Updated state [%s]: %s <= %s", iInstName, buf_new, buf_cur);
     else if (aLogData & KBaseDa_New)
@@ -224,7 +209,7 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
 	for (int i = 0; i < iInputsList->size(); i++)
 	{
 	    CAE_StateBase* state = (CAE_StateBase*) iInputsList->at(i);
-	    char* buf = state->GetFmtData(ETrue);
+	    char* buf = state->DataToStr(ETrue);
 	    if (Logger())
 		Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
 	    free(buf);	
@@ -377,17 +362,15 @@ FAPWS_API void CAE_StateBase::Reset()
 
 const char* KCAE_StateName = "State";
 
-FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, 
-	TInt aDataTypeUid, TLogFormatFun aLogFormFun):
-    CAE_StateBase(aInstName, aLen, aMan, aType, aLogFormFun), iTrans(aTrans)
+FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid):
+    CAE_StateBase(aInstName, aLen, aMan, aType), iTrans(aTrans)
 {
 	iDataTypeUid = aDataTypeUid;
 };
 
-FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, 
-	TInt aDataTypeUid, TLogFormatFun aLogFormFun)
+FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid)
 {
-	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType, aDataTypeUid, aLogFormFun);
+	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType, aDataTypeUid);
 	self->ConstructL();
 	return self;
 }
@@ -538,17 +521,30 @@ template<> FAPWS_API TBool CAE_TState<TUint32>::SetTrans(TTransInfo aTinfo)
 	return res;
 }
 
+template<> void CAE_TState<TUint8>::DataFromStr(TBool aCurr, const char* aStr) const
+{
+}
+
+template<> char *CAE_TState<TUint8>::DataToStr(TBool aCurr) const
+{
+    TUint8 data = *((TUint8 *) (aCurr ? iCurr : iNew));
+    char* buf = (char *) malloc(10);
+    memset(buf, 0, 10);
+    sprintf(buf, "%d ", data);
+    return buf;
+}
 
 template<> FAPWS_API void CAE_TState<TUint32>::DoOperation()
 {
 }
 
-template<> FAPWS_API char *CAE_TState<TUint32>::LogFormFun(CAE_StateBase* aState, TBool aCurr)
+template<> void CAE_TState<TUint32>::DataFromStr(TBool aCurr, const char* aStr) const
 {
-    CAE_State *state = aState->GetObject(state); 
-    if (!state->IsDataType(DataTypeUid()))
-	return NULL;
-    TUint32 data = *((TUint32 *) (aCurr  ? aState->iCurr : aState->iNew));
+}
+
+template<> char *CAE_TState<TUint32>::DataToStr(TBool aCurr) const
+{
+    TUint32 data = *((TUint32 *) (aCurr ? iCurr : iNew));
     char* buf = (char *) malloc(10);
     memset(buf, 0, 10);
     sprintf(buf, "%d ", data);
@@ -562,10 +558,23 @@ template<> FAPWS_API TBool CAE_TState<TInt>::SetTrans(TTransInfo aTinfo)
 	return res;
 }
 
-
 template<> FAPWS_API void CAE_TState<TInt>::DoOperation()
 {
 }
+
+template<> void CAE_TState<TInt>::DataFromStr(TBool aCurr, const char* aStr) const
+{
+}
+
+template<> char *CAE_TState<TInt>::DataToStr(TBool aCurr) const
+{
+    TInt data = *((TInt *) (aCurr ? iCurr : iNew));
+    char* buf = (char *) malloc(10);
+    memset(buf, 0, 10);
+    sprintf(buf, "%d ", data);
+    return buf;
+}
+
 
 
 template<> FAPWS_API TBool CAE_TState<TBool>::SetTrans(TTransInfo aTinfo)
@@ -579,12 +588,13 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 {
 }
 
-template<> FAPWS_API char *CAE_TState<TBool>::LogFormFun(CAE_StateBase* aState, TBool aCurr)
+template<> void CAE_TState<TBool>::DataFromStr(TBool aCurr, const char* aStr) const
 {
-    CAE_State *state = aState->GetObject(state); 
-    if (!state->IsDataType(DataTypeUid()))
-	return NULL;
-    TBool data = *((TBool *) (aCurr  ? aState->iCurr : aState->iNew));
+}
+
+template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const
+{
+    TBool data = *((TBool *) (aCurr ? iCurr : iNew));
     char* buf = (char *) malloc(10);
     memset(buf, 0, 10);
     sprintf(buf, "%s ", data ? "True" : "False");
@@ -826,8 +836,6 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	    int len = chman->GetLen(child); 
 	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
 	    CAE_StateBase::StateType access = chman->GetAccessType(child);
-	    const CAE_Formatter *form = prov->GetFormatter(datatype);
-	    TLogFormatFun formfun = form ? form->iFun : NULL; 
 	    TTransInfo tinfo;
 	    const TTransInfo *trans = &tinfo;
 	    if (transf_name != NULL)
@@ -837,7 +845,9 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		    Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
 		_FAP_ASSERT(trans != NULL);
 	    }
-	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
+	    CAE_State *state = prov->CreateStateL(datatype, name, this, access);  
+	    state->SetTrans(*trans);
+//	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
 	    if (state == NULL)
 		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
 	    else

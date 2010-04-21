@@ -37,6 +37,16 @@ _TEMPLATE_ void CAE_TState<CF_TField>::DoOperation()
 {
 }
 
+_TEMPLATE_ void CAE_TState<CF_TField>::DataFromStr(TBool aCurr, const char* aStr) const
+{
+}
+
+_TEMPLATE_ char *CAE_TState<CF_TField>::DataToStr(TBool aCurr) const
+{
+    return CAE_StateBase::DataToStr(aCurr);
+}
+
+
 class CFT_GameXO: public CAE_Object
 {
 public:

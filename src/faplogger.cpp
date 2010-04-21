@@ -351,18 +351,11 @@ void CAE_LogCtrl::DoLogL(TInt aStep)
 
 void CAE_LogCtrl::FormatState(CAE_StateBase* aState, char* aRes)
 {
-	if (aState->iLogFormFun != NULL)
-	{
-		//aState->iLogFormFun(aRes, aState);
-	}
-	else
-	{ // Format function not defined, use default format
-		for (TInt i=0; i < aState->Len(); i++)
-		{
-			int symb = ((TUint8*) aState->iNew)[i];
-			char fmtsmb[3];
-			sprintf(fmtsmb, "%02x", symb);
-			strcat(aRes, fmtsmb);
-		}
-	}
+    for (TInt i=0; i < aState->Len(); i++)
+    {
+	int symb = ((TUint8*) aState->iNew)[i];
+	char fmtsmb[3];
+	sprintf(fmtsmb, "%02x", symb);
+	strcat(aRes, fmtsmb);
+    }
 }

@@ -1,7 +1,7 @@
 Source: fapws
 Section: unknown
 Priority: extra
-Maintainer: Yuri Borisov <Yuri.Borisov@teleca.com>
+Maintainer: Yuri Borisov <yuri.borisov.v@gmail.com>
 Build-Depends: debhelper (>= 7)
 Standards-Version: 3.7.3
 Homepage: <insert the upstream URL, if relevant>

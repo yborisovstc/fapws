@@ -9,32 +9,44 @@ To transform to html:
 -->
 
 
-<article> <title>Finite automata environment. Requirements.</title>
+<article status="draft" class="specification"> <title>Synchronous Finite automata framework. Requirements.</title>
 
     <articleinfo>
-	<author>Yuri Borisov</author>
-    </articleinfo>
+	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
+	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-    <revhistory>
-	<revision> <revnumber>0.01</revnumber> <date>11-Mar-2010</date>
-	    <authorinitials>Yuri Borisov</authorinitials>
-	    <revremark>Initial version</revremark> </revision>
-	<revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date>
-	    <authorinitials>Yuri Borisov</authorinitials>
-	    <revremark>Added section <xref linkend="sec_obj_spec"/>, requirement <xref linkend="req_log_03"/></revremark> </revision>
-	<revision> <revnumber>0.03</revnumber> <date>20-Apr-2010</date>
-	    <authorinitials>Yuri Borisov</authorinitials>
-	    <revremark>Added section requirement <xref linkend="req_spc_02"/></revremark> </revision>
-    </revhistory>
+	<releaseinfo>Ver.0.04 at 21-Apr-2010</releaseinfo>
+
+	<abstract>
+	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
+	</abstract>
+
+	<revhistory>
+	    <revision> <revnumber>0.01</revnumber> <date>11-Mar-2010</date>
+		<authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Initial version</revremark> </revision>
+	    <revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date>
+		<authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added section <xref linkend="sec_obj_spec"/>, requirement <xref linkend="req_log_03"/></revremark> </revision>
+	    <revision> <revnumber>0.03</revnumber> <date>20-Apr-2010</date>
+		<authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added requirement <xref linkend="req_spc_02"/></revremark> </revision>
+	    <revision> <revnumber>0.04</revnumber> <date>21-Apr-2010</date>
+		<authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added requirement <xref linkend="req_sta_02"/></revremark> </revision>
+	</revhistory>
+
+    </articleinfo>
 
     <bibliolist>
 	<title>References</title>
-
+	<!--
 	<biblioentry id="ref_deb_howto">
-	    <abbrev>DEBS_HOWTO</abbrev>
-	    <productname><ulink url="file:///home/yborisov/projects/linux-study/debianisation.howto"/></productname>
-	    <subtitle>Debianization How-to (from Levichev Egor)</subtitle>
+	    <abbrev>ABBR</abbrev>
+	    <productname><ulink url=""/></productname>
+	    <subtitle></subtitle>
 	</biblioentry>
+	-->
     </bibliolist>
 
     
@@ -63,13 +75,19 @@ To transform to html:
 	    </itemizedlist>
 	    <simpara>NOTE: Earlier one more default transition was used: copying current value of the state to new value. Denied currently.</simpara>
 	</sect2>
+	<sect2 id="req_sta_02"><title>FAP_REQ_STA_02 Formatting</title>
+	    <simpara>State shall include APIs for formatting to string and from string</simpara>
+	    <simpara>NOTES: To String formatting is required for logging. 
+		From string formatting is required for specifying initial values for the state 
+		(ref <xref linkend="req_spc_01"/>)</simpara>
+	</sect2>
     </sect1>
 
     <sect1 id="sec_obj_spec"><title>Object specification</title>
 	<sect2><title>General</title>
 	    <simpara>Refer to <xref linkend="req_gen_01"/></simpara>
 	</sect2>
-	<sect2><title>FAP_REQ_SPC_01 Initial value of state</title>
+	<sect2 id="req_spc_01"><title>FAP_REQ_SPC_01 Initial value of state</title>
 	    <simpara>There shall be possibility to specify initial value of state in object specification</simpara>
 	</sect2>
 	<sect2 id="req_spc_02"><title>FAP_REQ_SPC_02 State incapsulaton</title>
