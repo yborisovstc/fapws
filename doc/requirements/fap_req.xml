@@ -15,7 +15,7 @@ To transform to html:
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.04 at 21-Apr-2010</releaseinfo>
+	<releaseinfo>Ver.0.05 at 21-Apr-2010</releaseinfo>
 
 	<abstract>
 	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
@@ -34,6 +34,9 @@ To transform to html:
 	    <revision> <revnumber>0.04</revnumber> <date>21-Apr-2010</date>
 		<authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added requirement <xref linkend="req_sta_02"/></revremark> </revision>
+	    <revision> <revnumber>0.05</revnumber> <date>21-Apr-2010</date>
+		<authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added requirement <xref linkend="req_spc_03"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -93,6 +96,11 @@ To transform to html:
 	<sect2 id="req_spc_02"><title>FAP_REQ_SPC_02 State incapsulaton</title>
 	    <simpara>Specification shall describe state with high level of incapsulation.</simpara>
 	    <simpara>NOTE: this conforms with approach of representation the system as a set of state machines.</simpara>
+	</sect2>
+	<sect2 id="req_spc_03"><title>FAP_REQ_SPC_03 State named inputs</title>
+	    <simpara>Specification shall describe state's inputs as named entities.</simpara>
+	    <simpara>NOTE: This is required for simplifying implementation of transition function (it needs inputs identification) 
+		and connections between states.</simpara>
 	</sect2>
     </sect1>
 
