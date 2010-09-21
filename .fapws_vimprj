@@ -1,13 +1,5 @@
 
-fapws=/home/yborisov/projects/fap/work/fapg/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
- autogen.sh
- Makefile.am
- configure.ac
- AUTHORS
- COPYING
- ChangeLog
- README
- NEWS
+fapws=/home/yborisov/projects/fap/git/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
 src=src CD=. filter="*.h *.cpp Makefile.am" {
   fapbase.h
   fapext.h
