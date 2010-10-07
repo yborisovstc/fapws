@@ -2,11 +2,11 @@ fapws (0.0.1-2) unstable; urgency=low
 
   * Debianization updated
 
- -- Yuri Borisov <Yuri.Borisov@teleca.com>  Fri, 27 Jul 2009 15:33:38 +0400
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Fri, 27 Jul 2009 15:33:38 +0400
 
 fapws (0.0.1-1) unstable; urgency=low
 
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+  * Initial release 
 
- -- Yuri Borisov <Yuri.Borisov@teleca.com>  Fri, 24 Jul 2009 15:33:38 +0400
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Fri, 24 Jul 2009 15:33:38 +0400
 

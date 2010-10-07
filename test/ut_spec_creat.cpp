@@ -58,13 +58,15 @@ void UT_FAP_SpecCreat::tearDown()
 
 void UT_FAP_SpecCreat::test_SpecCreat_main()
 {
+    stdout << "\n\nTest of creating object from spec";
     iEnv->AddChmanXml(KSpecFileName);
     iEnv->Provider()->RegisterTransf(&KTinfo_Update_event);
     iEnv->Provider()->RegisterTransf(&KTinfo_Update_timer);
     void *spec = iEnv->Chman()->GetChild(NULL);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get spec", spec != 0);
     CAE_Object *test  = CAE_Object::NewL(NULL, NULL, spec, iEnv);
-    iEnv->AddL(test);
     CPPUNIT_ASSERT_MESSAGE("Fail to create test object", test != 0);
+    iEnv->AddL(test);
     CAE_Object *gen = test->GetComp("generator");
     CPPUNIT_ASSERT_MESSAGE("Fail to get generator", gen != 0);
     CAE_State *period = gen->GetInput("period");

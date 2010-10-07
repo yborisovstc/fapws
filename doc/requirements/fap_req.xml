@@ -22,20 +22,15 @@ To transform to html:
 	</abstract>
 
 	<revhistory>
-	    <revision> <revnumber>0.01</revnumber> <date>11-Mar-2010</date>
-		<authorinitials>Yuri Borisov</authorinitials>
+	    <revision> <revnumber>0.01</revnumber> <date>11-Mar-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Initial version</revremark> </revision>
-	    <revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date>
-		<authorinitials>Yuri Borisov</authorinitials>
+	    <revision> <revnumber>0.02</revnumber> <date>13-Apr-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added section <xref linkend="sec_obj_spec"/>, requirement <xref linkend="req_log_03"/></revremark> </revision>
-	    <revision> <revnumber>0.03</revnumber> <date>20-Apr-2010</date>
-		<authorinitials>Yuri Borisov</authorinitials>
+	    <revision> <revnumber>0.03</revnumber> <date>20-Apr-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added requirement <xref linkend="req_spc_02"/></revremark> </revision>
-	    <revision> <revnumber>0.04</revnumber> <date>21-Apr-2010</date>
-		<authorinitials>Yuri Borisov</authorinitials>
+	    <revision> <revnumber>0.04</revnumber> <date>21-Apr-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added requirement <xref linkend="req_sta_02"/></revremark> </revision>
-	    <revision> <revnumber>0.05</revnumber> <date>21-Apr-2010</date>
-		<authorinitials>Yuri Borisov</authorinitials>
+	    <revision> <revnumber>0.05</revnumber> <date>21-Apr-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added requirement <xref linkend="req_spc_03"/></revremark> </revision>
 	</revhistory>
 
@@ -43,13 +38,6 @@ To transform to html:
 
     <bibliolist>
 	<title>References</title>
-	<!--
-	<biblioentry id="ref_deb_howto">
-	    <abbrev>ABBR</abbrev>
-	    <productname><ulink url=""/></productname>
-	    <subtitle></subtitle>
-	</biblioentry>
-	-->
     </bibliolist>
 
     

@@ -1,28 +1,50 @@
-<?xml version="1.0" ?>
 
-<!DOCTYPE  CAEObject [
+<!-- Log event values -->
+<!--  Event - object/state updated -->
+<!ENTITY levent_update '1'>
+<!--  Event - object/state created -->
+<!ENTITY levent_creation '2'>
+<!ENTITY levent_anytime '3'>
+
+<!-- Values of logging data -->
+<!ENTITY logdata_new '2' >
+<!ENTITY logdata_dep '8' >
 
 <!-- State data types -->
 <!ENTITY dtype_uint '2'>
+<!ENTITY dtype_bool '5'>
+
+<!ENTITY levent_update '1'>
+<!ENTITY ldata_new '2'>
 
 <!-- Logging data. States the data of FAP element that should be logged -->
 <!ELEMENT logdata EMPTY>
+
 <!-- Logspec includes attribute "levent" and assosiated logging data set -->
 <!ELEMENT logspec (logdata+)>
 
 <!ELEMENT state (logspec*)>
 
-<!ELEMENT object (object* , state*, logspec*, conn*)>
+<!ELEMENT object (logspec*, object* , state*, conn*)>
 
 <!ELEMENT caeenv (object*)>
 
 <!-- Transition function -->
 <!ELEMENT transf (dep*)>
 
+<!-- Connection of state -->
+<!ELEMENT conn (dep*) >
 
-<!ATTLIST logspec event (Creation, Updated) #REQUIRED>
-<!ATTLIST logdata ldata (Data) #REQUIRED>
-<!ATTLIST object type (CDATA) id (CDATA) #REQUIRED>
+<!-- Dependency in state connection -->
+<!ELEMENT dep EMPTY >
+
+<!ATTLIST logspec event (1 | 2 | 3) #REQUIRED>
+<!ATTLIST logdata id (2 | 8) #REQUIRED>
+
+<!ATTLIST object 
+   type CDATA #REQUIRED
+   id CDATA #REQUIRED
+>
 
 <!-- State's attributes:
   type - type of state
@@ -33,12 +55,17 @@
    type CDATA #REQUIRED
    id CDATA #REQUIRED
    len CDATA #REQUIRED
-   access (Reg, Inp, Out) #REQUIRED
-   transf CDATA 
-   init CDATA >
+   access (Reg | Inp | Out) #REQUIRED
+   transf CDATA #IMPLIED
+   init CDATA #REQUIRED>
 
-<!-- Connections to state -->
-<!ATTLIST conn state (CDATA) id (CDATA) #REQUIRED>
+<!-- Connections of state -->
+<!ATTLIST conn 
+   state CDATA #REQUIRED
+>
 
-]> <!-- Doctype-->
+<!-- Dependency in state connections -->
+<!ATTLIST dep 
+   id CDATA #REQUIRED
+>
 

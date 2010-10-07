@@ -142,11 +142,8 @@ TInt CAE_LogRec::CreateLog()
     strcpy(logfile, home_dir);
     strcat(logfile, "/");
     strcat(logfile, iLogFileName);
-//    printf("\nFAP logfilename: %s\n", logfile);
-
 //    iLogFile = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
     iLogFile = fopen(logfile, "w+");
-//    printf("logfile: %x\n", iLogFile);
     return (iLogFile != NULL);
 }
 

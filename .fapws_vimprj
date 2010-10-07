@@ -1,6 +1,14 @@
 
 fapws=/home/yborisov/projects/fap/git/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
-src=src CD=. filter="*.h *.cpp Makefile.am" {
+ autogen.sh
+ Makefile.am
+ configure.ac
+ AUTHORS
+ COPYING
+ ChangeLog
+ README
+ NEWS
+src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapbase.h
   fapext.h
   fapfact.h
@@ -13,11 +21,108 @@ src=src CD=. filter="*.h *.cpp Makefile.am" {
   fapfact.cpp
   faplogger.cpp
   fapws.cpp
+  objspec.dtd
   Makefile.am
 } 
-debian=debian CD=. filter="rules changelog README.Debian copyright" {
-  rules
-  changelog
+debian=debian CD=. filter="*" {
   README.Debian
+  changelog
+  compat
+  control
+  copyright
+  dirs
+  docs
+  fapws.install
+  fapws.postinst.debhelper
+  fapws.postrm.debhelper
+  fapws.substvars
+  files
+  rules
+  fapws.debhelper.log
 }
+ doc=doc CD=. filter="*" {
+  requirements=requirements CD=. filter="*" {
+   fap_req.xml
+   index.html
+  }
+  design=design CD=. filter="*" {
+   fap_design.xml
+  }
+ }
+ test=test CD=. filter="*" {
+  Makefile
+  Makefile.am
+  Makefile.in
+  ut-fapws-lib
+  ut_fapws_main.cpp
+  ut_game_xo.cpp
+  ut_game_xo.h
+  ut_simple_increase.cpp
+  ut_simple_increase.h
+  ut_spec_creat.cpp
+  ut_spec_creat.h
+  ut_spec_creat_1.xml
+  ut_fapws_lib-ut_fapws_main.o
+  ut_fapws_lib-ut_game_xo.o
+  ut_fapws_lib-ut_simple_increase.o
+  ut_fapws_lib-ut_spec_creat.o
+ }
+}
+fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*" {
+ AUTHORS
+ COPYING
+ ChangeLog
+ INSTALL
+ Makefile
+ Makefile.am
+ Makefile.in
+ NEWS
+ README
+ aclocal.m4
+ autogen.sh
+ config.guess
+ config.status
+ config.sub
+ configure
+ configure.ac
+ depcomp
+ install-sh
+ libtool
+ ltmain.sh
+ missing
+ config.log
+ debian=debian CD=. filter="*" {
+  README.Debian
+  changelog
+  compat
+  control
+  copyright
+  dirs
+  docs
+  fap-balls.dirs
+  fap-balls.install
+  fap-balls.substvars
+  files
+  rules
+  fap-balls-0.0.4.debhelper.log
+  fap-balls.debhelper.log
+ }
+ src=src CD=. filter="*" {
+  Makefile
+   Makefile.am
+   Makefile.in
+   fap-balls
+   fap-balls-model.cpp
+   fap-balls-model.h
+   main.cpp
+   fap-balls-model.o
+   main.o
+ }
+ doc=doc CD=. filter="*" {
+  FAPTST_BALL_LLD_001.doc
+  FAPTST_BALL_LLD_SHM.vsd
+  stas1.docm
+  stas1.docx
+  stas1.rtf
+ }
 }

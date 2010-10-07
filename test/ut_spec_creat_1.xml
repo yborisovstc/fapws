@@ -1,41 +1,29 @@
 <?xml version="1.0" ?>
 
 <!-- Specification of FAP environment for unit test ut_spec_creat -->
-<!--
-<!DOCTYPE  CAEObject SYSTEM "file:///home/yborisov/projects/fap/git/fap-crtst/src/sample.dtd"> 
--->
 
-<!-- TODO YB - to use external DTD -->
-<!DOCTYPE CaeEnv [
-<!ENTITY dtype_uint '2'>
-<!ENTITY dtype_bool '5'>
-
-<!ENTITY levent_update '1'>
-<!ENTITY ldata_new '2'>
-<!ENTITY ldata_dep '8'>
-] >
-
+<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
 <caeenv>
     <object type="test" id="main_test">
 	<object type="generator" id="generator">
-	    <logspec> <logevent event="Creation"> <logdata ldata="Data"/> </logevent> </logspec>
-	    <state type="&dtype_bool;" id="event" len="4" access="Out" transf="trans_event"> 
-		<logspec event="&levent_update;">
-		    <logdata id="&ldata_new;"/>
-		</logspec> 
+	    <logspec  event="&levent_creation;"> <logdata id="&logdata_new;"/> </logspec>
+
+	    <state type="&dtype_bool;" id="event" len="4" access="Out" transf="trans_event" init="0"> 
+		<logspec event="&levent_update;"> <logdata id="&logdata_new;"/> </logspec> 
 	    </state>
-	    <state type="&dtype_uint;" id="timer" len="4" access="Reg" transf="trans_timer"> 
-		<logspec event="&levent_update;">
-		    <logdata id="&ldata_new;"/> </logspec> 
+
+	    <state type="&dtype_uint;" id="timer" len="4" access="Reg" transf="trans_timer" init="0"> 
+		<logspec event="&levent_update;"> <logdata id="&logdata_new;"/> </logspec> 
 	    </state>
+
 	    <state type="&dtype_uint;" id="period" len="4" access="Inp" init="11"> 
-		<logspec event="&levent_update;">
-		    <logdata id="&ldata_new;"/> </logspec> 
+		<logspec event="&levent_update;"> <logdata id="&logdata_new;"/> </logspec> 
 	    </state>
+
 	    <conn state="event"> <dep id="event"/> <dep id="timer"/></conn>
 	    <conn state="timer"> <dep id="timer"/> <dep id="period"/></conn>
-	</object>
-    </object>
+	</object> <!-- generator -->
+    </object> <!-- test -->
 </caeenv>
 

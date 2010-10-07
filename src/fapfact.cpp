@@ -193,7 +193,7 @@ class CAE_ChroManX: public CAE_ChroManBase
 	void Construct(const char *aFileName);
 	CAE_ChroManX();
     private:
-	static xmlNodePtr GetNode(xmlNodePtr aNode, const char *aName, bool aChild = NULL);
+	static xmlNodePtr GetNode(xmlNodePtr aNode, const char *aName, xmlElementType aType = XML_ELEMENT_NODE, bool aChild = false);
     private:
 	xmlDoc *iDoc;	// XML document
 	xmlNode *iEnv; // Node of environment element
@@ -225,7 +225,7 @@ CAE_ChroManX::CAE_ChroManX(): iDoc(NULL)
 void CAE_ChroManX::Construct(const char *aFileName)
 {
     // Read and parse the CAE spec file
-    iDoc = xmlReadFile(aFileName, NULL, 0);
+    iDoc = xmlReadFile(aFileName, NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID);
     _FAP_ASSERT(iDoc != NULL);
     // Get the node of environment 
     iEnv = GetNode(iDoc->children, KXmlEnvElemName);
@@ -234,13 +234,13 @@ void CAE_ChroManX::Construct(const char *aFileName)
 
 // Searches for node (siblig or child) by name
 //
-xmlNodePtr CAE_ChroManX::GetNode(xmlNodePtr aNode, const char *aName, bool aChild)
+xmlNodePtr CAE_ChroManX::GetNode(xmlNodePtr aNode, const char *aName, xmlElementType aType, bool aChild)
 {
     xmlNodePtr res = NULL;
     xmlNodePtr iter = aChild ? aNode->children : aNode;
     for (; iter != NULL; iter = iter->next)
     {
-	if (strcmp((char*) iter->name, aName) == 0)
+	if ((iter->type == aType) && strcmp((char*) iter->name, aName) == 0)
 	{
 	    res = iter;
 	    break;

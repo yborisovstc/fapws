@@ -178,7 +178,8 @@ enum TLeBase
 {
     KBaseLe_None = 0,
     KBaseLe_Updated = 1, // On element is updated
-    KBaseLe_Any = 2,	// Any time
+    KBaseLe_Creation = 2, // On element creation
+    KBaseLe_Any = 3,	// Any time
     KBaseLe_END__ = KBaseLe_Any
 };
 
