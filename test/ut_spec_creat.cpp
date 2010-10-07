@@ -58,7 +58,7 @@ void UT_FAP_SpecCreat::tearDown()
 
 void UT_FAP_SpecCreat::test_SpecCreat_main()
 {
-    stdout << "\n\nTest of creating object from spec";
+    printf("\n === Test of creation object from spec");
     iEnv->AddChmanXml(KSpecFileName);
     iEnv->Provider()->RegisterTransf(&KTinfo_Update_event);
     iEnv->Provider()->RegisterTransf(&KTinfo_Update_timer);
