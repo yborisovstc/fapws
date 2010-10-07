@@ -16,6 +16,7 @@ void update_timer(CAE_Object* aObject, CAE_State* aState);
 
 const TTransInfo KTinfo_Update_event = TTransInfo(update_event, "trans_event");
 const TTransInfo KTinfo_Update_timer = TTransInfo(update_timer, "trans_timer");
+const TTransInfo* tinfos[] = {&KTinfo_Update_event, &KTinfo_Update_timer, NULL};
 
 void update_event(CAE_Object* aObject, CAE_State* aState)
 {
@@ -46,7 +47,7 @@ void update_timer(CAE_Object* aObject, CAE_State* aState)
 
 void UT_FAP_SpecCreat::setUp()
 {
-    iEnv = CAE_Env::NewL(1, KLogSpecFileName, KLogFileName);
+    iEnv = CAE_Env::NewL(tinfos, KSpecFileName, 1, NULL, KLogFileName);
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 }
 
@@ -59,15 +60,7 @@ void UT_FAP_SpecCreat::tearDown()
 void UT_FAP_SpecCreat::test_SpecCreat_main()
 {
     printf("\n === Test of creation object from spec");
-    iEnv->AddChmanXml(KSpecFileName);
-    iEnv->Provider()->RegisterTransf(&KTinfo_Update_event);
-    iEnv->Provider()->RegisterTransf(&KTinfo_Update_timer);
-    void *spec = iEnv->Chman()->GetChild(NULL);
-    CPPUNIT_ASSERT_MESSAGE("Fail to get spec", spec != 0);
-    CAE_Object *test  = CAE_Object::NewL(NULL, NULL, spec, iEnv);
-    CPPUNIT_ASSERT_MESSAGE("Fail to create test object", test != 0);
-    iEnv->AddL(test);
-    CAE_Object *gen = test->GetComp("generator");
+    CAE_Object *gen = iEnv->Root()->GetComp("generator");
     CPPUNIT_ASSERT_MESSAGE("Fail to get generator", gen != 0);
     CAE_State *period = gen->GetInput("period");
     CPPUNIT_ASSERT_MESSAGE("Fail to get period", period != 0);

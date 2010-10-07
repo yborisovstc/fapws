@@ -137,6 +137,14 @@ void CAE_ProviderGen::RegisterTransf(const TTransInfo *aTrans)
     iTransfs->push_back(aTrans);
 }
 
+void CAE_ProviderGen::RegisterTransfs(const TTransInfo **aTransfs)
+{
+    _FAP_ASSERT(aTransfs != NULL);
+    for (int i = 0; aTransfs[i] != NULL; i++) {
+	iTransfs->push_back(aTransfs[i]);
+    }
+}
+
 const CAE_Formatter* CAE_ProviderGen::GetFormatter(int aUid) const
 {
     const CAE_Formatter *res = NULL;
@@ -483,6 +491,16 @@ void CAE_Fact::RegisterTransf(const TTransInfo *aTrans)
 	// Register in general provider
 	CAE_ProviderBase* prov = GetProviderAt(0);
 	prov->RegisterTransf(aTrans);
+    }
+}
+
+void CAE_Fact::RegisterTransfs(const TTransInfo **aTrans)
+{
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->RegisterTransfs(aTrans);
     }
 }
 

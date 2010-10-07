@@ -55,6 +55,7 @@ class CAE_Fact: public MAE_Provider
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
 	virtual const TTransInfo* GetTransf(const char *aName) const;
 	virtual void RegisterTransf(const TTransInfo *aTrans);
+	virtual void RegisterTransfs(const TTransInfo **aNames);
 	virtual const CAE_Formatter* GetFormatter(int aUid) const;
 	virtual void RegisterFormatter(CAE_Formatter *aForm);
     protected:
@@ -82,6 +83,7 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
 	virtual const TTransInfo* GetTransf(const char *aName) const;
 	virtual void RegisterTransf(const TTransInfo *aTrans);
+	virtual void RegisterTransfs(const TTransInfo **aNames);
 	virtual const CAE_Formatter* GetFormatter(int aUid) const;
 	virtual void RegisterFormatter(CAE_Formatter *aForm);
     private:

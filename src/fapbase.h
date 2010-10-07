@@ -330,6 +330,7 @@ public:
 	const char *iId;	// Unique identificator of Transition
 };
 
+
 // Base class for state with transition function
 // Transition function should be implemented as static function
 // There can be two kinds of state with transition function:
@@ -457,6 +458,7 @@ public:
 	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
 	virtual void RegisterTransf(const TTransInfo *aName) = 0;
+	virtual void RegisterTransfs(const TTransInfo **aNames) = 0;
 	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
 	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
 };
