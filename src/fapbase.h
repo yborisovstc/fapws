@@ -419,6 +419,13 @@ CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTr
 	return self;
 }
 
+template <class T>
+char* CAE_TState<T>::DataToStr(TBool aCurr) const { return CAE_State::DataToStr(aCurr); }
+
+template <class T>
+void CAE_TState<T>::DataFromStr(const char* aStr, void *aData) const { return CAE_State::DataFromStr(aStr, aData); }
+
+
 //!! <<Comment Yuri Borisov -- Why do we need these static methods if there is already CAE_State::iDataTypeUid>>
 //!! <<Is  iDataTypeUid redundant?>>
 template<> inline TInt CAE_TState<TUint8>::DataTypeUid() {return KObUid_CAE_Var_StateUint8;}

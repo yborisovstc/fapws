@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+
+<!DOCTYPE article SYSTEM "/usr/share/sgml/docbook/dtd/xml/4.5/docbookx.dtd">
+
+
+<!--
+To transform to html:
+!xsltproc /usr/share/xml/docbook/stylesheet/nwalsh/html/onechunk.xsl fap_design.xml
+-->
+
+
+<article status="draft" class="specification"> <title>Synchronous Finite automata framework. Design.</title>
+
+    <articleinfo>
+	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
+	    <email>yuri.borisov.v@gmail.com</email></author> 
+
+	<releaseinfo>Ver.0.01 at 11-Sep-2010</releaseinfo>
+
+	<abstract>
+	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
+	</abstract>
+
+	<revhistory>
+	    <revision> <revnumber>0.01</revnumber> <date>11-Sep-2010</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Initial version</revremark> </revision>
+	</revhistory>
+
+    </articleinfo>
+
+    <bibliolist>
+	<title>References</title>
+    </bibliolist>
+
+    
+    <sect1> <title>General</title>
+	<sect2><title>Introduction</title>
+	    <simpara>Finite automata programming environment (FAP) is a service library that provides a client program with means 
+		of implementing functionality using finite automata paradigm.
+	    </simpara>
+	</sect2>
+    </sect1>
+
+</article>

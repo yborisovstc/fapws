@@ -7,6 +7,10 @@ Standards-Version: 3.7.3
 
 Package: fapws
 Architecture: any
-#Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Finite Automata programming framework
  <insert long description, indented with spaces>
+
+Package: fapws-dev
+Architecture: any
+Description: Finite Automata programming framework development pkg
