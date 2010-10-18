@@ -314,7 +314,7 @@ class CAE_Formatter
 	int iStateDataUid;
 };
 
-// State transition transformation
+// State transition spec 
 // TODO YB iId represents constant Id. Consider universal solution
 class TTransInfo
 {
@@ -328,6 +328,21 @@ public:
 	CAE_Object* iCbo; // Keep Cbo in order to be compatible with legacy projects
 	TUint32 iOpInd;
 	const char *iId;	// Unique identificator of Transition
+};
+
+// State factory function
+typedef CAE_State* (*TStateFactFun)(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, CAE_StateBase::StateType aType);
+
+// State info
+// It is for registration of custom state into provider
+class TStateInfo
+{
+    public:
+	TStateInfo(TInt aDataType, TStateFactFun aFactFun, TInt aLen = -1): iDataType(aDataType), iFactFun(aFactFun), iLen(aLen) {};
+    public:
+	TInt iDataType;
+	TInt iLen;
+	TStateFactFun iFactFun;
 };
 
 
@@ -464,6 +479,8 @@ public:
 	virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
+	virtual void RegisterState(const TStateInfo *aInfo) = 0;
+	virtual void RegisterStates(const TStateInfo **aInfos) = 0;
 	virtual void RegisterTransf(const TTransInfo *aName) = 0;
 	virtual void RegisterTransfs(const TTransInfo **aNames) = 0;
 	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
@@ -482,6 +499,7 @@ class MAE_Env
 
 // Base class for object. Object is container and owner of its component and states
 // The component of object can be other objects
+// TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
 class CAE_Object: public CAE_Base
 {
 public:

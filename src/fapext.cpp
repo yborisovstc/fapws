@@ -36,11 +36,11 @@ FAPWS_API CAE_Env* CAE_Env::NewL(TInt aPriority, const char* aLogSpecFile, const
 	return self;
 }
 
-FAPWS_API CAE_Env* CAE_Env::NewL(const TTransInfo** aTinfos, const char* aSpecFile, TInt aPriority, 
+FAPWS_API CAE_Env* CAE_Env::NewL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpecFile, TInt aPriority, 
 	const char* aLogSpecFile, const char *aLogFileName, TInt aLoad)
 {
 	CAE_Env* self = new CAE_Env(aPriority, aLoad);
-	self->ConstructL(aTinfos, aSpecFile, aLogSpecFile, aLogFileName);
+	self->ConstructL(aSinfos, aTinfos, aSpecFile, aLogSpecFile, aLogFileName);
 	return self;
 }
 
@@ -52,12 +52,18 @@ void CAE_Env::ConstructL(const char* aLogSpecFile, const char *aLogFileName)
     SetActive();
 }
 
-void CAE_Env::ConstructL(const TTransInfo** aTinfos, const char* aSpec, const char* aLogSpecFile, const char *aLogFileName)
+void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpec, 
+	const char* aLogSpecFile, const char *aLogFileName)
 {
     AddChmanXml(aSpec);
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
-    iProvider->RegisterTransfs(aTinfos);
+    if (aSinfos != NULL) {
+	iProvider->RegisterStates(aSinfos);
+    }
+    if (aTinfos != NULL) {
+	iProvider->RegisterTransfs(aTinfos);
+    }
     void *rootspec = Chman()->GetChild(NULL);
     iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) rootspec, this);
     SetActive();

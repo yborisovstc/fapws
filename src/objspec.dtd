@@ -1,3 +1,5 @@
+<!-- TODO [YB] No error whyle spec parsing when data type entity missed -->
+<!-- TODO [YB] external entities shall not be used as attr value - against XML WFC -->
 
 <!-- Log event values -->
 <!--  Event - object/state updated -->
@@ -11,11 +13,10 @@
 <!ENTITY logdata_dep '8' >
 
 <!-- State data types -->
+<!ENTITY dtype_int '1'>
 <!ENTITY dtype_uint '2'>
 <!ENTITY dtype_bool '5'>
 
-<!ENTITY levent_update '1'>
-<!ENTITY ldata_new '2'>
 
 <!-- Logging data. States the data of FAP element that should be logged -->
 <!ELEMENT logdata EMPTY>
@@ -54,7 +55,7 @@
 <!ATTLIST state 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
-   len CDATA #REQUIRED
+   len CDATA #IMPLIED
    access (Reg | Inp | Out) #REQUIRED
    transf CDATA #IMPLIED
    init CDATA #REQUIRED>

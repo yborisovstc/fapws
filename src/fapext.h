@@ -22,7 +22,7 @@ public:
 	};
 public:
 	FAPWS_API static CAE_Env* NewL(TInt aPriority, const char* aLogSpecFile, const char *aLogFileName = NULL, TInt aLoad = KEnvLoadDefault);
-	FAPWS_API static CAE_Env* NewL(const TTransInfo** aTinfos, const char* aSpecFile, TInt aPriority, 
+	FAPWS_API static CAE_Env* NewL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpecFile, TInt aPriority, 
 		const char* aLogSpecFile, const char *aLogFileName = NULL, TInt aLoad = KEnvLoadDefault);
 	FAPWS_API virtual ~CAE_Env();
 	FAPWS_API void AddL(CAE_Object* aComp);
@@ -37,7 +37,8 @@ public:
 protected:
 	FAPWS_API CAE_Env(TInt aPriority, TInt aLoad = KEnvLoadDefault);
 	FAPWS_API void ConstructL(const char* aLogSpecFile, const char *aLogFileName = NULL);
-	FAPWS_API void ConstructL(const TTransInfo** aTinfos, const char* aSpecFile, const char* aLogSpecFile, const char *aLogFileName = NULL);
+	FAPWS_API void ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpecFile, 
+		const char* aLogSpecFile, const char *aLogFileName = NULL);
 	FAPWS_API virtual void DoCancel();
 	FAPWS_API virtual void RunL();
 private:

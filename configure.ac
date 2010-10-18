@@ -32,7 +32,9 @@ AC_SUBST(LIBXML_CFLAGS)
 AC_SUBST(LIBXML_LIBS)
 
 if test x$debug = xyes; then
-    CXXFLAGS="$CXXFLAGS -O0"
+    CXXFLAGS="-g -O0"
+else
+    CXXFLAGS="-g -O2"
 fi
 
 

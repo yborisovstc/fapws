@@ -879,12 +879,12 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	    }
 	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
 	    CAE_State *state = prov->CreateStateL(datatype, name, this, access);  
-	    state->SetTrans(*trans);
 //	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
 	    if (state == NULL)
 		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
 	    else
 	    {
+		state->SetTrans(*trans);
 		// Set logspec
 		for (void *stelem = chman->GetChild(child); stelem != NULL; stelem = chman->GetNext(stelem))
 		{

@@ -1,15 +1,15 @@
 
 fapws=/home/yborisov/projects/fap/git/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
- autogen.sh
- Makefile.am
- configure.ac
- AUTHORS
- COPYING
- ChangeLog
- README
- NEWS
+autogen.sh
+Makefile.am
+configure.ac
+AUTHORS
+COPYING
+ChangeLog
+README
+NEWS
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
-  fapbase.h
+ fapbase.h
   fapext.h
   fapfact.h
   faplogger.h
@@ -32,6 +32,7 @@ debian=debian CD=. filter="*" {
   copyright
   dirs
   docs
+  fapws-dev.install
   fapws.install
   fapws.postinst.debhelper
   fapws.postrm.debhelper
@@ -40,16 +41,16 @@ debian=debian CD=. filter="*" {
   rules
   fapws.debhelper.log
 }
- doc=doc CD=. filter="*" {
-  requirements=requirements CD=. filter="*" {
-   fap_req.xml
+doc=doc CD=. filter="*" {
+ requirements=requirements CD=. filter="*" {
+  fap_req.xml
    index.html
-  }
-  design=design CD=. filter="*" {
-   fap_design.xml
-  }
  }
- test=test CD=. filter="*" {
+ design=design CD=. filter="*" {
+  fap_design.xml
+ }
+}
+test=test CD=. filter="*" {
   Makefile
   Makefile.am
   Makefile.in
@@ -66,7 +67,10 @@ debian=debian CD=. filter="*" {
   ut_fapws_lib-ut_game_xo.o
   ut_fapws_lib-ut_simple_increase.o
   ut_fapws_lib-ut_spec_creat.o
- }
+  libs=.libs CD=. filter="*" {
+   ut-fapws-lib
+  }
+}
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*" {
  AUTHORS
@@ -109,14 +113,15 @@ fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*" {
  }
  src=src CD=. filter="*" {
   Makefile
-   Makefile.am
-   Makefile.in
-   fap-balls
-   fap-balls-model.cpp
-   fap-balls-model.h
-   main.cpp
-   fap-balls-model.o
-   main.o
+  Makefile.am
+  Makefile.in
+  fap-balls
+  fap-balls-model.cpp
+  fap-balls-model.h
+  fap-balls-spec.xml
+  main.cpp
+  fap-balls-model.o
+  main.o
  }
  doc=doc CD=. filter="*" {
   FAPTST_BALL_LLD_001.doc

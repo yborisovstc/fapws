@@ -4,7 +4,7 @@
 // Yuri Borisov  18/07/05  FAP_CR_009  Added support of logging
 // Yuri Borisov  28/09/05  FAP_CR_010  Avoid panic if log spec is absent
 //*************************************************************
-
+// TODO [YB] print sync signal in log record 
 
 #include "faplogger.h"
 #include "fapbase.h"
@@ -138,6 +138,7 @@ TInt CAE_LogRec::CreateLog()
     return ret;
 #endif
     const char *home_dir = getenv("HOME");
+    // TODO [YB] To avoid home as the base of logfile path
     char *logfile = (char *) malloc(strlen(home_dir) + strlen(iLogFileName) + 1);
     strcpy(logfile, home_dir);
     strcat(logfile, "/");

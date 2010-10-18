@@ -47,7 +47,7 @@ void update_timer(CAE_Object* aObject, CAE_State* aState)
 
 void UT_FAP_SpecCreat::setUp()
 {
-    iEnv = CAE_Env::NewL(tinfos, KSpecFileName, 1, NULL, KLogFileName);
+    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 }
 

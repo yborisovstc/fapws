@@ -40,6 +40,7 @@ FAPWS_API CAE_ProviderBase::~CAE_ProviderBase()
 FAPWS_API CAE_ProviderGen::CAE_ProviderGen()
 {
     iTransfs = new vector<const TTransInfo*>;
+    iStateInfos = new vector<const TStateInfo*>;
     iFormatters = new vector<CAE_Formatter*>;
 }
 
@@ -60,6 +61,10 @@ FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
 	*/
 	delete iTransfs;
 	iTransfs = NULL;
+    }
+    if (iStateInfos != NULL) {
+	delete iStateInfos;
+	iStateInfos = NULL;
     }
     if (iFormatters != NULL)
     {
@@ -83,6 +88,9 @@ FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char*
     CAE_State* res = NULL;
     switch (aTypeUid) 
     {
+	case KObUid_CAE_Var_StateInt:
+	    res = CAE_TState<TInt>::NewL(aInstName, aMan,  TTransInfo(), aType);
+	    break;
 	case KObUid_CAE_Var_StateUint8:
 	    res = CAE_TState<TUint8>::NewL(aInstName, aMan,  TTransInfo(), aType);
 	    break;
@@ -93,6 +101,10 @@ FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char*
 	    res = CAE_TState<TBool>::NewL(aInstName, aMan,  TTransInfo(), aType);
 	    break;
 	default:
+	    const TStateInfo *info = GetStateInfo(aTypeUid);
+	    if (info != NULL) {
+		res = info->iFactFun(aInstName, aMan, TTransInfo(), aType);
+	    }
 	    break;
     }
     return res;
@@ -111,6 +123,22 @@ FAPWS_API CAE_Base* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
 FAPWS_API  CAE_Base* CAE_ProviderGen::CreateObjectL(const char *aName) const
 {
     CAE_Base* res = NULL;
+    return res;
+}
+
+const TStateInfo* CAE_ProviderGen::GetStateInfo(TUint32 aType) const
+{
+    const TStateInfo *res = NULL;
+    int count = iStateInfos->size();
+    for (int i = 0; i < count; i++)
+    {
+	const TStateInfo* info =   static_cast<const TStateInfo*>(iStateInfos->at(i));
+	if (info->iDataType == aType)
+	{
+	    res = info;
+	    break;
+	}
+    }
     return res;
 }
 
@@ -159,8 +187,22 @@ const CAE_Formatter* CAE_ProviderGen::GetFormatter(int aUid) const
 	}
     }
     return res;
-
 }
+
+void CAE_ProviderGen::RegisterState(const TStateInfo *aInfo)
+{
+    _FAP_ASSERT(aInfo != NULL);
+    iStateInfos->push_back(aInfo);
+}
+
+void CAE_ProviderGen::RegisterStates(const TStateInfo **aInfos)
+{
+    _FAP_ASSERT(aInfos != NULL);
+    for (int i = 0; aInfos[i] != NULL; i++) {
+	iStateInfos->push_back(aInfos[i]);
+    }
+}
+
 
 void CAE_ProviderGen::RegisterFormatter(CAE_Formatter *aForm)
 {
@@ -484,6 +526,24 @@ const TTransInfo* CAE_Fact::GetTransf(const char *aName) const
     return res;
 }
 
+void CAE_Fact::RegisterState(const TStateInfo *aInfo) {
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->RegisterState(aInfo);
+    }
+}
+
+void CAE_Fact::RegisterStates(const TStateInfo **aInfos) {
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->RegisterStates(aInfos);
+    }
+}
+	
 void CAE_Fact::RegisterTransf(const TTransInfo *aTrans)
 {
     if (iProviders->size() > 0)
