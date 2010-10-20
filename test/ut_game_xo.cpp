@@ -8,7 +8,6 @@
 
 CPPUNIT_TEST_SUITE_REGISTRATION( UT_FAP_GameXO );
 
-const TInt KObUid_CAE_Var_State_TField = KObUid_CAE_Var_State_Ext + 1 ;   // tagField 0x00010001
 
 const TInt KFieldDem = 5;
 
@@ -24,7 +23,7 @@ struct CF_TField
     TField iField;
 };
 
-template<> inline TInt CAE_TState<CF_TField>::DataTypeUid() {return KObUid_CAE_Var_State_TField;};
+template<> inline const char *CAE_TState<CF_TField>::Type() {return "StField"; };
 
 _TEMPLATE_ TBool CAE_TState<CF_TField>::SetTrans(TTransInfo aTinfo)
 {

@@ -92,7 +92,7 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	virtual void RegisterFormatter(CAE_Formatter *aForm);
     private:
 	void RegisterFormatter(int aUid, TLogFormatFun aFun);
-	const TStateInfo* GetStateInfo(TUint32 aType) const;
+	const TStateInfo* GetStateInfo(const char *aType) const;
     private:
 	// Register of states
 	vector<const TStateInfo*>* iStateInfos;

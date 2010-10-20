@@ -19,6 +19,14 @@ const char* KCaeElTypeLogspec = "logspec";
 const char* KCaeElTypeLogdata = "logdata";
 const char* KCaeElTypeDep = "dep";
 
+// Base states registered by default
+const TStateInfo KSinfo_State = TStateInfo("State", (TStateFactFun) CAE_State::NewL );
+const TStateInfo KSinfo_StBool = TStateInfo("StBool", (TStateFactFun) CAE_TState<TBool>::NewL );
+const TStateInfo KSinfo_StInt = TStateInfo("StInt", (TStateFactFun) CAE_TState<TInt>::NewL );
+const TStateInfo KSinfo_StUint8 = TStateInfo("StUint8", (TStateFactFun) CAE_TState<TUint8>::NewL );
+const TStateInfo KSinfo_StUint32 = TStateInfo("StUint32", (TStateFactFun) CAE_TState<TUint32>::NewL );
+const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StInt, &KSinfo_StUint8, &KSinfo_StUint32, NULL};
+
 //*********************************************************
 // Base class of provider implementation
 //*********************************************************
@@ -86,32 +94,17 @@ FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
 FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aType) const
 {
     CAE_State* res = NULL;
-    switch (aTypeUid) 
-    {
-	case KObUid_CAE_Var_StateInt:
-	    res = CAE_TState<TInt>::NewL(aInstName, aMan,  TTransInfo(), aType);
-	    break;
-	case KObUid_CAE_Var_StateUint8:
-	    res = CAE_TState<TUint8>::NewL(aInstName, aMan,  TTransInfo(), aType);
-	    break;
-	case KObUid_CAE_Var_StateUint:
-	    res = CAE_TState<TUint32>::NewL(aInstName, aMan,  TTransInfo(), aType);
-	    break;
-	case KObUid_CAE_Var_StateBool:
-	    res = CAE_TState<TBool>::NewL(aInstName, aMan,  TTransInfo(), aType);
-	    break;
-	default:
-	    const TStateInfo *info = GetStateInfo(aTypeUid);
-	    if (info != NULL) {
-		res = info->iFactFun(aInstName, aMan, TTransInfo(), aType);
-	    }
-	    break;
-    }
     return res;
 }
 
-FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aType) const
+FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aType, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aStType) const
 {
+    CAE_State* res = NULL;
+    const TStateInfo *info = GetStateInfo(aType);
+    if (info != NULL) 
+	res = info->iFactFun(aInstName, aMan, TTransInfo(), aStType);
+    return res;
+
 }
 
 FAPWS_API CAE_Base* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
@@ -126,14 +119,14 @@ FAPWS_API  CAE_Base* CAE_ProviderGen::CreateObjectL(const char *aName) const
     return res;
 }
 
-const TStateInfo* CAE_ProviderGen::GetStateInfo(TUint32 aType) const
+const TStateInfo* CAE_ProviderGen::GetStateInfo(const char *aType) const
 {
     const TStateInfo *res = NULL;
     int count = iStateInfos->size();
     for (int i = 0; i < count; i++)
     {
 	const TStateInfo* info =   static_cast<const TStateInfo*>(iStateInfos->at(i));
-	if (info->iDataType == aType)
+	if (strcmp(info->iType, aType) == 0)
 	{
 	    res = info;
 	    break;
@@ -444,6 +437,7 @@ FAPWS_API void CAE_Fact::ConstructL()
 {
     iProviders = new vector<CAE_ProviderBase*>;
     CAE_ProviderBase* baseprov = new CAE_ProviderGen();
+    baseprov->RegisterStates(sinfos);
     AddProviderL(baseprov);
 }
 

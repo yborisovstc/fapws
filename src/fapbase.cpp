@@ -268,12 +268,12 @@ FAPWS_API void CAE_StateBase::SetFromStr(const char *aStr)
     }
 }
 
-FAPWS_API void* CAE_StateBase::DoGetObject(TInt aUid)
+CAE_Base *CAE_StateBase::DoGetFbObj(const char *aName)
 {
-	if (aUid == EObUid)
-		return this;
-	else
-		return NULL;
+    if (strcmp(aName, Type()) == 0)
+	return this;
+    else
+	return NULL;
 }
 
 void CAE_StateBase::RefreshOutputs()
@@ -390,15 +390,14 @@ FAPWS_API void CAE_StateBase::Reset()
 
 const char* KCAE_StateName = "State";
 
-FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid):
+FAPWS_API CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType):
     CAE_StateBase(aInstName, aLen, aMan, aType), iTrans(aTrans)
 {
-	iDataTypeUid = aDataTypeUid;
 };
 
-FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType, TInt aDataTypeUid)
+FAPWS_API CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType)
 {
-	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType, aDataTypeUid);
+	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType);
 	self->ConstructL();
 	return self;
 }
@@ -438,17 +437,13 @@ FAPWS_API TOperationInfo CAE_State::OperationInfo(TUint8 aId) const
 	return nfo;
 }
 
-// From MObjectProvider
-FAPWS_API void* CAE_State::DoGetObject(TInt aUid)
+// From CAE_Base
+CAE_Base *CAE_State::DoGetFbObj(const char *aName)
 {
-	// The method returns the state if there is non-varianted request (ModifType == 0) or exact request
-	TInt baseuid = aUid & KObUid_BaseTypeMask;
-	TInt modifuid = aUid & KObUid_ModifTypeMask;
-	TInt oid = ObjectUid();
-	if (baseuid == (oid & KObUid_BaseTypeMask) && (modifuid == 0 || IsDataType(modifuid)))
-		return this;
-	else
-		return NULL;
+    if ((iTypeName != NULL) && (strcmp(iTypeName, aName) == 0) || (strcmp(aName, Type()) == 0))
+	return this;
+    else
+	return CAE_StateBase::DoGetFbObj(aName);
 }
 
 //*********************************************************
@@ -470,14 +465,15 @@ template<> FAPWS_API TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 		if (ninp > 0)
 		{
 			CAE_StateBase* sinp1 = Input(0);
-			CAE_TState<TUint8>* tsinp1 = sinp1->GetObject(tsinp1);
+			//CAE_TState<TUint8>* tsinp1 = sinp1->GetObject(tsinp1);
+			CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 			if (tsinp1 == NULL)
 				err = ETrue;
 		}
 		if (!err && ninp > 1)
 		{
 			CAE_StateBase* sinp2 = Input(1);
-			CAE_TState<TUint8>* tsinp2 = sinp2->GetObject(tsinp2);
+			CAE_TState<TUint8>* tsinp2 = sinp2->GetFbObj(tsinp2);
 			if (tsinp2 == NULL)
 				err = ETrue;
 		}
@@ -515,12 +511,12 @@ template<> FAPWS_API void CAE_TState<TUint8>::DoOperation()
 {
 	CAE_StateBase* sinp1 = Input(0);
 	_FAP_ASSERT(sinp1 != NULL);
-	CAE_TState<TUint8>* tsinp1 = sinp1->GetObject(tsinp1);
+	CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 	_FAP_ASSERT(tsinp1 != NULL);
 	CAE_StateBase* sinp2 = Input(1);
 	CAE_TState<TUint8>* tsinp2 = NULL;
 	if (sinp2 != NULL)
-		tsinp2 = sinp2->GetObject(tsinp2);
+		tsinp2 = sinp2->GetFbObj(tsinp2);
 	_FAP_ASSERT((iTrans.iOpInd < ECStateUint8Op_BinSt) || tsinp2 != NULL);
 	switch (iTrans.iOpInd)
 	{
@@ -624,6 +620,7 @@ template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) co
     CAE_StateBase::DataFromStr(aStr, aData);
 }
 
+// TODO [YB] Default method is called instead of this, investigate why
 template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const
 {
     TBool data = *((TBool *) (aCurr ? iCurr : iNew));
@@ -654,24 +651,18 @@ CAE_Formatter::~CAE_Formatter()
 //*********************************************************
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
-	CAE_Base(aInstName, aMan), iVariantUid(EObStypeUid), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iEnv(aEnv), 
+	CAE_Base(aInstName, aMan), iCompReg(NULL), iChrom(NULL), iChromX(NULL), iEnv(aEnv), 
 	iFitness(0), iFitness1(0)
 {
 }
 
-// From MObjectProvider
-// CAE_Object  supports providing the derivatives using VariantUid
-// If derivative needs some special providing, it needs to implement specific DoGetObject()
-FAPWS_API void* CAE_Object::DoGetObject(TInt aUid)
+CAE_Base *CAE_Object::DoGetFbObj(const char *aName)
 {
-	// The method returns the object if there is non-varianted request (ModifType == 0) or exact request
-	TInt baseuid = aUid & KObUid_BaseTypeMask;
-	TInt modifuid = aUid & KObUid_ModifTypeMask;
-	TInt oid = ObjectUid();
-	if (baseuid == (oid & KObUid_BaseTypeMask) && (modifuid == 0 || modifuid == iVariantUid))
-		return this;
-	else
-		return NULL;
+    CAE_Base *res = NULL;
+    if (strcmp(aName, Type()) == 0) {
+	res = this;
+    }
+    return res;
 }
 
 
@@ -863,7 +854,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	}
 	else if (ftype == ECae_State)
 	{
-	    int datatype = chman->GetAttrInt(child, KXTransAttr_Type); 
+	    char *stype = chman->GetStrAttr(child, KXTransAttr_Type);
 	    char *name = chman->GetName(child); 
 	    int len = chman->GetLen(child); 
 	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
@@ -878,7 +869,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		_FAP_ASSERT(trans != NULL);
 	    }
 	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
-	    CAE_State *state = prov->CreateStateL(datatype, name, this, access);  
+	    CAE_State *state = prov->CreateStateL(stype, name, this, access);  
 //	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
 	    if (state == NULL)
 		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
@@ -891,7 +882,8 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		    TCaeElemType stetype = chman->FapType(stelem);
 		    if (stetype == ECae_Logspec)
 		    {
-			TInt event = chman->GetAttrInt(stelem, KXTransAttr_LogEvent);
+			char *sevent = chman->GetStrAttr(stelem, KXTransAttr_LogEvent);
+			TInt event = LsEventFromStr(sevent);
 			// Get logging data
 			TInt ldata = 0;
 			for (void *lselem = chman->GetChild(stelem); lselem != NULL; lselem = chman->GetNext(lselem))
@@ -899,7 +891,8 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 			    TCaeElemType lstype = chman->FapType(lselem);
 			    if (lstype == ECae_Logdata)
 			    {
-				TInt data = chman->GetAttrInt(lselem, KXTransAttr_LogData);
+				char *sdata = chman->GetStrAttr(lselem, KXTransAttr_LogData);
+				TInt data = LsDataFromStr(sdata);
 				ldata |= data;
 			    }
 			    else
@@ -962,6 +955,22 @@ FAPWS_API CAE_Object::~CAE_Object()
 	}
 	iEnv = NULL; // Not owned
 };
+
+TInt CAE_Object::LsEventFromStr(const char *aStr)
+{
+    if (strcmp(aStr, "upd") == 0) return KBaseLe_Updated;
+    else if (strcmp(aStr, "cre") == 0) return KBaseLe_Creation;
+    else if (strcmp(aStr, "any") == 0) return KBaseLe_Any;
+    else return KBaseLe_None;
+}
+
+TInt CAE_Object::LsDataFromStr(const char *aStr)
+{
+    if (strcmp(aStr, "cur") == 0) return KBaseDa_Curr;
+    else if (strcmp(aStr, "new") == 0) return KBaseDa_New;
+    else if (strcmp(aStr, "dep") == 0) return KBaseDa_Dep;
+    else return KBaseDa_None;
+}
 
 FAPWS_API TBool CAE_Object::IsTheSame(CAE_Object* aObj) const
 {
@@ -1056,7 +1065,7 @@ void CAE_Object::UnregisterComp(CAE_Base* aComp)
 		if (iCompReg->at(i) == aComp) {iCompReg->erase(iCompReg->begin() + i); break; };
 }
 
-FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName) const
+FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName)
 {
 	CAE_Object* res = NULL;
 	for (TInt i = 0; i < iCompReg->size(); i++)
@@ -1071,10 +1080,10 @@ FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName) const
 	return res;
 }
 
-FAPWS_API TInt CAE_Object::CountCompWithType(TInt aUid) const
+FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
 {
 	TInt res = 0;
-	if (aUid == 0)
+	if (aType == NULL)
 	{
 		res = iCompReg->size();
 	}
@@ -1083,7 +1092,7 @@ FAPWS_API TInt CAE_Object::CountCompWithType(TInt aUid) const
 		for (TInt i = 0; i < iCompReg->size(); i++)
 		{
 			CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-			if (((CAE_Object*) comp->DoGetObject(aUid)) != NULL)
+			if (GetFbObj(aType) != NULL)
 			{
 				res++;
 			}
@@ -1092,13 +1101,14 @@ FAPWS_API TInt CAE_Object::CountCompWithType(TInt aUid) const
 	return res;
 }
 
-FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(TInt aUid, int* aCtx) const
+// TODO [YB] Type to be supposed as FAP base type. Then what's the sense of this method?
+FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx) const
 {
 	CAE_Object* res = NULL;
 	for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++)
 	{
 		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-		if ((res = (CAE_Object*) comp->DoGetObject(aUid)) != NULL)
+		if ((res = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
 		{
 			*aCtx = i+1;
 			break;
@@ -1108,7 +1118,7 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(TInt aUid, int* aCtx) const
 }
 
 
-FAPWS_API CAE_Base* CAE_Object::FindName(const char* aName) const
+FAPWS_API CAE_Base* CAE_Object::FindName(const char* aName)
 {
 	CAE_Base* res = NULL;
 	char name[KNameMaxLen];
@@ -1135,7 +1145,7 @@ FAPWS_API CAE_Base* CAE_Object::FindName(const char* aName) const
 			for (TInt i = 0; i < iCompReg->size(); i++)
 			{
 				CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-				CAE_Object* obj = (CAE_Object*) comp->DoGetObject(CAE_Object::EObUid);
+				CAE_Object* obj = GetFbObj(obj);
 				if (obj && strcmp(name, obj->InstName()) == 0)
 				{
 					res = obj->FindName(tail+1); 
@@ -1161,7 +1171,7 @@ FAPWS_API CAE_State* CAE_Object::GetInput(TUint32 aInd)
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
 		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-		CAE_State* obj = (CAE_State*) comp->GetObject(obj);
+		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsInput())
 		{
 			if (sInd++ == aInd)
@@ -1187,7 +1197,7 @@ FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
 		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-		CAE_State* obj = (CAE_State*) comp->GetObject(obj);
+		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsOutput())
 		{
 			if (sInd++ == aInd)
@@ -1208,7 +1218,7 @@ FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 		CAE_Base* comp = (CAE_Base*) iCompReg->at(aInd);
 		if (comp != NULL)
 		{
-			res = comp->GetObject(res);
+			res = comp->GetFbObj(res);
 		}
 	}
 	return res;
@@ -1220,7 +1230,7 @@ FAPWS_API CAE_State* CAE_Object::GetStateByName(const char *aName)
     for (TInt i = 0; i < iCompReg->size(); i++)
     {
 	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-	CAE_State* state = (CAE_State*) comp->GetObject(state);
+	CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 	if (state != NULL && (strcmp(aName, state->InstName()) == 0))
 	{
 	    res = state; 
@@ -1253,7 +1263,7 @@ FAPWS_API void CAE_Object::Reset()
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
 		CAE_Base* comp = iCompReg->at(i);
-		CAE_State* state = (CAE_State*) comp->GetObject(state);
+		CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 		if (state != NULL)
 		{
 			state->Reset();

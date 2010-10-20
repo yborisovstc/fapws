@@ -336,7 +336,7 @@ void CAE_LogCtrl::DoLogL(TInt aStep)
 		}
 		if (spec->iElt != NULL && spec->iElt->iUpdated)
 		{
-			CAE_StateBase* state = spec->iElt->GetObject(state);
+			CAE_StateBase* state = spec->iElt->GetFbObj(state);
 			if (state != NULL)
 			{
 				char buf[KStateFormattedLen] = "";

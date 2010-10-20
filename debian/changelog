@@ -1,3 +1,10 @@
+fapws (0.0.1-5) unstable; urgency=low
+
+  * Migrated to str based type id
+  * Fixed pbl with using entity in attr in spec
+
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Thu, 20 Oct 2009 19:45:01 +0400
+
 fapws (0.0.1-4) unstable; urgency=low
 
   * Added dev pkg

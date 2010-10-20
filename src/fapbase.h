@@ -58,24 +58,6 @@ enum TCaeElemType
     ECae_Logdata = 6	// Logging data
 };
 
-// Type UID of class mask 
-const TInt KObUid_BaseTypeMask = 0xffff0000;
-// Type UID of variation of class mask 
-const TInt KObUid_ModifTypeMask = 0x0000ffff;
-
-const TInt KObUid_CAE_StateBase =	0x000010000;
-const TInt KObUid_CAE_Object =		0x000020000;
-const TInt KObUid_CAE_ObjectBa =	0x000030000;
-const TInt KObUid_CAE_State =		0x000040000;
-
-// Variations UIDs
-const TInt KObUid_CAE_Var_NotSpecified =	0x00000000;
-const TInt KObUid_CAE_Var_StateInt =	0x00000001;
-const TInt KObUid_CAE_Var_StateUint =	0x00000002;
-const TInt KObUid_CAE_Var_StateFloat =	0x00000003;
-const TInt KObUid_CAE_Var_StateUint8 =	0x00000004; 
-const TInt KObUid_CAE_Var_StateBool =	0x00000005; 
-const TInt KObUid_CAE_Var_State_Ext =	0x00001000;   // Extensions
 
 // Adaptive automata programming constants
 
@@ -155,14 +137,6 @@ class CAE_StateBase;
 typedef void (*TTransFun)(CAE_Object* aObject, CAE_State* aState);
 typedef char *(*TLogFormatFun)(CAE_StateBase* aState, TBool aCurr);
 
-// Object provider interface. That's like the similar in the Symbian OS but 
-// static method is used to obtain type UID. That should allow to provide templated classed instance
-class MObjectProvider
-{
-public:
-	FAPWS_API virtual void* DoGetObject(TInt aTypeUid) = 0;
-	template <class T> T* GetObject(T* aInst) {return aInst = static_cast<T*>(DoGetObject(aInst->ObjectUid())); };
-};
 
 // Log recorder interface
 class MCAE_LogRec
@@ -201,14 +175,10 @@ struct TLogSpecBase
     TInt  iData;   // Data to log TLdBase
 };
 
-
-class CAE_Base: public MObjectProvider
+/** Base class for FAP elements
+ */
+class CAE_Base
 {
-public:
-	enum
-	{
-		KAbase_NameLen = 12
-	};
 public:
 	CAE_Base(const char* aInstName, CAE_Object* aMan);
 	FAPWS_API virtual ~CAE_Base();
@@ -218,25 +188,30 @@ public:
 	void SetUpdated();
 	void SetName(const char *aName);
 	const char* InstName() const { return iInstName;};
+	const char* TypeName() const { return iTypeName;};
 	void AddLogSpec(TInt aEvent, TInt aData);
+	/* Get FAP base object (OOP view) */
+	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
+	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
 protected:
+	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
 	TInt GetLogSpecData(TInt aEvent) const;
 public:
 	char* iInstName;
+	/* Name of ancestor */
+	char* iTypeName;
 	TBool	iUpdated, iActive;
 	CAE_Object* iMan;
 	vector<TLogSpecBase>* iLogSpec;
 };
 
 
+/** Base class for FAP state
+ */
 class CAE_StateBase: public CAE_Base
 {
 	friend class CAE_Object;
 public:
-	enum TObUid
-	{
-		EObUid = KObUid_CAE_StateBase
-	};
 	enum StateType
 	{
 		EType_Unknown = 0,
@@ -246,7 +221,6 @@ public:
 	};
 public:
 	CAE_StateBase(const char* aInstName, TInt aLen, CAE_Object* aMan, StateType aType= CAE_StateBase::EType_Reg);
-	static inline TInt ObjectUid(); 
 	FAPWS_API virtual ~CAE_StateBase();
 	FAPWS_API virtual void Confirm();
 	FAPWS_API virtual void Update();
@@ -265,8 +239,9 @@ public:
 	TBool IsOutput() { return iStateType == EType_Output;}
 	virtual char* DataToStr(TBool aCurr) const;
 	virtual void DataFromStr(const char* aStr, void *aData) const;
-	// From MObjectProvider
-	FAPWS_API virtual void* DoGetObject(TInt aUid);
+	static inline const char *Type(); 
+	// From CAE_Base
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 protected:
 	FAPWS_API void ConstructL();
 private:
@@ -282,14 +257,13 @@ public:
 	void	*iCurr, *iNew;
 protected:
 	TInt iLen;
-protected:
 	StateType iStateType;
 	TUint8		iFlags;
 	vector<CAE_StateBase*>* iInputsList;
 	vector<CAE_StateBase*>* iOutputsList;
 };
 
-inline TInt CAE_StateBase::ObjectUid() { return KObUid_CAE_StateBase;} 
+inline const char *CAE_StateBase::Type() { return "StateBase";} 
 
 
 // Parameters of operation
@@ -338,9 +312,9 @@ typedef CAE_State* (*TStateFactFun)(const char* aInstName, CAE_Object* aMan,  TT
 class TStateInfo
 {
     public:
-	TStateInfo(TInt aDataType, TStateFactFun aFactFun, TInt aLen = -1): iDataType(aDataType), iFactFun(aFactFun), iLen(aLen) {};
+	TStateInfo(const char* aType, TStateFactFun aFactFun, TInt aLen = -1): iType(aType), iFactFun(aFactFun), iLen(aLen) {};
     public:
-	TInt iDataType;
+	const char *iType;
 	TInt iLen;
 	TStateFactFun iFactFun;
 };
@@ -356,55 +330,40 @@ class TStateInfo
 class CAE_State: public CAE_StateBase
 {
 public:
-	enum TObUid
-	{
-		EObUid = KObUid_CAE_State
-	};
-public:
-	static inline TInt ObjectUid(); 
-public:
 	FAPWS_API CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified);
+		StateType aType= CAE_StateBase::EType_Reg);
 	FAPWS_API static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, 
-		StateType aType= CAE_StateBase::EType_Reg, TInt aDataTypeUid = KObUid_CAE_Var_NotSpecified);  
+		StateType aType= CAE_StateBase::EType_Reg);  
 	// Set transition procedure. It may be callback function aFun or defined state operation
 	// In this case aFun, aCbo should be set to NULL
 	// The method verifies operation attempted and set the most passed operation if incorrect
 	// Returns true if given operation was set correctly 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	inline TTransInfo GetTrans();
+	static inline const char *Type(); 
 	FAPWS_API virtual TOperationInfo OperationInfo(TUint8 aId) const;
-	// From MObjectProvider
-	FAPWS_API virtual void* DoGetObject(TInt aUid);
-	inline TBool IsDataType(TInt aDataType) const;
-
+	// From CAE_Base
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 private:
 	FAPWS_API virtual void DoTrans();
 	FAPWS_API virtual void DoOperation();
 public:
 	// Transition info
 	TTransInfo iTrans;
-protected:
-	// UID of type of data. This is variant of object type. 
-	// TODO YB Migrate to string based data type
-	TInt iDataTypeUid;
 };
+
+inline const char *CAE_State::Type() { return "State";} 
 
 inline TTransInfo CAE_State::GetTrans() { return iTrans; };
 
-inline TBool CAE_State::IsDataType(TInt aDataType) const { return iDataTypeUid == aDataType; }
-
-inline TInt CAE_State::ObjectUid() { return EObUid;} 
 
 
 template <class T>
 class CAE_TState: public CAE_State
 {
 public:
-	static inline TInt ObjectUid() { return CAE_State::ObjectUid() | DataTypeUid();}; 
-public:
 	CAE_TState(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg):
-	  CAE_State(aInstName, sizeof(T), aMan, aTrans, aType, KObUid_CAE_Var_NotSpecified) {iDataTypeUid = DataTypeUid();};
+	  CAE_State(aInstName, sizeof(T), aMan, aTrans, aType) { iTypeName = strdup(Type());};
 	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg);
 	T& operator~ () { return *((T*)iCurr); };
 	const T& Value() { return *((T*) CAE_StateBase::Value()); }
@@ -412,6 +371,7 @@ public:
 	T& operator! () { return *((T*)iNew); };
 	CAE_TState<T>& operator= (T aVal) { Set(&aVal); return *this;};
 	static inline TInt DataTypeUid();
+	static inline const char *Type();
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	virtual char* DataToStr(TBool aCurr) const;
@@ -423,7 +383,7 @@ private:
 template <class T>
 inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr) 
 { 
-    return aPtr->IsDataType(DataTypeUid())?static_cast<CAE_TState<T>*>(aPtr):NULL; 
+    return (strcmp(aPtr->TypeName(), Type()) == 0)?static_cast<CAE_TState<T>*>(aPtr):NULL; 
 }; 
 
 template <class T>
@@ -441,15 +401,14 @@ template <class T>
 void CAE_TState<T>::DataFromStr(const char* aStr, void *aData) const { return CAE_State::DataFromStr(aStr, aData); }
 
 
-//!! <<Comment Yuri Borisov -- Why do we need these static methods if there is already CAE_State::iDataTypeUid>>
-//!! <<Is  iDataTypeUid redundant?>>
-template<> inline TInt CAE_TState<TUint8>::DataTypeUid() {return KObUid_CAE_Var_StateUint8;}
+template<>inline const char *CAE_TState<TUint8>::Type() {return "StUint8"; }
 
-template<> inline TInt CAE_TState<TInt>::DataTypeUid() {return KObUid_CAE_Var_StateInt;}
+template<>inline const char *CAE_TState<TInt>::Type() {return "StInt"; }
 
-template<> inline TInt CAE_TState<TUint32>::DataTypeUid() {return KObUid_CAE_Var_StateUint;}
+template<>inline const char *CAE_TState<TUint32>::Type() {return "StUint32"; }
 
-template<> inline TInt CAE_TState<TBool>::DataTypeUid() {return KObUid_CAE_Var_StateBool;}
+template<>inline const char *CAE_TState<TBool>::Type() {return "StBool"; }
+
 
 // Chromosome manager
 
@@ -503,14 +462,6 @@ class MAE_Env
 class CAE_Object: public CAE_Base
 {
 public:
-	enum TObUid
-	{
-		EObUid = KObUid_CAE_Object
-	};
-	enum TObSubtypeUid
-	{
-		EObStypeUid = KObUid_CAE_Var_NotSpecified
-	};
 	// Operation under chromosome
 	enum TChromOper
 	{
@@ -520,7 +471,7 @@ public:
 		EChromOper_Combine = 4 // Combine then mutate
 	};
 public:
-	static inline TInt ObjectUid(); 
+	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
 	FAPWS_API virtual ~CAE_Object();
 	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
@@ -530,14 +481,13 @@ public:
 	void UnregisterComp(CAE_Base* aComp);
 	FAPWS_API virtual void Update();
 	FAPWS_API virtual void Confirm();
-	FAPWS_API virtual void* DoGetObject(TInt aUid);
 	FAPWS_API void LinkL(CAE_State* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	FAPWS_API void SetActive();
 	FAPWS_API void SetUpdated();
-	FAPWS_API CAE_Object* GetComp(const char* aName) const;
-	FAPWS_API TInt CountCompWithType(TInt aUid = 0) const;
-	FAPWS_API CAE_Object* GetNextCompByType(TInt aUid, int* aCtx = NULL) const;
-	FAPWS_API CAE_Base* FindName(const char* aName) const;
+	FAPWS_API CAE_Object* GetComp(const char* aName);
+	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
+	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
+	FAPWS_API CAE_Base* FindName(const char* aName);
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
 	FAPWS_API CAE_State* GetInput(const char *aName);
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
@@ -547,6 +497,7 @@ public:
 	// Create new inheritor of self. 
 	FAPWS_API CAE_Object* CreateNewL(const char* aInstName, TChromOper aOper, const CAE_Object* aParent2 = NULL);
 protected:
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	FAPWS_API void ConstructL();
 	FAPWS_API void ConstructFromChromL();
@@ -561,11 +512,13 @@ private:
 	TInt ChromLen(const TUint8* aChrom) const;
 	// Returns true if given index points to chromosome control tag
 	TBool IsChromControlTag(TInt aInd, TInt aTagInd = 0) const;
+	// Get logspec event from string
+	static TInt LsEventFromStr(const char *aStr);
+	// Get logspec data from string
+	static TInt LsDataFromStr(const char *aStr);
 public:
 	TUint32 iFitness; 
 	TUint32 iFitness1; 
-protected:
-	TInt iVariantUid;  // UID variant of object type.
 private:
 	vector<CAE_Base*>* iCompReg;
 	TUint8*	iChrom;		// Chromosome, owned
@@ -573,7 +526,8 @@ private:
 	MAE_Env* iEnv;  // FAP Environment, not owned
 };
 
-inline TInt CAE_Object::ObjectUid() { return EObUid | EObStypeUid;} 
+inline const char *CAE_Object::Type() { return "Object";} 
+
 
 inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
 
@@ -587,11 +541,6 @@ inline void  CAE_Object::RegisterCompL(CAE_Base* aComp)
 // Bit based authomata 
 class CAE_ObjectBa: public CAE_Object
 {
-public:
-	enum TObUid
-	{
-		EObUid = KObUid_CAE_ObjectBa
-	};
 public:
 	FAPWS_API virtual ~CAE_ObjectBa();
 	FAPWS_API static CAE_ObjectBa* NewL(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo);
