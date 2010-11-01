@@ -187,8 +187,10 @@ public:
 	void SetActive();
 	void SetUpdated();
 	void SetName(const char *aName);
+	void SetType(const char *aType);
 	const char* InstName() const { return iInstName;};
 	const char* TypeName() const { return iTypeName;};
+	const char* MansName(TInt aLevel) const;
 	void AddLogSpec(TInt aEvent, TInt aData);
 	/* Get FAP base object (OOP view) */
 	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
@@ -372,6 +374,7 @@ public:
 	CAE_TState<T>& operator= (T aVal) { Set(&aVal); return *this;};
 	static inline TInt DataTypeUid();
 	static inline const char *Type();
+	// TODO [YB] To replace Interpret by custom cast
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	virtual char* DataToStr(TBool aCurr) const;
@@ -484,7 +487,7 @@ public:
 	FAPWS_API void LinkL(CAE_State* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	FAPWS_API void SetActive();
 	FAPWS_API void SetUpdated();
-	FAPWS_API CAE_Object* GetComp(const char* aName);
+	FAPWS_API CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
 	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
 	FAPWS_API CAE_Base* FindName(const char* aName);
@@ -495,7 +498,7 @@ public:
 	FAPWS_API void Reset();
 	FAPWS_API TBool IsTheSame(CAE_Object* aObj) const;
 	// Create new inheritor of self. 
-	FAPWS_API CAE_Object* CreateNewL(const char* aInstName, TChromOper aOper, const CAE_Object* aParent2 = NULL);
+	FAPWS_API CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 protected:
 	virtual CAE_Base *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -503,8 +506,8 @@ protected:
 	FAPWS_API void ConstructFromChromL();
 	FAPWS_API void ConstructFromChromXL();
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const TUint8* aChrom1 = NULL, const TUint8* aChrom2 = NULL);
-	// Version for XML-Chromosome
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
+	FAPWS_API void ChangeChrom(const void* aChrom);
 private:
 	FAPWS_API CAE_State* GetStateByInd(TUint32 aInd);
 	FAPWS_API CAE_State* GetStateByName(const char *aName);

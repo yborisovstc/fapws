@@ -6,7 +6,7 @@
 
 <caeenv>
     <object type="test" id="main_test">
-	<object type="generator" id="generator">
+	<object type="none" id="generator">
 	    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
 	    <state type="StBool" id="event" len="4" access="Out" transf="trans_event" init="0"> 
@@ -24,6 +24,7 @@
 	    <conn state="event"> <dep id="event"/> <dep id="timer"/></conn>
 	    <conn state="timer"> <dep id="timer"/> <dep id="period"/></conn>
 	</object> <!-- generator -->
+	<object type="generator" id="gen_1" />
     </object> <!-- test -->
 </caeenv>
 

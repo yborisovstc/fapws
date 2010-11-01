@@ -25,7 +25,7 @@ const TStateInfo KSinfo_StBool = TStateInfo("StBool", (TStateFactFun) CAE_TState
 const TStateInfo KSinfo_StInt = TStateInfo("StInt", (TStateFactFun) CAE_TState<TInt>::NewL );
 const TStateInfo KSinfo_StUint8 = TStateInfo("StUint8", (TStateFactFun) CAE_TState<TUint8>::NewL );
 const TStateInfo KSinfo_StUint32 = TStateInfo("StUint32", (TStateFactFun) CAE_TState<TUint32>::NewL );
-const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StInt, &KSinfo_StUint8, &KSinfo_StUint32, NULL};
+static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StInt, &KSinfo_StUint8, &KSinfo_StUint32, NULL};
 
 //*********************************************************
 // Base class of provider implementation

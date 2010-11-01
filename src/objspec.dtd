@@ -1,9 +1,6 @@
 <!-- TODO [YB] No error whyle spec parsing when data type entity missed -->
-<!-- TODO [YB] external entities shall not be used as attr value - against XML WFC -->
+<!-- TODO [DONE] [YB] external entities shall not be used as attr value - against XML WFC -->
 
-<!-- Values of logging data -->
-<!ENTITY logdata_new '2' >
-<!ENTITY logdata_dep '8' >
 
 <!-- State data types -->
 <!--
@@ -19,7 +16,15 @@
 
 <!ELEMENT state (logspec*)>
 
+<!-- FAP object spec: 
+     logspec - logging spec,
+     object - embedded object(s),
+     state - embedded state(s),
+     conn - connnection(s) -->
 <!ELEMENT object (logspec*, object* , state*, conn*)>
+
+<!-- Object Producing spec -->
+<!ELEMENT prod EMPTY >
 
 <!ELEMENT caeenv (object*)>
 
@@ -38,9 +43,15 @@
 <!-- Logging data: cur - current value, new - new value, dep - pependencies -->
 <!ATTLIST logdata id (cur | new | dep) #REQUIRED>
 
+<!-- Object  attributes:
+     type - parent name,
+     id - instance name,
+     prod - producing type
+     -->
 <!ATTLIST object 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
+    prod (copy) #IMPLIED
 >
 
 <!-- State's attributes:
@@ -66,3 +77,9 @@
    id CDATA #REQUIRED
 >
 
+<!-- Environment attr -->
+<!--
+<!ATTLIST caeenv 
+   root CDATA #REQUIRED
+>
+-->

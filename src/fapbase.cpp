@@ -17,6 +17,9 @@
 // Yuri Borisov  15-Dec-08 FAPW_CR_011 Corrected to make compatible with fapwstst1
 //*************************************************************
 
+
+//TODO [YB] To use full name in the logging
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "fapplat.h"
@@ -73,6 +76,14 @@ void CAE_Base::SetName(const char *aName)
 	iInstName = strdup(aName);
 }
 
+void CAE_Base::SetType(const char *aName)
+{
+    if (iTypeName != NULL)
+	free(iTypeName);
+    if (aName != NULL) 
+	iTypeName = strdup(aName);
+}
+
 FAPWS_API CAE_Base::~CAE_Base()
 {
     if (iMan != NULL)
@@ -105,6 +116,12 @@ TInt CAE_Base::GetLogSpecData(TInt aEvent) const
     return res;
 }
 
+const char* CAE_Base::MansName(TInt aLevel) const 
+{ 
+    CAE_Base *man = iMan; 
+    for (TInt i=aLevel; i > 0 && man != NULL && man->iMan != NULL; i--) man = man->iMan;
+    return (man == NULL)? "": man->InstName();
+};
 
 // CAE_StateBase
 
@@ -212,9 +229,9 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
     char *buf_cur = DataToStr(ETrue);
     char *buf_new = DataToStr(EFalse);
     if (aLogData & KBaseDa_New && aLogData & KBaseDa_Curr)
-	Logger()->WriteFormat("Updated state [%s]: %s <= %s", iInstName, buf_new, buf_cur);
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <= %s", MansName(1), MansName(0), InstName(), buf_new, buf_cur);
     else if (aLogData & KBaseDa_New)
-	Logger()->WriteFormat("Updated state [%s]: %s", iInstName, buf_new);
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s", MansName(1), MansName(0), iInstName, buf_new);
     free (buf_cur);
     free (buf_new);
     // Loggin inputs
@@ -678,6 +695,7 @@ FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, 
 {
 	CAE_Object* self = new CAE_Object(aInstName, aMan, aEnv);
 	self->SetChromosome(EChromOper_Copy, aChrom);
+	// TODO [YB] To add chrom mutation
 	self->ConstructL();
 	return self;
 }
@@ -746,15 +764,10 @@ FAPWS_API void CAE_Object::ConstructL()
 	iCompReg = new vector<CAE_Base*>;
 	if (iMan != NULL  && iCompReg != NULL) 
 		iMan->RegisterCompL(this);
-	// Create object from chromosome if exists
 	if (iChrom != NULL)
-	{
 	    ConstructFromChromL();
-	}
 	else if (iChromX != NULL)
-	{
 	    ConstructFromChromXL();
-	}
 }
 
 FAPWS_API void CAE_Object::ConstructFromChromL()
@@ -831,17 +844,31 @@ FAPWS_API void CAE_Object::ConstructFromChromL()
     }
 }
 
+FAPWS_API void CAE_Object::ChangeChrom(const void* aChrom)
+{
+    MAE_ChroMan *chman = iEnv->Chman();
+    _FAP_ASSERT(chman != NULL);
+    char *sparent = chman->GetStrAttr((void*) aChrom, KXTransAttr_Type);
+//    iEnv->Root()->FindName(sparent);
+}
+
+// TODO [YB] To support referencing to object in spec instead of direct definition
 FAPWS_API void CAE_Object::ConstructFromChromXL()
 {
     MAE_ChroMan *chman = iEnv->Chman();
     MAE_Provider *prov = iEnv->Provider();
     _FAP_ASSERT(chman != NULL);
     char *name = chman->GetName(iChromX);
-    if (name != NULL && strlen(name) != 0)
+    char *type = chman->GetType(iChromX);
+    if (iInstName == NULL && name != NULL && strlen(name) != 0)
     {
 	SetName(name);
     }
-    Logger()->WriteFormat("Object constructing. Name: %s", InstName());
+    if (iTypeName == NULL && type != NULL && strlen(type) != 0)
+    {
+	SetType(type);
+    }
+    Logger()->WriteFormat("Object constructing. Name: %s, Parent: %s", InstName(), TypeName());
     // Pass thru children
     void *child = NULL;
     // Go thru children list in spec and create the children
@@ -850,7 +877,23 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	TCaeElemType ftype = chman->FapType(child);
 	if (ftype == ECae_Object)
 	{
-	    CAE_Object::NewL(NULL, this, child, iEnv);
+	    char *sparent = chman->GetStrAttr(child, KXTransAttr_Type);
+	    char *sname = chman->GetName(child); 
+	    if (strcmp(sparent, "none") == 0) {
+		CAE_Object *obj = CAE_Object::NewL(NULL, this, child, iEnv);
+		if (obj == NULL) {
+		    Logger()->WriteFormat("ERROR: Creating object [%s]", sname);
+		}
+	    }
+	    else {
+		CAE_Object *parent = GetComp(sparent);
+		if (parent == NULL) {
+		    Logger()->WriteFormat("ERROR: Creating object [%s] - parent [%s] not found", sname, sparent);
+		}
+		else {
+		    parent->CreateNewL(child, sname, this);
+		}
+	    }
 	}
 	else if (ftype == ECae_State)
 	{
@@ -870,7 +913,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	    }
 	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
 	    CAE_State *state = prov->CreateStateL(stype, name, this, access);  
-//	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
+	    //	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
 	    if (state == NULL)
 		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
 	    else
@@ -1065,19 +1108,22 @@ void CAE_Object::UnregisterComp(CAE_Base* aComp)
 		if (iCompReg->at(i) == aComp) {iCompReg->erase(iCompReg->begin() + i); break; };
 }
 
-FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName)
+FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
 {
-	CAE_Object* res = NULL;
-	for (TInt i = 0; i < iCompReg->size(); i++)
-	{
-		CAE_Object* comp = (CAE_Object*) iCompReg->at(i);
-		if (strcmp(aName, comp->InstName()) == 0)
-		{
-			res = comp; 
-			break;
-		}
+    CAE_Object* res = NULL;
+    for (TInt i = 0; i < iCompReg->size(); i++) {
+	CAE_Object* comp = (CAE_Object*) iCompReg->at(i);
+	if (strcmp(aName, comp->InstName()) == 0) {
+	    res = comp; break;
 	}
-	return res;
+    }
+    if (res == NULL && aGlob) {
+	for (TInt i = 0; i < iCompReg->size() && res == NULL; i++) {
+	    CAE_Object* comp = (CAE_Object*) iCompReg->at(i);
+	    res = comp->GetComp(aName, ETrue);
+	}
+    }
+    return res;
 }
 
 FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
@@ -1272,13 +1318,13 @@ FAPWS_API void CAE_Object::Reset()
 }
 
 // The inheritor is created by clone the parent and mutate it for now
-
-FAPWS_API CAE_Object* CAE_Object::CreateNewL(const char* aInstName, TChromOper aOper, const CAE_Object* aParent2)
+FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan)
 {
-	CAE_Object* sinheritor = new CAE_Object(aInstName, iMan, iEnv);
-	sinheritor->SetChromosome(aOper, iChrom, aParent2?aParent2->iChrom:NULL);
-	sinheritor->ConstructL();
-	return sinheritor;
+    CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
+    heir->SetType(InstName());
+    heir->SetChromosome(EChromOper_Copy, iChromX, NULL);
+    heir->ConstructL();
+    return heir;
 }
 
 
