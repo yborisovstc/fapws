@@ -28,6 +28,8 @@
 #include <string.h>
 #include "fapplat.h"
 #include <vector>
+#include <map>
+#include <string>
 
 using namespace std;
 
@@ -55,7 +57,8 @@ enum TCaeElemType
     ECae_Conn = 3,	// Connection
     ECae_Logspec = 4,	// Logging specification
     ECae_Dep = 5,	// Dependency
-    ECae_Logdata = 6	// Logging data
+    ECae_Logdata = 6,	// Logging data
+    ECae_Stinp = 7	// State input
 };
 
 
@@ -227,14 +230,16 @@ public:
 	FAPWS_API virtual void Confirm();
 	FAPWS_API virtual void Update();
 	TInt Len() const {return iLen; };
-	FAPWS_API void AddInputL(CAE_StateBase* aState);
+	FAPWS_API void AddInputL(const char *aName);
+	FAPWS_API void SetInputL(const char *aName, CAE_StateBase* aState);
+	FAPWS_API void AddInputL(const char *aName, CAE_StateBase* aState);
 	FAPWS_API void Set(void* aNew);
 	FAPWS_API void SetFromStr(const char *aStr);
 	const void* Value() const { return iCurr;}
 	void RefreshOutputs();
 	void RefreshOutput(CAE_StateBase* aState);
 	FAPWS_API CAE_StateBase* Input(TInt aInd);
-	FAPWS_API CAE_StateBase* Input(const char* aInstName);
+	FAPWS_API CAE_StateBase* Input(const char* aName);
 	FAPWS_API CAE_StateBase* Output(TInt aInd);
 	FAPWS_API void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
@@ -261,7 +266,7 @@ protected:
 	TInt iLen;
 	StateType iStateType;
 	TUint8		iFlags;
-	vector<CAE_StateBase*>* iInputsList;
+	map<string, CAE_StateBase*> iInpList;
 	vector<CAE_StateBase*>* iOutputsList;
 };
 
@@ -496,16 +501,13 @@ public:
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
 	FAPWS_API void DoMutation();
 	FAPWS_API void Reset();
-	FAPWS_API TBool IsTheSame(CAE_Object* aObj) const;
 	// Create new inheritor of self. 
 	FAPWS_API CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 protected:
 	virtual CAE_Base *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	FAPWS_API void ConstructL();
-	FAPWS_API void ConstructFromChromL();
 	FAPWS_API void ConstructFromChromXL();
-	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const TUint8* aChrom1 = NULL, const TUint8* aChrom2 = NULL);
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	FAPWS_API void ChangeChrom(const void* aChrom);
 private:
@@ -513,8 +515,6 @@ private:
 	FAPWS_API CAE_State* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
-	// Returns true if given index points to chromosome control tag
-	TBool IsChromControlTag(TInt aInd, TInt aTagInd = 0) const;
 	// Get logspec event from string
 	static TInt LsEventFromStr(const char *aStr);
 	// Get logspec data from string
@@ -524,7 +524,6 @@ public:
 	TUint32 iFitness1; 
 private:
 	vector<CAE_Base*>* iCompReg;
-	TUint8*	iChrom;		// Chromosome, owned
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
 };
@@ -595,6 +594,7 @@ private:
 	CAE_State*	iOut;
 	CAE_State*	iInp;
 };
+
 
 class CActive;
 class CAE_ReqMon;

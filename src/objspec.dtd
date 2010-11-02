@@ -14,7 +14,7 @@
 <!-- Logspec includes attribute "levent" and assosiated logging data set -->
 <!ELEMENT logspec (logdata+)>
 
-<!ELEMENT state (logspec*)>
+<!ELEMENT state (logspec*, inp*)>
 
 <!-- FAP object spec: 
      logspec - logging spec,
@@ -27,6 +27,9 @@
 <!ELEMENT prod EMPTY >
 
 <!ELEMENT caeenv (object*)>
+
+<!-- State input -->
+<!ELEMENT inp EMPTY>
 
 <!-- Transition function -->
 <!ELEMENT transf (dep*)>
@@ -67,14 +70,25 @@
    transf CDATA #IMPLIED
    init CDATA #REQUIRED>
 
-<!-- Connections of state -->
-<!ATTLIST conn 
-   state CDATA #REQUIRED
+<!-- State input attributes -->
+<!ATTLIST inp 
+    id CDATA #REQUIRED
 >
 
-<!-- Dependency in state connections -->
+<!-- Connections of state 
+   state - target state
+     -->
+<!ATTLIST conn 
+    state CDATA #REQUIRED
+>
+
+<!-- Dependency in state connections 
+   inp - target state input
+   conn - connected state name
+     -->
 <!ATTLIST dep 
-   id CDATA #REQUIRED
+   inp CDATA #REQUIRED
+   conn CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

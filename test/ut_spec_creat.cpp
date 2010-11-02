@@ -22,9 +22,9 @@ void update_event(CAE_Object* aObject, CAE_State* aState)
 {
     CAE_TState<TBool> *pself = CAE_TState<TBool>::Interpret(aState);
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [event]", pself != 0);
-    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("timer"));
+    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("count"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting timer", ptimer != 0);
-    CAE_TState<TBool> *pevent = CAE_TState<TBool>::Interpret((CAE_State *)aState->Input("event"));
+    CAE_TState<TBool> *pevent = CAE_TState<TBool>::Interpret((CAE_State *)aState->Input("self"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting event", pevent != 0);
     TUint32 vtimer = (*ptimer)();
     TBool vevent = (*pevent)();
@@ -37,7 +37,7 @@ void update_timer(CAE_Object* aObject, CAE_State* aState)
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [timer]", pself != 0);
     CAE_TState<TUint32> *period = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("period"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting period", period != 0);
-    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("timer"));
+    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("self"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting timer", ptimer != 0);
     TUint32 vperiod = (*period)();
     TUint32 vtimer = (*ptimer)();

@@ -1,6 +1,6 @@
 format 70
 "fap_mdl"
-  revision 2
+  revision 3
   modified_by 2 "yborisov"
 
 
@@ -37,4 +37,6 @@ format 70
   mark_for_import
   
   package_ref 134530 // fap
+
+  package_ref 141058 // fap_tests
 end

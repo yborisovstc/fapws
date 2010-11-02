@@ -84,13 +84,13 @@ void CFT_GameXO::ConstructL(TBool aStartX)
     ~(*iStepNum) = 0;
     ~(*iFin) = EFalse;
 
-    iField->AddInputL(iStartX);
-    iField->AddInputL(iStepNum);
-    iField->AddInputL(iFin);
-    iStepNum->AddInputL(iField);
-    iStepNum->AddInputL(iFin);
-    iFin->AddInputL(iField);
-    iFin->AddInputL(iStepNum);
+    iField->AddInputL("StartX", iStartX);
+    iField->AddInputL("StepNum", iStepNum);
+    iField->AddInputL("Fin", iFin);
+    iStepNum->AddInputL("Field", iField);
+    iStepNum->AddInputL("Fin", iFin);
+    iFin->AddInputL("Fileld", iField);
+    iFin->AddInputL("StepNum", iStepNum);
     Draw();
 }
 

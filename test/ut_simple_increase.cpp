@@ -44,11 +44,11 @@ void CFT_Simple::ConstructL(TInt aStepNumMaxValue, CAE_StateBase::StateType aSte
     // [Yuri Borisov] Setting up initial value should be done as NEW value of state 
     // ~(*iStepNum) = 0;
     *iStepNum = 0;
-    iStepNum->AddInputL(iStepNum);
+    iStepNum->AddInputL("StepNum", iStepNum);
     // [Yuri Borisov] Needs StepNumMax as input for the case is possible that
     // StepNum keeps unchanged because of value is greater but then Max gets changed
     // That happens for example on initialization phase 
-    iStepNum->AddInputL(iStepNumMax);
+    iStepNum->AddInputL("StepNumMax", iStepNumMax);
 
     // [Yuri Borisov] Setting up initial value should be done as NEW value of state 
     *iStepNumMax = aStepNumMaxValue;

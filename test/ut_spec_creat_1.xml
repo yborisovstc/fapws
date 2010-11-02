@@ -11,20 +11,21 @@
 
 	    <state type="StBool" id="event" len="4" access="Out" transf="trans_event" init="0"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> 
-	    </state>
+		<inp id="self"/> <inp id="count"/> </state>
 
 	    <state type="StUint32" id="timer" len="4" access="Reg" transf="trans_timer" init="0"> 
 		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+		<inp id="self"/> <inp id="period"/>
 	    </state>
 
 	    <state type="StUint32" id="period" len="4" access="Inp" init="11"> 
-		<logspec event="upd"> <logdata id="new"/> </logspec> 
-	    </state>
+		<logspec event="upd"> <logdata id="new"/> </logspec> </state>
 
-	    <conn state="event"> <dep id="event"/> <dep id="timer"/></conn>
-	    <conn state="timer"> <dep id="timer"/> <dep id="period"/></conn>
+	    <conn state="event"> <dep inp="self" conn="event"/> <dep inp="count" conn="timer"/></conn>
+	    <conn state="timer"> <dep inp="self" conn="timer"/> <dep inp="period" conn="period"/></conn>
 	</object> <!-- generator -->
 	<object type="generator" id="gen_1" />
+	<object type="generator" id="gen_2" />
     </object> <!-- test -->
 </caeenv>
 
