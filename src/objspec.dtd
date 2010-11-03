@@ -54,6 +54,7 @@
 <!ATTLIST object 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
+    quiet (yes) #IMPLIED
     prod (copy) #IMPLIED
 >
 

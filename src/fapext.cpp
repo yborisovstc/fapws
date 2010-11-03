@@ -87,6 +87,8 @@ FAPWS_API void CAE_Env::RunL()
 FAPWS_API void CAE_Env::Step()
 {
 	iStepCount++;
+	if (Logger())
+	    Logger()->WriteFormat(" ============= TICK: %d ===============", iStepCount);
 	iRoot->Update();
 	if (iLogger != NULL)
 	{

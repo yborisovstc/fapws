@@ -6,26 +6,34 @@
 
 <caeenv>
     <object type="test" id="main_test">
-	<object type="none" id="generator">
+	<object type="none" id="generator" quiet="yes"> 
 	    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
 	    <state type="StBool" id="event" len="4" access="Out" transf="trans_event" init="0"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> 
 		<inp id="self"/> <inp id="count"/> </state>
 
-	    <state type="StUint32" id="timer" len="4" access="Reg" transf="trans_timer" init="0"> 
+	    <state type="StUint32" id="count" len="4" access="Reg" transf="trans_count" init="0"> 
 		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-		<inp id="self"/> <inp id="period"/>
+		<inp id="self"/> <inp id="enable"/> <inp id="period"/>
 	    </state>
 
-	    <state type="StUint32" id="period" len="4" access="Inp" init="11"> 
+	    <state type="StUint32" id="period" len="4" access="Inp" init="6"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> </state>
 
-	    <conn state="event"> <dep inp="self" conn="event"/> <dep inp="count" conn="timer"/></conn>
-	    <conn state="timer"> <dep inp="self" conn="timer"/> <dep inp="period" conn="period"/></conn>
+	    <conn state="event"> <dep inp="self" conn="event"/> <dep inp="count" conn="count"/> </conn>
+	    <conn state="count"> <dep inp="self" conn="count"/> <dep inp="period" conn="period"/> </conn>
 	</object> <!-- generator -->
+
 	<object type="generator" id="gen_1" />
 	<object type="generator" id="gen_2" />
+
+	<!-- Enable counting for the lowest count -->
+	<state type="StBool" id="enable_count" len="4" access="Reg" init="1"></state>
+
+	<conn state="generator.count"> <dep inp="enable" conn="enable_count"/> </conn>
+	<conn state="gen_1.count"> <dep inp="enable" conn="enable_count"/> </conn>
+	<conn state="gen_2.count"> <dep inp="enable" conn="gen_1.event"/> </conn>
     </object> <!-- test -->
 </caeenv>
 

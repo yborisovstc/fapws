@@ -198,6 +198,7 @@ public:
 	/* Get FAP base object (OOP view) */
 	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
 	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
+	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
 protected:
 	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
 	TInt GetLogSpecData(TInt aEvent) const;
@@ -206,6 +207,8 @@ public:
 	/* Name of ancestor */
 	char* iTypeName;
 	TBool	iUpdated, iActive;
+	/* Element is not "moving" - cannot be activated */
+	TBool iQuiet; 
 	CAE_Object* iMan;
 	vector<TLogSpecBase>* iLogSpec;
 };
@@ -213,6 +216,7 @@ public:
 
 /** Base class for FAP state
  */
+// TODO [YB] To add inputs type info (maybe checking in transf will be enough?)
 class CAE_StateBase: public CAE_Base
 {
 	friend class CAE_Object;
@@ -467,6 +471,7 @@ class MAE_Env
 // Base class for object. Object is container and owner of its component and states
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
+/* TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough */
 class CAE_Object: public CAE_Base
 {
 public:
@@ -495,7 +500,7 @@ public:
 	FAPWS_API CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
 	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
-	FAPWS_API CAE_Base* FindName(const char* aName);
+	FAPWS_API CAE_Base* FindByName(const char* aName);
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
 	FAPWS_API CAE_State* GetInput(const char *aName);
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);

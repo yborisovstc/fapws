@@ -52,7 +52,7 @@ void Panic(TInt aRes)
 // CAE_Base
 
 CAE_Base::CAE_Base(const char* aInstName, CAE_Object* aMan):
-	iInstName(NULL), iTypeName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iLogSpec(NULL)
+	iInstName(NULL), iTypeName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iQuiet(EFalse), iLogSpec(NULL)
 {
     if (aInstName != NULL) 
 	iInstName = strdup(aInstName);
@@ -307,6 +307,9 @@ FAPWS_API CAE_StateBase* CAE_StateBase::Input(const char* aName)
     map<string, CAE_StateBase*>::iterator it = iInpList.find(aName);
     if (it == iInpList.end()) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
+    }
+    if (it->second == NULL) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
     }
     return (it == iInpList.end()) ? NULL : it->second;
 }
@@ -763,10 +766,17 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	{
 	    char *sparent = chman->GetStrAttr(child, KXTransAttr_Type);
 	    char *sname = chman->GetName(child); 
+	    char *squiet = chman->GetStrAttr(child, "quiet");
 	    if (strcmp(sparent, "none") == 0) {
 		CAE_Object *obj = CAE_Object::NewL(NULL, this, child, iEnv);
 		if (obj == NULL) {
 		    Logger()->WriteFormat("ERROR: Creating object [%s]", sname);
+		}
+		else {
+		    obj->SetQuiet(squiet != NULL);
+		    if (squiet != NULL) {
+			Logger()->WriteFormat("ATTENTION: Object [%s] created as quiet", sname);
+		    }
 		}
 	    }
 	    else {
@@ -852,20 +862,25 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	{
 	    void *dep = NULL;
 	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
-	    CAE_State* state = GetStateByName(state_name);
-	    for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
-	    {
-		char *inp_name = chman->GetStrAttr(dep,"inp"); 
-		char *dep_name = chman->GetStrAttr(dep,"conn"); 
-		if (dep_name != NULL)
+	    CAE_State* state = (CAE_State *) FindByName(state_name);
+	    if (state == NULL) {
+		Logger()->WriteFormat("ERROR: Connecting state [%s] error: connection not found", state_name);
+	    }
+	    else {
+		for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
 		{
-		    CAE_State* dstate = GetStateByName(dep_name);
-		    if (dstate != NULL)
+		    char *inp_name = chman->GetStrAttr(dep,"inp"); 
+		    char *dep_name = chman->GetStrAttr(dep,"conn"); 
+		    if (dep_name != NULL)
 		    {
-			state->SetInputL(inp_name, dstate);
-		    }
-		    else {
-			Logger()->WriteFormat("ERROR: Creating state [%s] error: connection [%s] not found", name, dep_name);
+			CAE_State* dstate = (CAE_State *) FindByName(dep_name);
+			if (dstate != NULL)
+			{
+			    state->SetInputL(inp_name, dstate);
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Creating state [%s] error: connection [%s] not found", name, dep_name);
+			}
 		    }
 		}
 	    }
@@ -917,7 +932,7 @@ FAPWS_API void CAE_Object::Confirm()
 	for (TInt i = 0; i < iCompReg->size(); i++ )
 	{
 		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
-		if (obj->iUpdated)
+		if (obj->iUpdated && !obj->iQuiet)
 		{
 			obj->Confirm();
 			obj->iUpdated = EFalse;
@@ -935,7 +950,7 @@ FAPWS_API void CAE_Object::Update()
 	for (TInt i = 0; i < iCompReg->size(); i++ )
 	{
 		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
-		if (obj->iActive)
+		if (obj->iActive && !obj->iQuiet)
 		{
 			obj->iUpdated = obj->iActive;
 			obj->iActive = EFalse;
@@ -1021,7 +1036,7 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx
 }
 
 
-FAPWS_API CAE_Base* CAE_Object::FindName(const char* aName)
+FAPWS_API CAE_Base* CAE_Object::FindByName(const char* aName)
 {
 	CAE_Base* res = NULL;
 	char name[KNameMaxLen];
@@ -1048,11 +1063,13 @@ FAPWS_API CAE_Base* CAE_Object::FindName(const char* aName)
 			for (TInt i = 0; i < iCompReg->size(); i++)
 			{
 				CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-				CAE_Object* obj = GetFbObj(obj);
-				if (obj && strcmp(name, obj->InstName()) == 0)
+				if (comp && strcmp(name, comp->InstName()) == 0)
 				{
-					res = obj->FindName(tail+1); 
+				    CAE_Object* obj = comp->GetFbObj(obj);
+				    if (obj != NULL) {
+					res = obj->FindByName(tail+1); 
 					break;
+				    }
 				}
 			}
 		}

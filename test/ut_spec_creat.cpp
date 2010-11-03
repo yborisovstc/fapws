@@ -12,36 +12,38 @@ static const char* KLogFileName = "ut_creat_log.txt";
 const char* KSpecFileName = "ut_spec_creat_1.xml";
 
 void update_event(CAE_Object* aObject, CAE_State* aState);
-void update_timer(CAE_Object* aObject, CAE_State* aState);
+void update_count(CAE_Object* aObject, CAE_State* aState);
 
 const TTransInfo KTinfo_Update_event = TTransInfo(update_event, "trans_event");
-const TTransInfo KTinfo_Update_timer = TTransInfo(update_timer, "trans_timer");
+const TTransInfo KTinfo_Update_timer = TTransInfo(update_count, "trans_count");
 const TTransInfo* tinfos[] = {&KTinfo_Update_event, &KTinfo_Update_timer, NULL};
 
 void update_event(CAE_Object* aObject, CAE_State* aState)
 {
     CAE_TState<TBool> *pself = CAE_TState<TBool>::Interpret(aState);
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [event]", pself != 0);
-    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("count"));
-    CPPUNIT_ASSERT_MESSAGE("Fail getting timer", ptimer != 0);
+    CAE_TState<TUint32> *pcount = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("count"));
+    CPPUNIT_ASSERT_MESSAGE("Fail getting timer", pcount != 0);
     CAE_TState<TBool> *pevent = CAE_TState<TBool>::Interpret((CAE_State *)aState->Input("self"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting event", pevent != 0);
-    TUint32 vtimer = (*ptimer)();
+    TUint32 vcount = (*pcount)();
     TBool vevent = (*pevent)();
-    *pself = vtimer && vevent || !vtimer && !vevent;
+//    *pself = vcount && vevent || !vcount && !vevent;
+    *pself = (vcount == 0);
 }
 
-void update_timer(CAE_Object* aObject, CAE_State* aState)
+void update_count(CAE_Object* aObject, CAE_State* aState)
 {
     CAE_TState<TUint32> *pself = CAE_TState<TUint32>::Interpret(aState);
-    CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [timer]", pself != 0);
+    CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [count]", pself != 0);
     CAE_TState<TUint32> *period = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("period"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting period", period != 0);
-    CAE_TState<TUint32> *ptimer = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("self"));
-    CPPUNIT_ASSERT_MESSAGE("Fail getting timer", ptimer != 0);
+    CAE_TState<TBool> *penable = CAE_TState<TBool>::Interpret((CAE_State *)aState->Input("enable"));
+    CPPUNIT_ASSERT_MESSAGE("Fail getting enable", penable != 0);
     TUint32 vperiod = (*period)();
-    TUint32 vtimer = (*ptimer)();
-    *pself = (vtimer > vperiod) ? 0: vtimer + 1;
+    TUint32 vself = (*pself)();
+    TBool venable = (*penable)();
+    *pself = (vself > vperiod) ? 0: (venable ? vself + 1: vself);
 }
 
 
