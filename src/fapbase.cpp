@@ -314,6 +314,27 @@ FAPWS_API CAE_StateBase* CAE_StateBase::Input(const char* aName)
     return (it == iInpList.end()) ? NULL : it->second;
 }
 
+FAPWS_API CAE_StateBase* CAE_StateBase::Input(const char* aName, TInt aExt)
+{
+    char *name = strdup(aName);
+    strcat(name, ".");
+    char ext[40] = "";
+    sprintf(ext, "%d", aExt);
+    strcat(name, ext);
+    map<string, CAE_StateBase*>::iterator it = iInpList.find(name);
+    // TODO YB To consider the way of logging config for avoiding spam
+    /*
+    if (it == iInpList.end()) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
+    }
+    if (it->second == NULL) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), name);
+    }
+    */
+    free(name);
+    return (it == iInpList.end()) ? NULL : it->second;
+}
+
 void CAE_StateBase::AddOutputL(CAE_StateBase* aState) 
 {
 	for (TInt i = 0; i < iOutputsList->size(); i++)
@@ -333,7 +354,7 @@ FAPWS_API void CAE_StateBase::AddInputL(const char* aName)
     }
     iInpList.insert(pair<string, CAE_StateBase*>(aName, NULL));
 }
-
+/*
 FAPWS_API void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState)
 {
     TBool exists = iInpList.find(aName) != iInpList.end();
@@ -344,6 +365,34 @@ FAPWS_API void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState
     iInpList[aName] = aState;
     aState->AddOutputL(this);
 }
+*/
+
+FAPWS_API void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState)
+{
+    // Check if the name is the name of extended input 
+    char *name = strdup(aName);
+    char *extp = strchr(name, '.');
+    if (extp != NULL) {
+	// Extended, form the name template for search
+	*(extp + 1) = '*'; *(extp + 2) = 0;
+    }
+
+    // Check if the input is specified for the state
+    TBool exists = iInpList.find(name) != iInpList.end();
+    if (!exists) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
+	_FAP_ASSERT(name);
+    }
+    // Check if the input is not connected yet
+    if (iInpList[aName] != NULL) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), InstName(), aName);
+	_FAP_ASSERT(iInpList[aName] != NULL);
+    }
+    iInpList[aName] = aState;
+    aState->AddOutputL(this);
+    free(name);
+}
+
 
 FAPWS_API void CAE_StateBase::AddInputL(const char *aName, CAE_StateBase* aState) 
 {
@@ -554,19 +603,19 @@ template<> FAPWS_API void CAE_TState<TUint8>::DoOperation()
 	switch (iTrans.iOpInd)
 	{
 	case ECStateUint8Op_Copy:
-		*this = (*tsinp1)();
+		*this = tsinp1->Value();
 		break;
 	case ECStateUint8Op_Add:
-		*this = (*tsinp1)() + (*tsinp2)();
+		*this = ~*tsinp1 + ~*tsinp2;
 		break;
 	case ECStateUint8Op_Sub:
-		*this = (*tsinp1)() - (*tsinp2)();
+		*this = ~*tsinp1 - ~*tsinp2;
 		break;
 	case ECStateUint8Op_Mpl:
-		*this = (*tsinp1)() * (*tsinp2)();
+		*this = ~*tsinp1 * ~*tsinp2;
 		break;
 	case ECStateUint8Op_Cmp:
-		*this = ((*tsinp1)() > (*tsinp2)())?1:0;
+		*this = ~*tsinp1 > ~*tsinp2 ? 1:0;
 		break;
 	}
 }
@@ -854,8 +903,10 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 			Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(stelem));
 		    }
 		}
-		if (init != NULL)
+		if (init != NULL) {
 		    state->SetFromStr(init);
+		    state->Confirm();
+		}
 	    }
 	}
 	else if (ftype == ECae_Conn)
@@ -1274,7 +1325,7 @@ FAPWS_API void CAE_ObjectBa::ConstructL()
 
 void CAE_ObjectBa::UpdateInput(CAE_State* aState)
 {
-	TInt data = (*iInp)();
+	TInt data = iInp->Value();
 	*iStInp = data;
 }
 
@@ -1342,7 +1393,7 @@ FAPWS_API void CAE_ObjectBa::Update()
 			mask = (mask==0x80000000)?0x00000001:mask << 1;
 		}
 		// Added input
-		TInt data = (*iStInp)();
+		TInt data = iStInp->Value();
 		stwnum = iInpInfo/32;
 		TUint32 msk = data?1 << (iInpInfo % 32):0;
 		iNew[stwnum] |= msk;
@@ -1481,7 +1532,7 @@ void CAE_StateASrv::UpdateSetActive(CAE_State* aState)
 
 void CAE_StateASrv::UpdateCancel(CAE_State* aState)
 {
-	if ((*iInpCancel)() > 0)
+	if (iInpCancel->Value() > 0)
 		iReqMon->Cancel();
 }
 

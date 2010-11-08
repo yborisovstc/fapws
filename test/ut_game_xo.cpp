@@ -135,6 +135,7 @@ void CFT_GameXO::UpdateStep(CAE_State* aState)
 
 void CFT_GameXO::UpdateFin(CAE_State* aState)
 {
+    // TODO [YB] New values must not be used in transition functions!!
     TInt stepNew = !*iStepNum;
     CF_TField field = !*iField;
     if (stepNew >= KFieldDem*KFieldDem)

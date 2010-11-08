@@ -1,3 +1,9 @@
+fapws (0.0.1-8) unstable; urgency=low
+
+  * Added extended inputs. Added UT for ext-inputs
+
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Thu, 08 Nov 2010 19:56:31 +0400
+
 fapws (0.0.1-7) unstable; urgency=low
 
   * Implemted named inputs of state

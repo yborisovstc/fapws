@@ -217,6 +217,7 @@ public:
 /** Base class for FAP state
  */
 // TODO [YB] To add inputs type info (maybe checking in transf will be enough?)
+// TODO [YB] To add support of dynamic inputs (or sections?)
 class CAE_StateBase: public CAE_Base
 {
 	friend class CAE_Object;
@@ -244,6 +245,7 @@ public:
 	void RefreshOutput(CAE_StateBase* aState);
 	FAPWS_API CAE_StateBase* Input(TInt aInd);
 	FAPWS_API CAE_StateBase* Input(const char* aName);
+	FAPWS_API CAE_StateBase* Input(const char* aName, TInt aExt);
 	FAPWS_API CAE_StateBase* Output(TInt aInd);
 	FAPWS_API void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
@@ -251,6 +253,7 @@ public:
 	virtual char* DataToStr(TBool aCurr) const;
 	virtual void DataFromStr(const char* aStr, void *aData) const;
 	static inline const char *Type(); 
+	inline operator CAE_State*();
 	// From CAE_Base
 	virtual CAE_Base *DoGetFbObj(const char *aName);
 protected:
@@ -330,6 +333,7 @@ class TStateInfo
 	TStateFactFun iFactFun;
 };
 
+template <class T> class CAE_TState;
 
 // Base class for state with transition function
 // Transition function should be implemented as static function
@@ -352,6 +356,7 @@ public:
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	inline TTransInfo GetTrans();
 	static inline const char *Type(); 
+	inline operator CAE_TState<class T>* ();
 	FAPWS_API virtual TOperationInfo OperationInfo(TUint8 aId) const;
 	// From CAE_Base
 	virtual CAE_Base *DoGetFbObj(const char *aName);
@@ -367,7 +372,7 @@ inline const char *CAE_State::Type() { return "State";}
 
 inline TTransInfo CAE_State::GetTrans() { return iTrans; };
 
-
+inline CAE_StateBase::operator CAE_State*() { CAE_State *res = NULL; return res=GetFbObj(res);};
 
 template <class T>
 class CAE_TState: public CAE_State
@@ -378,12 +383,12 @@ public:
 	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_StateBase::EType_Reg);
 	T& operator~ () { return *((T*)iCurr); };
 	const T& Value() { return *((T*) CAE_StateBase::Value()); }
-	const T& operator() () { return Value(); }
+	// TODO [YB] to remove ! operator. No need of getting new values at all
 	T& operator! () { return *((T*)iNew); };
 	CAE_TState<T>& operator= (T aVal) { Set(&aVal); return *this;};
 	static inline TInt DataTypeUid();
 	static inline const char *Type();
-	// TODO [YB] To replace Interpret by custom cast
+	// [YB] Interpret is obsolete. Use CAE_State casting operator instead
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	virtual char* DataToStr(TBool aCurr) const;
@@ -392,9 +397,12 @@ private:
 	FAPWS_API virtual void DoOperation();
 };
 
+inline CAE_State::operator CAE_TState<class T>* () {
+    return (strcmp(TypeName(), CAE_TState<T>::Type()) == 0)?static_cast<CAE_TState<T>*>(this):NULL; 
+}
+
 template <class T>
-inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr) 
-{ 
+inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr) { 
     return (strcmp(aPtr->TypeName(), Type()) == 0)?static_cast<CAE_TState<T>*>(aPtr):NULL; 
 }; 
 

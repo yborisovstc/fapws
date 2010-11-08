@@ -55,6 +55,7 @@ test=test CD=. filter="*" {
   Makefile.am
   Makefile.in
   ut-fapws-lib
+  ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
   ut_game_xo.h
@@ -63,6 +64,8 @@ test=test CD=. filter="*" {
   ut_spec_creat.cpp
   ut_spec_creat.h
   ut_spec_creat_1.xml
+  ut_spec_ext_mut.xml
+  ut_fapws_lib-ut_ext_mut.o
   ut_fapws_lib-ut_fapws_main.o
   ut_fapws_lib-ut_game_xo.o
   ut_fapws_lib-ut_simple_increase.o
