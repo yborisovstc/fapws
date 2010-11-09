@@ -17,11 +17,14 @@
 <!ELEMENT state (logspec*, inp*)>
 
 <!-- FAP object spec: 
+     The spec contains pointing to parent (attr type) and spec for parents mutation
+     Mutation can be adding, deleting, changing, and special mutation
      logspec - logging spec,
-     object - embedded object(s),
-     state - embedded state(s),
+     object - spec of added object(s),
+     state - spec of added state(s) spec,
+     state_mut - state mutation,
      conn - connnection(s) -->
-<!ELEMENT object (logspec*, object* , state*, conn*)>
+<!ELEMENT object (logspec*, object* , state*, state_mut*, conn*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
@@ -58,18 +61,33 @@
     prod (copy) #IMPLIED
 >
 
-<!-- State's attributes:
+<!-- State added attributes:
+  mut - mutation, on missing assumen "Add"
   type - type of state
-  datatype - data type (how state data can be interpreted
   id - identification of instance
-  transf - transtion function -->
+  transf - transtion function 
+  init - initial value
+  -->
 <!ATTLIST state 
-   type CDATA #REQUIRED
-   id CDATA #REQUIRED
-   len CDATA #IMPLIED
-   access (Reg | Inp | Out) #REQUIRED
-   transf CDATA #IMPLIED
-   init CDATA #REQUIRED>
+    mut (Add | Del | Change) #IMPLIED
+    type CDATA #IMPLIED
+    id CDATA #REQUIRED
+    len CDATA #IMPLIED
+    access (Reg | Inp | Out) #IMPLIED
+    transf CDATA #IMPLIED
+    init CDATA #IMPLIED
+>
+
+<!-- State mutation attributes:
+  id - identification of instance
+  transf - transtion function 
+  init - initial value
+  -->
+<!ATTLIST state_mut 
+    id CDATA #REQUIRED
+    transf CDATA #IMPLIED
+    init CDATA #IMPLIED
+>
 
 <!-- State input attributes -->
 <!ATTLIST inp 

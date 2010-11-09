@@ -58,8 +58,19 @@ enum TCaeElemType
     ECae_Logspec = 4,	// Logging specification
     ECae_Dep = 5,	// Dependency
     ECae_Logdata = 6,	// Logging data
-    ECae_Stinp = 7	// State input
+    ECae_Stinp = 7,	// State input
+    ECae_State_Mut = 8	// State mutation
 };
+
+// CAE elements mutation type
+enum TCaeMut
+{
+    ECaeMut_None = 0,
+    ECaeMut_Add = 1,	// Add 
+    ECaeMut_Del = 2,	// Delete 
+    ECaeMut_Change = 3	// Change 
+};
+
 
 
 // Adaptive automata programming constants
@@ -102,7 +113,6 @@ const TUint8 KAdp_ObjStType_Out = 0xc0;  // Output
 const TUint8 KAdp_ObjStType_NU =  0x40;  // Not used
 const TUint8 KAdp_ObjStType_AccessMsk = 0xc0;  // Mask of access type
 const TUint8 KAdp_ObjStType_TypeMsk = 0x3f;  // Mask of type
-
 
 // Codes of states types
 enum TChrStateType
@@ -238,6 +248,7 @@ public:
 	FAPWS_API void AddInputL(const char *aName);
 	FAPWS_API void SetInputL(const char *aName, CAE_StateBase* aState);
 	FAPWS_API void AddInputL(const char *aName, CAE_StateBase* aState);
+	FAPWS_API void AddExtInputL(const char *aName, CAE_StateBase* aState);
 	FAPWS_API void Set(void* aNew);
 	FAPWS_API void SetFromStr(const char *aStr);
 	const void* Value() const { return iCurr;}
@@ -267,6 +278,7 @@ private:
 	static char *FmtData(void *aData, int aLen);
 	void LogUpdate(TInt aLogData);
 	inline MCAE_LogRec *Logger();
+	TInt GetExInpLastInd(const char *Name);
 public:
 	void	*iCurr, *iNew;
 protected:
@@ -443,6 +455,7 @@ class MAE_ChroMan
 	virtual CAE_StateBase::StateType GetAccessType(void *aSpec) = 0;
 	virtual int GetLen(void *aSpec) = 0;
 	virtual TCaeElemType FapType(void *aElement) = 0;
+	virtual TCaeMut MutType(void *aElement) = 0;
 	virtual char *GetStrAttr(void *aSpec, const char *aName) = 0;
 	virtual int GetAttrInt(void *aSpec, const char *aName) = 0;
 };
@@ -512,6 +525,7 @@ public:
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
 	FAPWS_API CAE_State* GetInput(const char *aName);
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
+	FAPWS_API CAE_State* GetOutput(const char *aName);
 	FAPWS_API void DoMutation();
 	FAPWS_API void Reset();
 	// Create new inheritor of self. 
@@ -519,8 +533,8 @@ public:
 protected:
 	virtual CAE_Base *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
-	FAPWS_API void ConstructL();
-	FAPWS_API void ConstructFromChromXL();
+	FAPWS_API void ConstructL(const void* aChrom = NULL);
+	FAPWS_API void ConstructFromChromXL(const void* aChrom);
 	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	FAPWS_API void ChangeChrom(const void* aChrom);
 private:

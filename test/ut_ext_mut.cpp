@@ -102,18 +102,13 @@ void UT_FAP_ExtMut::test_ExtMut_main()
     printf("\n === Test of creation object from spec");
     CAE_Object *snail_1 = iEnv->Root()->GetComp("snail_1");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1]", snail_1 != 0);
-    CAE_Object *snail_2 = iEnv->Root()->GetComp("snail_2");
-    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1]", snail_2 != 0);
+    CAE_Object *snail_3 = iEnv->Root()->GetComp("snail_3");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_3]", snail_3 != 0);
     CAE_State *mass_1 = snail_1->GetInput("mass");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1.mass]", mass_1 != 0);
-    CAE_TState<TUint32> *tmass_1 = (CAE_TState<TUint32>*) mass_1;
-    (*tmass_1) = 20;
-    tmass_1->Confirm();
-    CAE_State *mass_2 = snail_2->GetInput("mass");
-    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_2.mass]", mass_2 != 0);
-    CAE_TState<TUint32> *tmass_2 = (CAE_TState<TUint32>*) mass_2;
-    (*tmass_2) = 10;
-    tmass_2->Confirm();
+    CAE_State *coord_3 = snail_3->GetOutput("coord");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_3.coord]", coord_3 != 0);
+    mass_1->AddExtInputL("coord_others", coord_3);
     
     for (TInt i=0; i<40; i++)
     {

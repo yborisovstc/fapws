@@ -28,11 +28,14 @@
 	    <conn state="coord"> <dep inp="self" conn="coord"/> <dep inp="mass" conn="mass"/> </conn>
 	</object> <!-- snail -->
 
-	<object type="snail" id="snail_1" />
-	<object type="snail" id="snail_2" />
-	<object type="snail" id="snail_3" />
+	<object type="snail" id="snail_1" > <state mut="Change" id="mass" init="7"/></object>
+	<object type="snail" id="snail_2" > <state mut="Change" id="mass" init="3"/></object>
+	<object type="snail" id="snail_3" > <state mut="Change" id="mass" init="16"/></object>
 
+	<!--
 	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
+	-->
+	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> </conn>
 	<conn state="snail_2.mass"> <dep inp="coord_others.1" conn="snail_1.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
 	<conn state="snail_3.mass"> <dep inp="coord_others.1" conn="snail_1.coord"/> <dep inp="coord_others.2" conn="snail_2.coord"/> </conn>
 

@@ -393,11 +393,50 @@ FAPWS_API void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState
     free(name);
 }
 
-
+// TODO [YB] It's possible to simply add extended input - not consistent with SetInput
 FAPWS_API void CAE_StateBase::AddInputL(const char *aName, CAE_StateBase* aState) 
 {
     AddInputL(aName);
     SetInputL(aName, aState);
+}
+
+FAPWS_API void CAE_StateBase::AddExtInputL(const char *aName, CAE_StateBase* aState)
+{
+    // Check if extended name registered
+    char *name = (char *) malloc(strlen(aName) + 40);
+    strcpy(name, aName);
+    strcat(name, ".*");
+    TBool exists = iInpList.find(name) != iInpList.end();
+    if (!exists) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Ext inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
+	_FAP_ASSERT(EFalse);
+    }
+    TInt ind = GetExInpLastInd(aName);
+    char sind[40] = "";
+    sprintf(sind, "%d", ++ind);
+    strcpy(name, aName);
+    strcat(name, ".");
+    strcat(name, sind);
+    SetInputL(name, aState);
+    free(name);
+}
+
+TInt CAE_StateBase::GetExInpLastInd(const char *aName)
+{
+    TInt ind = -1;
+    map<string, CAE_StateBase*>::iterator it = iInpList.end();
+    for (--it ; it != iInpList.begin(); it--) {
+	if (it->first.find(aName) == 0) {
+	    char *cstr = strdup(it->first.c_str());
+	    char *ptr = strchr(cstr, '.');
+	    if (ptr != NULL && strlen(ptr) > 1 && ptr[1] != '*') {
+		sscanf(ptr+1, "%d", &ind);
+	    }
+	    free(cstr);
+	    break;
+	} 
+    }
+    return ind;
 }
     
 void CAE_StateBase::RefreshOutput(CAE_StateBase* aState)
@@ -771,13 +810,17 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, 
 // If there is the locus with the unallowed allele then it's considered as mutation
 // and the allele is generated randomly in the legal value interval   
 
-FAPWS_API void CAE_Object::ConstructL()
+FAPWS_API void CAE_Object::ConstructL(const void* aChrom)
 {
+    if (iCompReg == NULL) {
 	iCompReg = new vector<CAE_Base*>;
 	if (iMan != NULL  && iCompReg != NULL) 
-		iMan->RegisterCompL(this);
-	if (iChromX != NULL)
-	    ConstructFromChromXL();
+	    iMan->RegisterCompL(this);
+    }
+    if (aChrom != NULL)
+	ConstructFromChromXL(aChrom);
+    else if (iChromX != NULL)
+	ConstructFromChromXL(iChromX);
 }
 
 FAPWS_API void CAE_Object::ChangeChrom(const void* aChrom)
@@ -789,13 +832,13 @@ FAPWS_API void CAE_Object::ChangeChrom(const void* aChrom)
 }
 
 // TODO [YB] To support referencing to object in spec instead of direct definition
-FAPWS_API void CAE_Object::ConstructFromChromXL()
+FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 {
     MAE_ChroMan *chman = iEnv->Chman();
     MAE_Provider *prov = iEnv->Provider();
     _FAP_ASSERT(chman != NULL);
-    char *name = chman->GetName(iChromX);
-    char *type = chman->GetType(iChromX);
+    char *name = chman->GetName((void *) aChromX);
+    char *type = chman->GetType((void *) aChromX);
     if (iInstName == NULL && name != NULL && strlen(name) != 0)
     {
 	SetName(name);
@@ -808,7 +851,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
     // Pass thru children
     void *child = NULL;
     // Go thru children list in spec and create the children
-    for (child = chman->GetChild(iChromX); child != NULL; child = chman->GetNext(child))
+    for (child = chman->GetChild((void *) aChromX); child != NULL; child = chman->GetNext(child))
     {
 	TCaeElemType ftype = chman->FapType(child);
 	if (ftype == ECae_Object)
@@ -840,13 +883,15 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 	}
 	else if (ftype == ECae_State)
 	{
+	    CAE_State *state = NULL;
+	    TCaeMut mut = chman->MutType(child);
+	    _FAP_ASSERT(mut != ECaeMut_None);
 	    char *stype = chman->GetStrAttr(child, KXTransAttr_Type);
 	    char *name = chman->GetName(child); 
 	    int len = chman->GetLen(child); 
 	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
 	    CAE_StateBase::StateType access = chman->GetAccessType(child);
-	    TTransInfo tinfo;
-	    const TTransInfo *trans = &tinfo;
+	    const TTransInfo *trans = NULL;
 	    if (transf_name != NULL)
 	    {
 		trans = prov->GetTransf(transf_name);
@@ -855,13 +900,22 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		_FAP_ASSERT(trans != NULL);
 	    }
 	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
-	    CAE_State *state = prov->CreateStateL(stype, name, this, access);  
-	    //	    CAE_State *state = CAE_State::NewL(name, len, this,  *trans, access, datatype, formfun);  
-	    if (state == NULL)
-		Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
-	    else
+	    if (mut == ECaeMut_Add) {
+		state = prov->CreateStateL(stype, name, this, access);  
+		if (state == NULL)
+		    Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
+	    }
+	    else if (mut == ECaeMut_Change) {
+		state = (CAE_State *) FindByName(name);
+		if (state == NULL)
+		    Logger()->WriteFormat("ERROR: Changing state [%s]: state not found", name);
+	    }
+	    else /* mut == ECaeMut_Del */ {
+	    }
+	    if (state != NULL)
 	    {
-		state->SetTrans(*trans);
+		if (trans != NULL)
+		    state->SetTrans(*trans);
 		// Go thru state elements
 		for (void *stelem = chman->GetChild(child); stelem != NULL; stelem = chman->GetNext(stelem))
 		{
@@ -893,7 +947,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 			// Set inputs
 			char *sinpid = chman->GetStrAttr(stelem, KXStateInpAttr_Id);
 			if (sinpid == NULL)
-			    Logger()->WriteFormat("ERROR: Creating state [%s] error: empty input name", name);
+			    Logger()->WriteFormat("ERROR: Creating state [%s]: empty input name", name);
 			else {
 			    state->AddInputL(sinpid);
 			}
@@ -909,13 +963,29 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 		}
 	    }
 	}
+	// State mutation
+	// TODO [YB] This is obsolete - to remove
+	else if (ftype == ECae_State_Mut)
+	{
+	    char *name = chman->GetName(child); 
+	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
+	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
+	    CAE_State* state = (CAE_State *) FindByName(name);
+	    if (state == NULL) {
+		Logger()->WriteFormat("ERROR: Mutating state [%s]: state not found", name);
+	    }
+	    if (init != NULL) {
+		state->SetFromStr(init);
+		state->Confirm();
+	    }
+	}
 	else if (ftype == ECae_Conn)
 	{
 	    void *dep = NULL;
 	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
 	    CAE_State* state = (CAE_State *) FindByName(state_name);
 	    if (state == NULL) {
-		Logger()->WriteFormat("ERROR: Connecting state [%s] error: connection not found", state_name);
+		Logger()->WriteFormat("ERROR: Connecting state [%s]: connection not found", state_name);
 	    }
 	    else {
 		for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
@@ -930,7 +1000,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL()
 			    state->SetInputL(inp_name, dstate);
 			}
 			else {
-			    Logger()->WriteFormat("ERROR: Creating state [%s] error: connection [%s] not found", name, dep_name);
+			    Logger()->WriteFormat("ERROR: Creating state [%s]: connection [%s] not found", name, dep_name);
 			}
 		    }
 		}
@@ -1182,6 +1252,12 @@ FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)
 	return res;
 }
 
+FAPWS_API CAE_State* CAE_Object::GetOutput(const char *aName)
+{
+    CAE_State* state = GetStateByName(aName);
+    return (state != NULL && state->IsOutput()) ? state : NULL;
+}
+
 FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 {
 	CAE_State* res = NULL;
@@ -1250,6 +1326,7 @@ FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aNam
     heir->SetType(InstName());
     heir->SetChromosome(EChromOper_Copy, iChromX, NULL);
     heir->ConstructL();
+    heir->ConstructL(aSpec);
     return heir;
 }
 

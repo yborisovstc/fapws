@@ -8,12 +8,15 @@
 #include <libxml/tree.h>
 
 #include "fapfact.h"
+#include "fapbase.h"
 #include "faplogger.h"
 #include "panics.h"
 
 // XML CAE spec parameters
+// Element types
 const char* KCaeElTypeObject = "object";
 const char* KCaeElTypeState = "state";
+const char* KCaeElTypeStateMut = "state_mut";
 const char* KCaeElTypeConn = "conn";
 const char* KCaeElTypeLogspec = "logspec";
 const char* KCaeElTypeLogdata = "logdata";
@@ -231,6 +234,7 @@ class CAE_ChroManX: public CAE_ChroManBase
 	virtual int GetLen(void *aSpec);
 	virtual CAE_StateBase::StateType GetAccessType(void *aSpec);
 	virtual TCaeElemType FapType(void *aElement);
+	virtual TCaeMut MutType(void *aElement);
 	virtual char *GetStrAttr(void *aSpec, const char *aName);
 	virtual int GetAttrInt(void *aSpec, const char *aName);
     protected:
@@ -321,6 +325,8 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Object;
     else if (strcmp(type, KCaeElTypeState) == 0)
 	res = ECae_State;
+    else if (strcmp(type, KCaeElTypeStateMut) == 0)
+	res = ECae_State_Mut;
     else if (strcmp(type, KCaeElTypeConn) == 0)
 	res = ECae_Conn;
     else if (strcmp(type, KCaeElTypeDep) == 0)
@@ -331,6 +337,22 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Logdata;
     else if (strcmp(type, KCaeElTypeStinp) == 0)
 	res = ECae_Stinp;
+    return res;
+}
+
+TCaeMut CAE_ChroManX::MutType(void *aElement)
+{
+    TCaeMut res = ECaeMut_None;
+    xmlNodePtr node = (xmlNodePtr) aElement;
+    char *mut = (char *) xmlGetProp(node, (const xmlChar *) "mut");
+    if (mut == NULL) 
+	res = ECaeMut_Add;
+    else if (strcmp(mut, "Add") == 0)
+	res = ECaeMut_Add;
+    else if (strcmp(mut, "Del") == 0)
+	res = ECaeMut_Del;
+    else if (strcmp(mut, "Change") == 0)
+	res = ECaeMut_Change;
     return res;
 }
 
