@@ -15,7 +15,7 @@ To transform to html:
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.06 at 07-Oct-2010</releaseinfo>
+	<releaseinfo>Ver.0.07 at 10-Nov-2010</releaseinfo>
 
 	<abstract>
 	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
@@ -34,6 +34,8 @@ To transform to html:
 		<revremark>Added requirement <xref linkend="req_spc_03"/></revremark> </revision>
 	    <revision> <revnumber>0.06</revnumber> <date>07-Oct-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added <xref linkend="uc_2_creat_root"/></revremark> </revision>
+	    <revision> <revnumber>0.07</revnumber> <date>10-Nov-2010</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added <xref linkend="uc_3_ext_inp"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -72,6 +74,22 @@ To transform to html:
 	    <itemizedlist><title>Notes</title>
 		<listitem>In ver 0.0.1-3 the env is not created automatically but only on "manually" creating
 		root from the correspondig node of spec</listitem>
+	    </itemizedlist>
+	</sect2>
+	<sect2 id="uc_3_ext_inp"><title>FAP_UC_003 Creating environment with dynamic number of objects</title>
+	    <itemizedlist><title>Preconditions</title>
+		<listitem>N/A</listitem>
+	    </itemizedlist>
+	    <itemizedlist><title>Action</title>
+		<listitem>Client creates environment where the number of objects can be dynamic. The objects withis the 
+		    environment depends all other objects.</listitem>
+		<listitem>Client adds new object and connect all currently existing object wiht new one. </listitem>
+	    </itemizedlist>
+	    <itemizedlist><title>Reaction</title>
+		<listitem>System allows the client to create new connections without using static connections names.</listitem>
+	    </itemizedlist>
+	    <itemizedlist><title>Notes</title>
+		<listitem>This case is quite often in environments with many identical objects that connects all together.</listitem>
 	    </itemizedlist>
 	</sect2>
     </sect1>

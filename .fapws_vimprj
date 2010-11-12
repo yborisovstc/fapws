@@ -9,7 +9,7 @@ ChangeLog
 README
 NEWS
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
- fapbase.h
+  fapbase.h
   fapext.h
   fapfact.h
   faplogger.h

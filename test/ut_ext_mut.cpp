@@ -108,6 +108,7 @@ void UT_FAP_ExtMut::test_ExtMut_main()
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1.mass]", mass_1 != 0);
     CAE_State *coord_3 = snail_3->GetOutput("coord");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_3.coord]", coord_3 != 0);
+    // Test adding ext inputs
     mass_1->AddExtInputL("coord_others", coord_3);
     
     for (TInt i=0; i<40; i++)

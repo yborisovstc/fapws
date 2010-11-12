@@ -18,7 +18,8 @@
 //*************************************************************
 
 
-//TODO [YB] To use full name in the logging
+// TODO [YB] To use full name in the logging
+// TODO [YB] To condider access rules to object elem. Is it ok to access Inp state value, Out state inputs?
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -538,8 +539,11 @@ FAPWS_API void CAE_State::DoTrans()
 	else if (iInpList.size())
 	{
 	    CAE_StateBase *inp = iInpList.begin()->second;
-	    _FAP_ASSERT(iLen == inp->Len());
-	    memcpy(iNew, inp->iCurr, iLen);
+	    if (inp != NULL) {
+		_FAP_ASSERT(iLen == inp->Len());
+		Set(inp->iCurr);
+	    }
+//	    memcpy(iNew, inp->iCurr, iLen);
 	}
 // [YB] Default transition denied (ref FAP_REQ_STA_01, bug#133)
 //	else
@@ -1121,39 +1125,50 @@ FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
 
 FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
 {
-	TInt res = 0;
-	if (aType == NULL)
-	{
-		res = iCompReg->size();
+    TInt res = 0;
+    if (aType == NULL) {
+	res = iCompReg->size();
+    }
+    else {
+	for (TInt i = 0; i < iCompReg->size(); i++) {
+	    CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	    if (strcmp(comp->TypeName(), aType) == 0) {
+		res++;
+	    }
 	}
-	else
-	{
-		for (TInt i = 0; i < iCompReg->size(); i++)
-		{
-			CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-			if (GetFbObj(aType) != NULL)
-			{
-				res++;
-			}
-		}
-	}
-	return res;
+    }
+    return res;
 }
 
 // TODO [YB] Type to be supposed as FAP base type. Then what's the sense of this method?
+FAPWS_API CAE_Object* CAE_Object::GetNextCompByFapType(const char *aType, int* aCtx) const
+{
+    CAE_Object *res = NULL, *elem = NULL;
+    for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++)
+    {
+	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	if ((elem = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
+	{
+	    res = elem;
+	    *aCtx = i+1;
+	    break;
+	}
+    }
+    return res;
+}
+
 FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx) const
 {
-	CAE_Object* res = NULL;
-	for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++)
-	{
-		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
-		if ((res = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
-		{
-			*aCtx = i+1;
-			break;
-		}
+    CAE_Object *res = NULL, *elem = NULL;
+    for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++) {
+	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	if ((strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
+	    res = elem;
+	    *aCtx = i+1;
+	    break;
 	}
-	return res;
+    }
+    return res;
 }
 
 

@@ -520,6 +520,7 @@ public:
 	FAPWS_API void SetUpdated();
 	FAPWS_API CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
+	FAPWS_API CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
 	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
 	FAPWS_API CAE_Base* FindByName(const char* aName);
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
