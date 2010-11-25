@@ -235,20 +235,49 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
 	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <= %s", MansName(1), MansName(0), InstName(), buf_new, buf_cur);
     else if (aLogData & KBaseDa_New)
 	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s", MansName(1), MansName(0), iInstName, buf_new);
-    free (buf_cur);
-    free (buf_new);
     // Loggin inputs
     if (aLogData & KBaseDa_Dep)
     {
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <<<<< ", MansName(1), MansName(0), iInstName, buf_new);
 	for (map<string, CAE_StateBase*>::iterator i = iInpList.begin(); i != iInpList.end(); i++)
 	{
 	    CAE_StateBase* state = i->second;
-	    char* buf = state->DataToStr(ETrue);
-	    if (Logger())
-		Logger()->WriteFormat(">>>> Name: %s, val: %s", state->InstName(), buf);
-	    free(buf);	
+	    if (state != NULL) { /* input can be empty in case of ext input */
+		char* buf = state->DataToStr(ETrue);
+		if (Logger())
+		    Logger()->WriteFormat(">>>> [%s]: %s", i->first.c_str(), buf);
+		free(buf);	
+	    }
 	}
     }
+    free (buf_cur);
+    free (buf_new);
+}
+
+void CAE_StateBase::LogTrans(TInt aLogData)
+{
+    if (Logger() == NULL) return;
+    char *buf_cur = DataToStr(ETrue);
+    char *buf_new = DataToStr(EFalse);
+    if (aLogData & KBaseDa_Curr)
+	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s", MansName(1), MansName(0), InstName(), buf_cur);
+    // Loggin inputs
+    if (aLogData & KBaseDa_Dep)
+    {
+	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s via ", MansName(1), MansName(0), iInstName, buf_cur);
+	for (map<string, CAE_StateBase*>::iterator i = iInpList.begin(); i != iInpList.end(); i++)
+	{
+	    CAE_StateBase* state = i->second;
+	    if (state != NULL) { /* input can be empty in case of ext input */
+		char* buf = state->DataToStr(ETrue);
+		if (Logger())
+		    Logger()->WriteFormat(">>>> [%s]: %s", i->first.c_str(), buf);
+		free(buf);	
+	    }
+	}
+    }
+    free (buf_cur);
+    free (buf_new);
 }
 
 FAPWS_API void CAE_StateBase::Update()
@@ -257,6 +286,9 @@ FAPWS_API void CAE_StateBase::Update()
     TInt logdata = KBaseDa_None;
     if (iStateType != EType_Input || iStateType == EType_Input && iInpList.size())
     {
+	TInt logdata = GetLogSpecData(KBaseLe_Trans);
+	if (logdata != KBaseDa_None)
+	    LogTrans(logdata);
 	DoTrans();
     }
 }
@@ -387,7 +419,7 @@ FAPWS_API void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState
     // Check if the input is not connected yet
     if (iInpList[aName] != NULL) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), InstName(), aName);
-	_FAP_ASSERT(iInpList[aName] != NULL);
+	_FAP_ASSERT(EFalse);
     }
     iInpList[aName] = aState;
     aState->AddOutputL(this);
@@ -432,9 +464,9 @@ TInt CAE_StateBase::GetExInpLastInd(const char *aName)
 	    char *ptr = strchr(cstr, '.');
 	    if (ptr != NULL && strlen(ptr) > 1 && ptr[1] != '*') {
 		sscanf(ptr+1, "%d", &ind);
+		break;
 	    }
 	    free(cstr);
-	    break;
 	} 
     }
     return ind;
@@ -1041,6 +1073,7 @@ TInt CAE_Object::LsEventFromStr(const char *aStr)
     if (strcmp(aStr, "upd") == 0) return KBaseLe_Updated;
     else if (strcmp(aStr, "cre") == 0) return KBaseLe_Creation;
     else if (strcmp(aStr, "any") == 0) return KBaseLe_Any;
+    else if (strcmp(aStr, "tran") == 0) return KBaseLe_Trans;
     else return KBaseLe_None;
 }
 
@@ -1340,8 +1373,11 @@ FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aNam
     CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
     heir->SetType(InstName());
     heir->SetChromosome(EChromOper_Copy, iChromX, NULL);
+    // Construct from native parents chromosome
     heir->ConstructL();
-    heir->ConstructL(aSpec);
+    // Construct from original chromosome if specified
+    if (aSpec != NULL)
+	heir->ConstructL(aSpec);
     return heir;
 }
 

@@ -167,6 +167,7 @@ enum TLeBase
     KBaseLe_Updated = 1, // On element is updated
     KBaseLe_Creation = 2, // On element creation
     KBaseLe_Any = 3,	// Any time
+    KBaseLe_Trans = 4, // Transitioning 
     KBaseLe_END__ = KBaseLe_Any
 };
 
@@ -277,6 +278,7 @@ private:
 	const char *AccessType() const;
 	static char *FmtData(void *aData, int aLen);
 	void LogUpdate(TInt aLogData);
+	void LogTrans(TInt aLogData);
 	inline MCAE_LogRec *Logger();
 	TInt GetExInpLastInd(const char *Name);
 public:

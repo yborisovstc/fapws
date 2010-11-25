@@ -43,8 +43,8 @@
 <!-- Dependency in state connection -->
 <!ELEMENT dep EMPTY >
 
-<!-- Logging event: upd - updated, cre - created, any - all events -->
-<!ATTLIST logspec event (upd | cre | any) #REQUIRED>
+<!-- Logging event: tran - transitioning, upd - updated, cre - created, any - all events -->
+<!ATTLIST logspec event (tran | upd | cre | any) #REQUIRED>
 
 <!-- Logging data: cur - current value, new - new value, dep - pependencies -->
 <!ATTLIST logdata id (cur | new | dep) #REQUIRED>
