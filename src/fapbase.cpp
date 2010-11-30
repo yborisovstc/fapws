@@ -20,6 +20,7 @@
 
 // TODO [YB] To use full name in the logging
 // TODO [YB] To condider access rules to object elem. Is it ok to access Inp state value, Out state inputs?
+// TODO [YB] To improve access to object's states: only inputs of input state accessibele (but not outp), similar for outp state
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -114,8 +115,9 @@ TInt CAE_Base::GetLogSpecData(TInt aEvent) const
     for (TInt i = 0; iLogSpec && i < iLogSpec->size(); i++)
     {
 	const TLogSpecBase& spec = iLogSpec->at(i);
-	if (spec.iEvent == aEvent)
+	if (spec.iEvent == aEvent) {
 	    res = spec.iData; break;
+	}
     }
     return res;
 }
@@ -295,7 +297,8 @@ FAPWS_API void CAE_StateBase::Update()
 
 FAPWS_API void CAE_StateBase::Set(void* aNew) 
 {
-    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    // [YB] Why cannot set output when emply outp list? 
+//    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
     {
 	if (memcmp(aNew, iNew, iLen))
 	{
@@ -310,7 +313,8 @@ FAPWS_API void CAE_StateBase::Set(void* aNew)
 
 FAPWS_API void CAE_StateBase::SetFromStr(const char *aStr)
 {
-    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    // [YB] Why cannot set output when emply outp list? 
+//    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
     {
 	void *data = malloc(iLen);
 	memset(data, 0, iLen);
@@ -868,6 +872,7 @@ FAPWS_API void CAE_Object::ChangeChrom(const void* aChrom)
 }
 
 // TODO [YB] To support referencing to object in spec instead of direct definition
+// TODO [YB] To add object proxy state 
 FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 {
     MAE_ChroMan *chman = iEnv->Chman();

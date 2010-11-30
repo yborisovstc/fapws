@@ -388,6 +388,7 @@ inline TTransInfo CAE_State::GetTrans() { return iTrans; };
 
 inline CAE_StateBase::operator CAE_State*() { CAE_State *res = NULL; return res=GetFbObj(res);};
 
+// TODO [YB] To add operator ==
 template <class T>
 class CAE_TState: public CAE_State
 {
