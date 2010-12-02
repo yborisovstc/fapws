@@ -402,7 +402,8 @@ public:
 	T& operator! () { return *((T*)iNew); };
 	CAE_TState<T>& operator= (T aVal) { Set(&aVal); return *this;};
 	static inline TInt DataTypeUid();
-	static inline const char *Type();
+	//static inline const char *Type();
+	static const char *Type();
 	// [YB] Interpret is obsolete. Use CAE_State casting operator instead
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
@@ -411,6 +412,9 @@ public:
 private:
 	FAPWS_API virtual void DoOperation();
 };
+
+//template <class T>
+//inline const char* CAE_TState<T>::Type() {return NULL;};
 
 inline CAE_State::operator CAE_TState<class T>* () {
     return (strcmp(TypeName(), CAE_TState<T>::Type()) == 0)?static_cast<CAE_TState<T>*>(this):NULL; 
@@ -428,25 +432,15 @@ CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTr
 	self->ConstructL();
 	return self;
 }
-
+/*
 template <class T>
 char* CAE_TState<T>::DataToStr(TBool aCurr) const { return CAE_State::DataToStr(aCurr); }
 
 template <class T>
 void CAE_TState<T>::DataFromStr(const char* aStr, void *aData) const { return CAE_State::DataFromStr(aStr, aData); }
-
-
-template<>inline const char *CAE_TState<TUint8>::Type() {return "StUint8"; }
-
-template<>inline const char *CAE_TState<TInt>::Type() {return "StInt"; }
-
-template<>inline const char *CAE_TState<TUint32>::Type() {return "StUint32"; }
-
-template<>inline const char *CAE_TState<TBool>::Type() {return "StBool"; }
-
+*/
 
 // Chromosome manager
-
 class MAE_ChroMan
 {
     public:

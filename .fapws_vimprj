@@ -14,12 +14,14 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapfact.h
   faplogger.h
   fapplat.h
+  fapstext.h
   fapws.h
   panics.h
   fapbase.cpp
   fapext.cpp
   fapfact.cpp
   faplogger.cpp
+  fapstext.cpp
   fapws.cpp
   objspec.dtd
   Makefile.am
@@ -114,7 +116,7 @@ fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*" {
   fap-balls-0.0.4.debhelper.log
   fap-balls.debhelper.log
  }
- src=src CD=. filter="*" {
+ src=src CD=. filter="*.cpp *.h *.xml *.am" {
   Makefile
   Makefile.am
   Makefile.in
@@ -133,4 +135,31 @@ fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*" {
   stas1.docx
   stas1.rtf
  }
+}
+fap-snails=/home/yborisov/projects/fap/git/fap-snails CD=. filter="*" {
+ Makefile
+ moc_snails.cpp
+ snails
+ snails.cpp
+ snails.h
+ snails.pro
+ ut_spec_ext_mut.xml
+ moc_snails.o
+ snails.o
+}
+gravityqt=/home/yborisov/projects/fap/michael/gravityqt CD=. filter="*" {
+ CMakeLists.txt
+ GravityObject.cpp
+ GravityObject.h
+ GravityView.cpp
+ GravityView.h
+ GravityWindow.cpp
+ GravityWindow.h
+ GravityWindow.ui
+ Makefile
+ ObjectPropDlg.cpp
+ ObjectPropDlg.h
+ ObjectPropDlg.ui
+ gravityqt.pro
+ main.cpp
 }

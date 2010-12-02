@@ -1,6 +1,7 @@
 #include <fapext.h>
 #include <fapplat.h>
 #include <fapbase.h>
+#include <fapstext.h>
 #include <stdlib.h>
 
 #include <cppunit/extensions/HelperMacros.h>

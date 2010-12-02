@@ -9,6 +9,8 @@ libfapws_la_SOURCES = \
 		       fapbase.h \
 		       fapext.cpp \
 		       fapext.h \
+		       fapstext.cpp \
+		       fapstext.h \
 		       fapfact.cpp \
 		       fapfact.h \
 		       faplogger.cpp \
@@ -21,6 +23,7 @@ libfapws_la_SOURCES = \
 include_HEADERS = \
 		  fapbase.h \
 		  fapext.h \
+		  fapstext.h \
 		  fapfact.h \
 		  fapplat.h
 
