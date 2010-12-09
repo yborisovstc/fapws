@@ -368,9 +368,14 @@ public:
 	// The method verifies operation attempted and set the most passed operation if incorrect
 	// Returns true if given operation was set correctly 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
+	CAE_State& Inp(const char* aName) { return *((CAE_State *) Input(aName));};
+	CAE_State& Inp(const char* aName, TInt aExt) { return *((CAE_State *) Input(aName, aExt));};
 	inline TTransInfo GetTrans();
 	static inline const char *Type(); 
-	inline operator CAE_TState<class T>* ();
+	template <class T> inline operator CAE_TState<T>* ();
+	// TODO YB operator doesn't called
+	template <class T> inline operator CAE_TState<T>& ();
+	template <class T> inline operator const T& ();
 	FAPWS_API virtual TOperationInfo OperationInfo(TUint8 aId) const;
 	// From CAE_Base
 	virtual CAE_Base *DoGetFbObj(const char *aName);
@@ -416,8 +421,19 @@ private:
 //template <class T>
 //inline const char* CAE_TState<T>::Type() {return NULL;};
 
-inline CAE_State::operator CAE_TState<class T>* () {
+template <class T>
+inline CAE_State::operator CAE_TState<T>* () {
     return (strcmp(TypeName(), CAE_TState<T>::Type()) == 0)?static_cast<CAE_TState<T>*>(this):NULL; 
+}
+
+template <class T>
+inline CAE_State::operator CAE_TState<T>& () {
+    return *((CAE_TState<T>*) *this);
+}
+
+template <class T> 
+inline CAE_State::operator const T& () {
+    return ~*((CAE_TState<T>*) *this);
 }
 
 template <class T>
@@ -522,8 +538,10 @@ public:
 	FAPWS_API CAE_Base* FindByName(const char* aName);
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
 	FAPWS_API CAE_State* GetInput(const char *aName);
+	CAE_State& GetInp(const char *aName) { return *GetInput(aName); };
 	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
 	FAPWS_API CAE_State* GetOutput(const char *aName);
+	CAE_State& GetOut(const char *aName) { return *GetOutput(aName); };
 	FAPWS_API void DoMutation();
 	FAPWS_API void Reset();
 	// Create new inheritor of self. 

@@ -184,7 +184,6 @@ template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) co
     CAE_StateBase::DataFromStr(aStr, aData);
 }
 
-// TODO [YB] Default method is called instead of this, investigate why
 template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const
 {
     TBool data = *((TBool *) (aCurr ? iCurr : iNew));
