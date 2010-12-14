@@ -32,7 +32,7 @@
 	<object type="snail" id="snail_2" > <state mut="Change" id="mass" init="3"/></object>
 	<object type="snail" id="snail_3" > <state mut="Change" id="mass" init="16"/></object>
 
-	<!-- For testing adding ext inputs - adding coord_others.2 performed manually
+	<!-- For testing of adding ext inputs - adding coord_others.2 performed manually
 	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
 	-->
 	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> </conn>

@@ -50,39 +50,27 @@ CPPUNIT_TEST_SUITE_REGISTRATION( UT_FAP_ExtMut );
 
 void update_mass(CAE_Object* aObject, CAE_State* aState)
 {
-    CAE_TState<TUint32> *pself = (CAE_TState<TUint32>*)aState;
-    CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [mass]", pself != 0);
-    CAE_TState<TUint32> *pcoord_s = (CAE_TState<TUint32>*) aState->Input("coord_self");
-    CPPUNIT_ASSERT_MESSAGE("Fail getting coord_self", pcoord_s != 0);
+    CAE_TState<TUint32>& self = (CAE_TState<TUint32>&) *aState;
+    const TUint32& coord_s = self.Inp("coord_self");
 
-    TUint32 vself = ~*pself;
-    TUint32 vcoord_self = ~*pcoord_s;
-    // Getting the num of others snails being forvard
     TInt feed = KMaxFeed;
-    for (TInt i = 1; ; i++) {
-	CAE_TState<TUint32> *pcoord_o = (CAE_TState<TUint32>*) aState->Input("coord_others", i);
-	if (pcoord_o == NULL) break;
-	TUint32 vcoord_o = ~*pcoord_o;
-	if (vcoord_o > vcoord_self && feed > 0)
+    for (TInt i = 1; self.Input("coord_others", i) != NULL; i++) {
+	const TUint32& coord_o = self.Inp("coord_others", i);
+	if (coord_o > coord_s && feed > 0)
 	    feed--;
     }
-    TUint32 newmass = vself + feed - 1;
+    TUint32 newmass = ~self + feed - 1;
     if (newmass > KMass_Max) newmass = KMass_Max;
     if (newmass < KMass_Min) newmass = KMass_Min;
-    *pself = newmass;
+    self = newmass;
 }
 
 void update_coord(CAE_Object* aObject, CAE_State* aState)
 {
-    CAE_TState<TUint32> *pself = CAE_TState<TUint32>::Interpret(aState);
-    CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [coord]", pself != 0);
-    CAE_TState<TUint32> *pmass_s = (CAE_TState<TUint32>*) aState->Input("mass");
-    CPPUNIT_ASSERT_MESSAGE("Fail getting [mass]", pmass_s != 0);
-    TUint32 vself = ~*pself;
-    TUint32 vmass_s = ~*pmass_s;
-    if (vmass_s > 0) {
-	*pself = vself + KMass_Max/vmass_s;
-    }
+    CAE_TState<TUint32>& self = (CAE_TState<TUint32>&) *aState;
+    const TUint32& mass_s = self.Inp("mass");
+    if (mass_s > 0) 
+	self = ~self + KMass_Max/mass_s;
 }
 
 

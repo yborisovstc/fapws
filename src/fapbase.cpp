@@ -22,6 +22,7 @@
 // TODO [YB] To condider access rules to object elem. Is it ok to access Inp state value, Out state inputs?
 // TODO [YB] To improve access to object's states: only inputs of input state accessibele (but not outp), similar for outp state
 // TODO [YB] How to define an access to internal object?
+// TODO [YB] To impmement inputs and outputs for object
 
 #include <stdlib.h>
 #include <stdio.h>
