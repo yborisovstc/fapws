@@ -262,7 +262,7 @@ void CAE_LogSpecCon::ParseSpecsL()
 	char* tail = NULL;
 	char* tagend = NULL;
 	int taglen = 0;
-	fgets(buf, KSpecFileBufLen, iSpecsFile);
+	char* res = fgets(buf, KSpecFileBufLen, iSpecsFile);
 	TBool fin = EFalse;
 	tail = buf;
 	while (!fin)
@@ -334,7 +334,7 @@ void CAE_LogCtrl::DoLogL(TInt aStep)
 		{
 			ResolveSpec(i);
 		}
-		if (spec->iElt != NULL && spec->iElt->iUpdated)
+		if (spec->iElt != NULL && spec->iElt->IsUpdated())
 		{
 			CAE_StateBase* state = spec->iElt->GetFbObj(state);
 			if (state != NULL)

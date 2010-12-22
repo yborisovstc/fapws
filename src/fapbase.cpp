@@ -22,7 +22,8 @@
 // TODO [YB] To condider access rules to object elem. Is it ok to access Inp state value, Out state inputs?
 // TODO [YB] To improve access to object's states: only inputs of input state accessibele (but not outp), similar for outp state
 // TODO [YB] How to define an access to internal object?
-// TODO [YB] To impmement inputs and outputs for object
+// TODO [YB] To implement inputs and outputs for object
+// TODO [YB] To implement states group proxy
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -910,15 +911,15 @@ TInt CAE_Object::LsDataFromStr(const char *aStr)
 
 FAPWS_API void CAE_Object::Confirm()
 {
-	for (TInt i = 0; i < iCompReg->size(); i++ )
+    for (TInt i = 0; i < iCompReg->size(); i++ )
+    {
+	CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
+	if (obj->IsUpdated() && !obj->IsQuiet())
 	{
-		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
-		if (obj->iUpdated && !obj->iQuiet)
-		{
-			obj->Confirm();
-			obj->iUpdated = EFalse;
-		}
+	    obj->Confirm();
+	    obj->ResetUpdated();
 	}
+    }
 };
 
 FAPWS_API void CAE_Object::DoMutation()
@@ -931,28 +932,14 @@ FAPWS_API void CAE_Object::Update()
 	for (TInt i = 0; i < iCompReg->size(); i++ )
 	{
 		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
-		if (obj->iActive && !obj->iQuiet)
+		if (obj->IsActive() && !obj->IsQuiet())
 		{
-			obj->iUpdated = obj->iActive;
-			obj->iActive = EFalse;
+			obj->SetUpdated();
+			obj->ResetActive();
 			obj->Update();
 		}
 	}
 }
-
-FAPWS_API void CAE_Object::SetActive() 
-{
-	iActive = ETrue; 
-	if (iMan) 
-		iMan->SetActive();
-};
-
-FAPWS_API void CAE_Object::SetUpdated() 
-{
-	iUpdated = ETrue; 
-	if (iMan) 
-		iMan->SetUpdated();
-};
 
 
 void CAE_Object::UnregisterComp(CAE_Base* aComp)

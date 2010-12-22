@@ -195,13 +195,20 @@ class CAE_Base
 {
 public:
 	CAE_Base(const char* aInstName, CAE_Object* aMan);
-	FAPWS_API virtual ~CAE_Base();
+	virtual ~CAE_Base();
 	virtual void Confirm() = 0;
 	virtual void Update() = 0;
+	TBool IsQuiet() { return iQuiet;};
+	TBool IsActive() { return iActive;};
 	void SetActive();
-	void SetUpdated();
+	void ResetActive() { iActive = EFalse;};
+	void SetUpdated(); 
+	void ResetUpdated() {iUpdated = EFalse;};
+	TBool IsUpdated() const { return iUpdated; };
+	TBool IsQuiet() const { return iQuiet; };
 	void SetName(const char *aName);
 	void SetType(const char *aType);
+	void SetMan(CAE_Object *aMan) { _FAP_ASSERT (iMan == NULL || iMan == aMan); iMan = aMan;};
 	const char* InstName() const { return iInstName;};
 	const char* TypeName() const { return iTypeName;};
 	const char* MansName(TInt aLevel) const;
@@ -213,7 +220,7 @@ public:
 protected:
 	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
 	TInt GetLogSpecData(TInt aEvent) const;
-public:
+protected:
 	char* iInstName;
 	/* Name of ancestor */
 	char* iTypeName;
@@ -529,8 +536,6 @@ public:
 	FAPWS_API virtual void Update();
 	FAPWS_API virtual void Confirm();
 	FAPWS_API void LinkL(CAE_State* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
-	FAPWS_API void SetActive();
-	FAPWS_API void SetUpdated();
 	FAPWS_API CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
 	FAPWS_API CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
@@ -579,8 +584,8 @@ inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
 inline void  CAE_Object::RegisterCompL(CAE_Base* aComp) 
 { 
     iCompReg->push_back(aComp); 
-    aComp->iMan = this;
-    if (aComp->iUpdated) SetUpdated();
+    aComp->SetMan(this);
+    if (aComp->IsUpdated()) SetUpdated();
 };
 	
 // Bit based authomata 
