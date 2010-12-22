@@ -82,7 +82,7 @@ inline CAE_LogSpec* CAE_LogSpecCon::At(TInt aInd) const { return iSpecs->at(aInd
 
 
 class CAE_Object;
-class CAE_StateBase;
+class CAE_State;
 
 class CAE_LogCtrl
 {
@@ -95,7 +95,7 @@ protected:
 	void ConstructL(const char* aSpecFileName, const char *aLogFileName = NULL);
 	CAE_LogCtrl(CAE_Object* aFapRoot);
 	TInt ResolveSpec(TInt aInd);
-	void FormatState(CAE_StateBase* aState, char* aRes);
+	void FormatState(CAE_State* aState, char* aRes);
 private:
 	CAE_LogRec*		iRec;
 	CAE_Object*		iFapRoot;

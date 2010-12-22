@@ -103,13 +103,13 @@ FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
 
 }
 
-FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aType) const
+FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_State::StateType aType) const
 {
     CAE_State* res = NULL;
     return res;
 }
 
-FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aType, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aStType) const
+FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aType, const char* aInstName, CAE_Object* aMan, CAE_State::StateType aStType) const
 {
     CAE_State* res = NULL;
     const TStateInfo *info = GetStateInfo(aType);
@@ -240,7 +240,7 @@ class CAE_ChroManX: public CAE_ChroManBase
 	virtual char *GetType(void *aSpec);
 	virtual char *GetName(void *aSpec);
 	virtual int GetLen(void *aSpec);
-	virtual CAE_StateBase::StateType GetAccessType(void *aSpec);
+	virtual CAE_State::StateType GetAccessType(void *aSpec);
 	virtual TCaeElemType FapType(void *aElement);
 	virtual TCaeMut MutType(void *aElement);
 	virtual char *GetStrAttr(void *aSpec, const char *aName);
@@ -393,20 +393,20 @@ int CAE_ChroManX::GetLen(void *aSpec)
     return res;
 }
 
-CAE_StateBase::StateType CAE_ChroManX::GetAccessType(void *aSpec)
+CAE_State::StateType CAE_ChroManX::GetAccessType(void *aSpec)
 {
-    CAE_StateBase::StateType res = CAE_StateBase::EType_Unknown;
+    CAE_State::StateType res = CAE_State::EType_Unknown;
     _FAP_ASSERT(aSpec!= NULL);
     xmlNodePtr node = (xmlNodePtr) aSpec;
     const char *attr = (const char *) xmlGetProp(node, (const xmlChar *) "access");
     if (attr != NULL)
     {
 	if (strcmp(attr, "Reg") == 0)
-	    res = CAE_StateBase::EType_Reg;
+	    res = CAE_State::EType_Reg;
 	else if (strcmp(attr,"Inp") == 0)
-	    res = CAE_StateBase::EType_Input;
+	    res = CAE_State::EType_Input;
 	else if (strcmp(attr,"Out") == 0)
-	    res = CAE_StateBase::EType_Output;
+	    res = CAE_State::EType_Output;
     }
     return res;
 }
@@ -495,7 +495,7 @@ FAPWS_API void CAE_Fact::AddProviderL(CAE_ProviderBase* aProv)
 }
 
 
-CAE_State* CAE_Fact::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aType) const
+CAE_State* CAE_Fact::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_State::StateType aType) const
 {
     CAE_State* res = NULL;
     TInt count = iProviders->size();
@@ -511,7 +511,7 @@ CAE_State* CAE_Fact::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_O
 }
 
 
-CAE_State* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_StateBase::StateType aType) const
+CAE_State* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, CAE_State::StateType aType) const
 {
     CAE_State* res = NULL;
 

@@ -31,13 +31,13 @@ public:
     virtual void tearDown();
 
 private:
-    void test_withMaxNum(TInt aMaxNum, CAE_StateBase::StateType aNumMaxType);
+    void test_withMaxNum(TInt aMaxNum, CAE_State::StateType aNumMaxType);
     /**
-     * Test when iStepNumMax is of CAE_StateBase::EType_Reg type
+     * Test when iStepNumMax is of CAE_State::EType_Reg type
      */
     void test_SimpleIncrease_Type_Reg();
     /**
-     * Test when iStepNumMax is of CAE_StateBase::EType_Input type
+     * Test when iStepNumMax is of CAE_State::EType_Input type
      */
     void test_SimpleIncrease_Type_Input();
 

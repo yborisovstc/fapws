@@ -15,7 +15,7 @@ template<>const char *CAE_TState<TUint32>::Type() {return "StUint32"; }
 template<>const char *CAE_TState<TBool>::Type() {return "StBool"; }
 
 
-template<> FAPWS_API TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
+template<> TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 {
 	TBool res = ETrue;
 	TBool err = EFalse;
@@ -23,12 +23,12 @@ template<> FAPWS_API TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 	{
 		TUint32 opind = aTinfo.iOpInd;
 		// Get operand types
-		CAE_StateBase* sinp1 = NULL;
-		CAE_StateBase* sinp2 = NULL;
+		CAE_State* sinp1 = NULL;
+		CAE_State* sinp2 = NULL;
 		TInt ninp = iInpList.size();
 		if (ninp > 0)
 		{
-			CAE_StateBase* sinp1 = Input(0);
+			CAE_State* sinp1 = Input(0);
 			//CAE_TState<TUint8>* tsinp1 = sinp1->GetObject(tsinp1);
 			CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 			if (tsinp1 == NULL)
@@ -36,7 +36,7 @@ template<> FAPWS_API TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 		}
 		if (!err && ninp > 1)
 		{
-			CAE_StateBase* sinp2 = Input(1);
+			CAE_State* sinp2 = Input(1);
 			CAE_TState<TUint8>* tsinp2 = sinp2->GetFbObj(tsinp2);
 			if (tsinp2 == NULL)
 				err = ETrue;
@@ -71,13 +71,13 @@ template<> FAPWS_API TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 	return res;
 }
 
-template<> FAPWS_API void CAE_TState<TUint8>::DoOperation()
+template<> void CAE_TState<TUint8>::DoOperation()
 {
-	CAE_StateBase* sinp1 = Input(0);
+	CAE_State* sinp1 = Input(0);
 	_FAP_ASSERT(sinp1 != NULL);
 	CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 	_FAP_ASSERT(tsinp1 != NULL);
-	CAE_StateBase* sinp2 = Input(1);
+	CAE_State* sinp2 = Input(1);
 	CAE_TState<TUint8>* tsinp2 = NULL;
 	if (sinp2 != NULL)
 		tsinp2 = sinp2->GetFbObj(tsinp2);
@@ -111,7 +111,7 @@ template<> FAPWS_API TBool CAE_TState<TUint32>::SetTrans(TTransInfo aTinfo)
 
 template<> void CAE_TState<TUint8>::DataFromStr(const char* aStr, void *aData) const
 {
-    CAE_StateBase::DataFromStr(aStr, aData);
+    CAE_State::DataFromStr(aStr, aData);
 }
 
 template<> char *CAE_TState<TUint8>::DataToStr(TBool aCurr) const
@@ -181,7 +181,7 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 
 template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) const
 {
-    CAE_StateBase::DataFromStr(aStr, aData);
+    CAE_State::DataFromStr(aStr, aData);
 }
 
 template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const

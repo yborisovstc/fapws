@@ -336,7 +336,7 @@ void CAE_LogCtrl::DoLogL(TInt aStep)
 		}
 		if (spec->iElt != NULL && spec->iElt->IsUpdated())
 		{
-			CAE_StateBase* state = spec->iElt->GetFbObj(state);
+			CAE_State* state = spec->iElt->GetFbObj(state);
 			if (state != NULL)
 			{
 				char buf[KStateFormattedLen] = "";
@@ -347,7 +347,7 @@ void CAE_LogCtrl::DoLogL(TInt aStep)
 	}
 }
 
-void CAE_LogCtrl::FormatState(CAE_StateBase* aState, char* aRes)
+void CAE_LogCtrl::FormatState(CAE_State* aState, char* aRes)
 {
     for (TInt i=0; i < aState->Len(); i++)
     {

@@ -48,9 +48,9 @@ class CAE_Fact: public MAE_Provider
 	FAPWS_API void AddProviderL(CAE_ProviderBase* aProv);
 	// From MAE_Provider
 	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const;
+		CAE_State::StateType aType= CAE_State::EType_Reg) const;
 	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const;
+		CAE_State::StateType aType= CAE_State::EType_Reg) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
 	virtual const TTransInfo* GetTransf(const char *aName) const;
@@ -78,9 +78,9 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	FAPWS_API virtual ~CAE_ProviderGen();
 	// From MAE_Provider
 	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const;
+		CAE_State::StateType aType= CAE_State::EType_Reg) const;
 	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_StateBase::StateType aType= CAE_StateBase::EType_Reg) const;
+		CAE_State::StateType aType= CAE_State::EType_Reg) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const;
 	FAPWS_API virtual CAE_Base* CreateObjectL(const char *aName) const;
 	virtual const TTransInfo* GetTransf(const char *aName) const;
