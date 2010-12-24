@@ -318,7 +318,7 @@ TInt CAE_LogCtrl::ResolveSpec(TInt aInd)
 {
 	_FAP_ASSERT(aInd < iSpecs->Count());
 	TInt res = KFapErr_None;
-	CAE_Base* elt = iFapRoot->FindByName(iSpecs->At(aInd)->Name());
+	CAE_EBase* elt = iFapRoot->FindByName(iSpecs->At(aInd)->Name());
 	if (elt != NULL)
 		iSpecs->At(aInd)->iElt = elt;
 	else res = KFapErr_NotFound;

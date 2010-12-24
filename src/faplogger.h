@@ -52,7 +52,7 @@ public:
 	const char* Name() const {return iName;};
 private:
 	char*	  iName;
-	CAE_Base* iElt;
+	CAE_EBase* iElt;
 };
 
 

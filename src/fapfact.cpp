@@ -119,15 +119,15 @@ FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aType, const char
 
 }
 
-FAPWS_API CAE_Base* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
+FAPWS_API CAE_EBase* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
 {
-    CAE_Base* res = NULL;
+    CAE_EBase* res = NULL;
     return res;
 }
 
-FAPWS_API  CAE_Base* CAE_ProviderGen::CreateObjectL(const char *aName) const
+FAPWS_API  CAE_EBase* CAE_ProviderGen::CreateObjectL(const char *aName) const
 {
-    CAE_Base* res = NULL;
+    CAE_EBase* res = NULL;
     return res;
 }
 
@@ -527,15 +527,15 @@ CAE_State* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, C
     return res;
 }
 
-FAPWS_API CAE_Base* CAE_Fact::CreateObjectL(TUint32 aTypeUid) const
+FAPWS_API CAE_EBase* CAE_Fact::CreateObjectL(TUint32 aTypeUid) const
 {
-    CAE_Base* res = NULL;
+    CAE_EBase* res = NULL;
     return res;
 }
 
-FAPWS_API CAE_Base* CAE_Fact::CreateObjectL(const char *aName) const
+FAPWS_API CAE_EBase* CAE_Fact::CreateObjectL(const char *aName) const
 {
-    CAE_Base* res = NULL;
+    CAE_EBase* res = NULL;
     return res;
 }
 

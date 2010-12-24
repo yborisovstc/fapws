@@ -188,13 +188,28 @@ struct TLogSpecBase
     TInt  iData;   // Data to log TLdBase
 };
 
-/** Base class for FAP elements
+
+/** Base class for FAP all elements
  */
 class CAE_Base
 {
 public:
-	CAE_Base(const char* aInstName, CAE_Object* aMan);
-	virtual ~CAE_Base();
+	CAE_Base() {};
+	virtual ~CAE_Base() {};
+	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
+	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
+protected:
+	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
+};
+
+
+/** Base class for FAP elements - updatable, managed, logged
+ */
+class CAE_EBase: public CAE_Base
+{
+public:
+	CAE_EBase(const char* aInstName, CAE_Object* aMan);
+	virtual ~CAE_EBase();
 	virtual void Confirm() = 0;
 	virtual void Update() = 0;
 	TBool IsQuiet() { return iQuiet;};
@@ -212,12 +227,8 @@ public:
 	const char* TypeName() const { return iTypeName;};
 	const char* MansName(TInt aLevel) const;
 	void AddLogSpec(TInt aEvent, TInt aData);
-	/* Get FAP base object (OOP view) */
-	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
-	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
 	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
 protected:
-	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
 	TInt GetLogSpecData(TInt aEvent) const;
 protected:
 	char* iInstName;
@@ -230,6 +241,43 @@ protected:
 	vector<TLogSpecBase>* iLogSpec;
 };
 
+// Connection pin. Represents reference to interface
+class CAE_ConnPin
+{
+    public:
+	CAE_ConnPin(const char* aRefType): iRefType(aRefType), iRef(NULL) {};
+	TBool Set(CAE_Base *aRef);
+	void Reset() { iRef = NULL; };
+    private:
+	// Type of interface referenced
+	string iRefType;
+	// Reference to interface
+	CAE_Base *iRef;
+};
+
+class CAE_ConnPoint;
+
+// Connection slot. Container of source pins, destination pins, and ref to connecred slot.
+class CAE_ConnSlot
+{
+    public:
+	CAE_ConnSlot(): iRef(NULL) {};
+	TBool Connect(CAE_ConnSlot *aSlot);
+    public:
+	// Reference to reciprocal connection point
+	CAE_ConnPoint *iRef;
+	// Sources
+	map<string, CAE_ConnPoint*> iSrcs;
+	// Destinations
+	map<string, CAE_ConnPoint*> iDests;
+};
+
+// Connection point. Contains connection slots - implements connection multiplicity
+class CAE_ConnPoint
+{
+    public:
+	vector<CAE_ConnSlot*> iSlots;
+};
 
 // Parameters of operation
 struct TOperationInfo
@@ -280,7 +328,7 @@ template <class T> class CAE_TState;
 // TODO YB: Consider to combine CAE_State with CAE_StateBase
 // TODO [YB] To add inputs type info (maybe checking in transf will be enough?)
 // TODO [YB] To add support of dynamic inputs (or sections?)
-class CAE_State: public CAE_Base
+class CAE_State: public CAE_EBase
 {
     friend class CAE_Object;
 public:
@@ -330,8 +378,8 @@ public:
 	template <class T> inline operator CAE_TState<T>& ();
 	template <class T> inline operator const T& ();
 	virtual TOperationInfo OperationInfo(TUint8 aId) const;
-	// From CAE_Base
-	virtual CAE_Base *DoGetFbObj(const char *aName);
+	// From CAE_EBase
+	virtual CAE_EBase *DoGetFbObj(const char *aName);
 protected:
 	void ConstructL();
 private:
@@ -459,8 +507,8 @@ class MAE_Provider
 		CAE_State::StateType aType= CAE_State::EType_Reg) const = 0;
 	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, 
 		CAE_State::StateType aType= CAE_State::EType_Reg) const = 0;
-	virtual CAE_Base* CreateObjectL(TUint32 aTypeUid) const  = 0;
-	virtual CAE_Base* CreateObjectL(const char *aName) const  = 0;
+	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const  = 0;
+	virtual CAE_EBase* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
 	virtual void RegisterState(const TStateInfo *aInfo) = 0;
 	virtual void RegisterStates(const TStateInfo **aInfos) = 0;
@@ -484,7 +532,7 @@ class MAE_Env
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
 /* TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough */
-class CAE_Object: public CAE_Base
+class CAE_Object: public CAE_EBase
 {
 public:
 	// Operation under chromosome
@@ -502,8 +550,8 @@ public:
 	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
 	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
-	inline void RegisterCompL(CAE_Base* aComp);
-	void UnregisterComp(CAE_Base* aComp);
+	inline void RegisterCompL(CAE_EBase* aComp);
+	void UnregisterComp(CAE_EBase* aComp);
 	FAPWS_API virtual void Update();
 	FAPWS_API virtual void Confirm();
 	FAPWS_API void LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTrans = NULL);
@@ -511,7 +559,7 @@ public:
 	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
 	FAPWS_API CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
 	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
-	FAPWS_API CAE_Base* FindByName(const char* aName);
+	FAPWS_API CAE_EBase* FindByName(const char* aName);
 	FAPWS_API CAE_State* GetInput(TUint32 aInd);
 	FAPWS_API CAE_State* GetInput(const char *aName);
 	CAE_State& GetInp(const char *aName) { return *GetInput(aName); };
@@ -523,7 +571,7 @@ public:
 	// Create new inheritor of self. 
 	FAPWS_API CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 protected:
-	virtual CAE_Base *DoGetFbObj(const char *aName);
+	virtual CAE_EBase *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	FAPWS_API void ConstructL(const void* aChrom = NULL);
 	FAPWS_API void ConstructFromChromXL(const void* aChrom);
@@ -542,7 +590,7 @@ public:
 	TUint32 iFitness; 
 	TUint32 iFitness1; 
 private:
-	vector<CAE_Base*>* iCompReg;
+	vector<CAE_EBase*>* iCompReg;
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
 };
@@ -552,7 +600,7 @@ inline const char *CAE_Object::Type() { return "Object";}
 
 inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
 
-inline void  CAE_Object::RegisterCompL(CAE_Base* aComp) 
+inline void  CAE_Object::RegisterCompL(CAE_EBase* aComp) 
 { 
     iCompReg->push_back(aComp); 
     aComp->SetMan(this);

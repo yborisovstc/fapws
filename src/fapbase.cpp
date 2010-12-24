@@ -54,9 +54,18 @@ void Panic(TInt aRes)
 	_IND_PANIC(KFapPanic, aRes);
 }
 
-// CAE_Base
+TBool CAE_ConnPin::Set(CAE_Base *aRef) 
+{ 
+    TBool res = EFalse;
+    if (aRef->GetFbObj(iRefType.c_str())) { 
+	iRef = aRef; res = ETrue;
+    } 
+   return res; 
+};
 
-CAE_Base::CAE_Base(const char* aInstName, CAE_Object* aMan):
+// CAE_EBase
+
+CAE_EBase::CAE_EBase(const char* aInstName, CAE_Object* aMan): CAE_Base(), 
 	iInstName(NULL), iTypeName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iQuiet(EFalse), iLogSpec(NULL)
 {
     if (aInstName != NULL) 
@@ -64,17 +73,17 @@ CAE_Base::CAE_Base(const char* aInstName, CAE_Object* aMan):
 };
 
 
-void CAE_Base::SetActive() 
+void CAE_EBase::SetActive() 
 { 
 	iActive= ETrue; if (iMan) iMan->SetActive();
 };
 
-void CAE_Base::SetUpdated()
+void CAE_EBase::SetUpdated()
 { 
 	iUpdated= ETrue; if (iMan) iMan->SetUpdated();
 };
 
-void CAE_Base::SetName(const char *aName)
+void CAE_EBase::SetName(const char *aName)
 {
     if (iInstName != NULL)
 	free(iInstName);
@@ -82,7 +91,7 @@ void CAE_Base::SetName(const char *aName)
 	iInstName = strdup(aName);
 }
 
-void CAE_Base::SetType(const char *aName)
+void CAE_EBase::SetType(const char *aName)
 {
     if (iTypeName != NULL)
 	free(iTypeName);
@@ -90,7 +99,7 @@ void CAE_Base::SetType(const char *aName)
 	iTypeName = strdup(aName);
 }
 
-FAPWS_API CAE_Base::~CAE_Base()
+FAPWS_API CAE_EBase::~CAE_EBase()
 {
     if (iMan != NULL)
 	iMan->UnregisterComp(this);
@@ -102,7 +111,7 @@ FAPWS_API CAE_Base::~CAE_Base()
 	delete iLogSpec;
 }
 
-void CAE_Base::AddLogSpec(TInt aEvent, TInt aData)
+void CAE_EBase::AddLogSpec(TInt aEvent, TInt aData)
 {
     if (iLogSpec == NULL)
     {
@@ -112,7 +121,7 @@ void CAE_Base::AddLogSpec(TInt aEvent, TInt aData)
     iLogSpec->push_back(TLogSpecBase(aEvent, aData));
 }
 
-TInt CAE_Base::GetLogSpecData(TInt aEvent) const
+TInt CAE_EBase::GetLogSpecData(TInt aEvent) const
 {	
     TInt res = KBaseDa_None;
     for (TInt i = 0; iLogSpec && i < iLogSpec->size(); i++)
@@ -125,9 +134,9 @@ TInt CAE_Base::GetLogSpecData(TInt aEvent) const
     return res;
 }
 
-const char* CAE_Base::MansName(TInt aLevel) const 
+const char* CAE_EBase::MansName(TInt aLevel) const 
 { 
-    CAE_Base *man = iMan; 
+    CAE_EBase *man = iMan; 
     for (TInt i=aLevel; i > 0 && man != NULL && man->iMan != NULL; i--) man = man->iMan;
     return (man == NULL)? "": man->InstName();
 };
@@ -523,7 +532,7 @@ void CAE_State::Reset()
 const char* KCAE_StateName = "State";
 
 CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType):
-    CAE_Base(aInstName, aMan), iLen(aLen), iStateType(aType), iFlags(0x00), iTrans(aTrans)
+    CAE_EBase(aInstName, aMan), iLen(aLen), iStateType(aType), iFlags(0x00), iTrans(aTrans)
 {
     _FAP_ASSERT (iMan != NULL);
 }
@@ -575,8 +584,8 @@ FAPWS_API TOperationInfo CAE_State::OperationInfo(TUint8 aId) const
 	return nfo;
 }
 
-// From CAE_Base
-CAE_Base *CAE_State::DoGetFbObj(const char *aName)
+// From CAE_EBase
+CAE_EBase *CAE_State::DoGetFbObj(const char *aName)
 {
     if ((iTypeName != NULL) && (strcmp(iTypeName, aName) == 0) || (strcmp(aName, Type()) == 0))
 	return this;
@@ -605,14 +614,14 @@ CAE_Formatter::~CAE_Formatter()
 //*********************************************************
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
-	CAE_Base(aInstName, aMan), iCompReg(NULL), iChromX(NULL), iEnv(aEnv), 
+	CAE_EBase(aInstName, aMan), iCompReg(NULL), iChromX(NULL), iEnv(aEnv), 
 	iFitness(0), iFitness1(0)
 {
 }
 
-CAE_Base *CAE_Object::DoGetFbObj(const char *aName)
+CAE_EBase *CAE_Object::DoGetFbObj(const char *aName)
 {
-    CAE_Base *res = NULL;
+    CAE_EBase *res = NULL;
     if (strcmp(aName, Type()) == 0) {
 	res = this;
     }
@@ -646,7 +655,7 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, 
 FAPWS_API void CAE_Object::ConstructL(const void* aChrom)
 {
     if (iCompReg == NULL) {
-	iCompReg = new vector<CAE_Base*>;
+	iCompReg = new vector<CAE_EBase*>;
 	if (iMan != NULL  && iCompReg != NULL) 
 	    iMan->RegisterCompL(this);
     }
@@ -853,7 +862,7 @@ FAPWS_API CAE_Object::~CAE_Object()
 	// Use the revers orders recalling that deleting object cause unregister it from parent
 	for (TInt i = count-1; i >= 0; i-- )
 	{
-		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
+		CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
 		delete obj;
 	}
 	iCompReg->clear();
@@ -887,7 +896,7 @@ FAPWS_API void CAE_Object::Confirm()
 {
     for (TInt i = 0; i < iCompReg->size(); i++ )
     {
-	CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
+	CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
 	if (obj->IsUpdated() && !obj->IsQuiet())
 	{
 	    obj->Confirm();
@@ -905,7 +914,7 @@ FAPWS_API void CAE_Object::Update()
 {
 	for (TInt i = 0; i < iCompReg->size(); i++ )
 	{
-		CAE_Base* obj = (CAE_Base*) iCompReg->at(i);
+		CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
 		if (obj->IsActive() && !obj->IsQuiet())
 		{
 			obj->SetUpdated();
@@ -916,7 +925,7 @@ FAPWS_API void CAE_Object::Update()
 }
 
 
-void CAE_Object::UnregisterComp(CAE_Base* aComp)
+void CAE_Object::UnregisterComp(CAE_EBase* aComp)
 {
 	for (TInt i = 0; i < iCompReg->size(); i++ )
 		if (iCompReg->at(i) == aComp) {iCompReg->erase(iCompReg->begin() + i); break; };
@@ -948,7 +957,7 @@ FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
     }
     else {
 	for (TInt i = 0; i < iCompReg->size(); i++) {
-	    CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	    CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 	    if (strcmp(comp->TypeName(), aType) == 0) {
 		res++;
 	    }
@@ -963,7 +972,7 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByFapType(const char *aType, int* a
     CAE_Object *res = NULL, *elem = NULL;
     for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++)
     {
-	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 	if ((elem = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
 	{
 	    res = elem;
@@ -978,7 +987,7 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx
 {
     CAE_Object *res = NULL, *elem = NULL;
     for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++) {
-	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 	if ((strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
 	    res = elem;
 	    *aCtx = i+1;
@@ -989,9 +998,9 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx
 }
 
 
-FAPWS_API CAE_Base* CAE_Object::FindByName(const char* aName)
+FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 {
-	CAE_Base* res = NULL;
+	CAE_EBase* res = NULL;
 	char name[KNameMaxLen];
 	const char* tail = strchr(aName, KNameSeparator);
 	TInt namelen = tail?tail - aName:strlen(aName);
@@ -1004,7 +1013,7 @@ FAPWS_API CAE_Base* CAE_Object::FindByName(const char* aName)
 		{ // Simple name
 			for (TInt i = 0; i < iCompReg->size(); i++)
 			{
-				CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+				CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 				if ((comp->InstName() != NULL) && (strcmp(name, comp->InstName()) == 0))
 				{
 					res = comp; break;
@@ -1015,7 +1024,7 @@ FAPWS_API CAE_Base* CAE_Object::FindByName(const char* aName)
 		{ // Full name
 			for (TInt i = 0; i < iCompReg->size(); i++)
 			{
-				CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+				CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 				if (comp && strcmp(name, comp->InstName()) == 0)
 				{
 				    CAE_Object* obj = comp->GetFbObj(obj);
@@ -1044,7 +1053,7 @@ FAPWS_API CAE_State* CAE_Object::GetInput(TUint32 aInd)
 	TUint32 sInd = 0;
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
-		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsInput())
 		{
@@ -1070,7 +1079,7 @@ FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)
 	TUint32 sInd = 0;
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
-		CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsOutput())
 		{
@@ -1095,7 +1104,7 @@ FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 	CAE_State* res = NULL;
 	if (aInd < iCompReg->size())
 	{
-		CAE_Base* comp = (CAE_Base*) iCompReg->at(aInd);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(aInd);
 		if (comp != NULL)
 		{
 			res = comp->GetFbObj(res);
@@ -1109,7 +1118,7 @@ FAPWS_API CAE_State* CAE_Object::GetStateByName(const char *aName)
     CAE_State* res = NULL;
     for (TInt i = 0; i < iCompReg->size(); i++)
     {
-	CAE_Base* comp = (CAE_Base*) iCompReg->at(i);
+	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
 	CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 	if (state != NULL && (strcmp(aName, state->InstName()) == 0))
 	{
@@ -1142,7 +1151,7 @@ FAPWS_API void CAE_Object::Reset()
 {
 	for (TInt i = 0; i < iCompReg->size(); i++)
 	{
-		CAE_Base* comp = iCompReg->at(i);
+		CAE_EBase* comp = iCompReg->at(i);
 		CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 		if (state != NULL)
 		{
