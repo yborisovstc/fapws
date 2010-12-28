@@ -63,6 +63,24 @@ TBool CAE_ConnPin::Set(CAE_Base *aRef)
    return res; 
 };
 
+CAE_ConnPoint::CAE_ConnPoint() 
+{}
+
+CAE_ConnPoint::~CAE_ConnPoint() 
+{
+    Disconnect();
+}
+
+TBool CAE_ConnPoint::Connect(CAE_ConnPoint *aConnPoint) 
+{
+    TBool res = EFalse;
+    return res;
+}
+
+void CAE_ConnPoint::Disconnect() 
+{
+}
+
 // CAE_EBase
 
 CAE_EBase::CAE_EBase(const char* aInstName, CAE_Object* aMan): CAE_Base(), 
@@ -152,30 +170,26 @@ void CAE_State::ConstructL()
 	// TODO [YB] Do we need to assert iMan?
 	if (iMan)
 	    iMan->RegisterCompL(this);
-	iOutputsList = new vector<CAE_State*>;
+	iOutput = new CAE_ConnPoint();
 	if (Logger())
 	    Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
 }	
 
 CAE_State::~CAE_State()
 {
-	free(iCurr);
-	free(iNew);
-	TInt i = 0;
-	// Remove self from inputs and outputs
-	for (map<string, CAE_State*>::iterator i = iInpList.begin(); i != iInpList.end(); i++)
-	{
-		CAE_State* state = i->second;
-		if (state != NULL)
-		    state->RemoveOutput(this);
-	}
-	for (i = 0; i < iOutputsList->size(); i++)
-	{
-		CAE_State* state = (CAE_State*) iOutputsList->at(i);
-		state->RemoveInput(this);
-	}
-
-	delete iOutputsList;
+    free(iCurr);
+    free(iNew);
+    TInt i = 0;
+    // Delete inputs and outputs
+    for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++) {
+	CAE_ConnPoint* cpoint = i->second;
+	if (cpoint != NULL)
+	    delete cpoint;
+    }
+    if (iOutput != NULL) {
+	delete iOutput;
+	iOutput = NULL;
+    }
 }
 
 const char *CAE_State::AccessType() const
@@ -185,16 +199,12 @@ const char *CAE_State::AccessType() const
 
 void CAE_State::Confirm()
 {
-    if (iStateType != EType_Output || iStateType == EType_Output && iOutputsList->size())
+    if (memcmp(iCurr, iNew, iLen))
     {
-	void* nthis = this;
-	if (memcmp(iCurr, iNew, iLen))
-	{
-	    for (TInt i = 0; i < iOutputsList->size(); i++)
-		((CAE_State*) iOutputsList->at(i))->SetActive();
-	}
-	memcpy(iCurr, iNew, iLen); // iCurr << iNew
+	for (TInt i = 0; i < iOutput->Slots().size(); i++)
+	    ((CAE_State*) iOutput->Slots().at(i))->SetActive();
     }
+    memcpy(iCurr, iNew, iLen); // iCurr << iNew
 }
 
 char* CAE_State::DataToStr(TBool aCurr) const
@@ -247,9 +257,11 @@ void CAE_State::LogUpdate(TInt aLogData)
     if (aLogData & KBaseDa_Dep)
     {
 	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <<<<< ", MansName(1), MansName(0), iInstName, buf_new);
-	for (map<string, CAE_State*>::iterator i = iInpList.begin(); i != iInpList.end(); i++)
+	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
-	    CAE_State* state = i->second;
+	    CAE_ConnPoint* cpoint = i->second;
+	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Dests().begin();
+	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
 		if (Logger())
@@ -273,9 +285,11 @@ void CAE_State::LogTrans(TInt aLogData)
     if (aLogData & KBaseDa_Dep)
     {
 	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s via ", MansName(1), MansName(0), iInstName, buf_cur);
-	for (map<string, CAE_State*>::iterator i = iInpList.begin(); i != iInpList.end(); i++)
+	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
-	    CAE_State* state = i->second;
+	    CAE_ConnPoint* cpoint = i->second;
+	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Dests().begin();
+	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
 		if (Logger())
@@ -290,15 +304,10 @@ void CAE_State::LogTrans(TInt aLogData)
 
 void CAE_State::Update()
 {
-    void* nthis = this;
-    TInt logdata = KBaseDa_None;
-    if (iStateType != EType_Input || iStateType == EType_Input && iInpList.size())
-    {
-	TInt logdata = GetLogSpecData(KBaseLe_Trans);
-	if (logdata != KBaseDa_None)
-	    LogTrans(logdata);
-	DoTrans();
-    }
+    TInt logdata = GetLogSpecData(KBaseLe_Trans);
+    if (logdata != KBaseDa_None)
+	LogTrans(logdata);
+    DoTrans();
 }
 
 void CAE_State::Set(void* aNew) 
@@ -330,33 +339,30 @@ void CAE_State::SetFromStr(const char *aStr)
     }
 }
 
-void CAE_State::RefreshOutputs()
-{
-    for (map<string, CAE_State*>::iterator i = iInpList.begin(); i != iInpList.end(); i++) {
-	i->second->AddOutputL(this);
-    }
-}
-
 CAE_State* CAE_State::Input(const char* aName)
 {
-    map<string, CAE_State*>::iterator it = iInpList.find(aName);
-    if (it == iInpList.end()) {
+    CAE_State *res = NULL;
+    map<string, CAE_ConnPoint*>::iterator it = iInputs.find(aName);
+    if (it == iInputs.end()) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
     }
-    if (it->second == NULL) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
+    else {
+	res = (*it).second->Slot(0)->Dests().begin()->second->Ref()->GetFbObj(res);
+	if (res == NULL) {
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
+	}
     }
-    return (it == iInpList.end()) ? NULL : it->second;
+    return res;
 }
 
 CAE_State* CAE_State::Input(const char* aName, TInt aExt)
 {
+    CAE_State *res = NULL;
     char *name = strdup(aName);
     strcat(name, ".");
     char ext[40] = "";
     sprintf(ext, "%d", aExt);
     strcat(name, ext);
-    map<string, CAE_State*>::iterator it = iInpList.find(name);
     // TODO YB To consider the way of logging config for avoiding spam
     /*
     if (it == iInpList.end()) {
@@ -366,28 +372,23 @@ CAE_State* CAE_State::Input(const char* aName, TInt aExt)
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), name);
     }
     */
+    res = Input(name);
     free(name);
-    return (it == iInpList.end()) ? NULL : it->second;
+    return res;
 }
-
-void CAE_State::AddOutputL(CAE_State* aState) 
-{
-	for (TInt i = 0; i < iOutputsList->size(); i++)
-	{
-		CAE_State* state = (CAE_State*) iOutputsList->at(i);
-		_FAP_ASSERT (state != aState);
-	}
-	iOutputsList->push_back(aState);
-};
 
 void CAE_State::AddInputL(const char* aName) 
 {
-    TBool exists = iInpList.find(aName) != iInpList.end();
+    TBool exists = iInputs.find(aName) != iInputs.end();
     if (exists) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), InstName(), aName);
 	_FAP_ASSERT(!exists);
     }
-    iInpList.insert(pair<string, CAE_State*>(aName, NULL));
+    CAE_ConnPoint *cpoint = new CAE_ConnPoint();
+    CAE_ConnPin *pin = new CAE_ConnPin("");
+    pin->Set(this);
+    cpoint->Srcs().insert(pair<string, CAE_ConnPin*>("", pin));
+    iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
 }
 
 
@@ -400,20 +401,18 @@ void CAE_State::SetInputL(const char *aName, CAE_State* aState)
 	// Extended, form the name template for search
 	*(extp + 1) = '*'; *(extp + 2) = 0;
     }
-
     // Check if the input is specified for the state
-    TBool exists = iInpList.find(name) != iInpList.end();
+    TBool exists = iInputs.find(name) != iInputs.end();
     if (!exists) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
 	_FAP_ASSERT(name);
     }
-    // Check if the input is not connected yet
-    if (iInpList[aName] != NULL) {
+    CAE_ConnPoint *inp = iInputs[name];
+    CAE_ConnPoint *out = aState->Output();
+    if (!(inp->Connect(out)) || !(out->Connect(inp))) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), InstName(), aName);
 	_FAP_ASSERT(EFalse);
-    }
-    iInpList[aName] = aState;
-    aState->AddOutputL(this);
+	    };
     free(name);
 }
 
@@ -430,7 +429,7 @@ void CAE_State::AddExtInputL(const char *aName, CAE_State* aState)
     char *name = (char *) malloc(strlen(aName) + 40);
     strcpy(name, aName);
     strcat(name, ".*");
-    TBool exists = iInpList.find(name) != iInpList.end();
+    TBool exists = iInputs.find(name) != iInputs.end();
     if (!exists) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Ext inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
 	_FAP_ASSERT(EFalse);
@@ -445,11 +444,12 @@ void CAE_State::AddExtInputL(const char *aName, CAE_State* aState)
     free(name);
 }
 
+// TODO [YB] Reconsider concept of ext inputs. We can use multimap instead
 TInt CAE_State::GetExInpLastInd(const char *aName)
 {
     TInt ind = -1;
-    map<string, CAE_State*>::iterator it = iInpList.end();
-    for (--it ; it != iInpList.begin(); it--) {
+    map<string, CAE_ConnPoint*>::iterator it = iInputs.end();
+    for (--it ; it != iInputs.begin(); it--) {
 	if (it->first.find(aName) == 0) {
 	    char *cstr = strdup(it->first.c_str());
 	    char *ptr = strchr(cstr, '.');
@@ -461,65 +461,6 @@ TInt CAE_State::GetExInpLastInd(const char *aName)
 	} 
     }
     return ind;
-}
-    
-void CAE_State::RefreshOutput(CAE_State* aState)
-{
-	// Verify there is not the same state in the output list
-	for (TInt i = 0; i < iOutputsList->size(); i++)
-	{
-		CAE_State* state = (CAE_State*) iOutputsList->at(i);
-		_FAP_ASSERT (state != aState);
-	}
-	iOutputsList->push_back(aState);
-}
-
-void CAE_State::RemoveOutput(CAE_State* aState)
-{
-	TBool found = EFalse;
-	for (TInt i = 0; i < iOutputsList->size(); i++)
-	{
-		CAE_State* state = (CAE_State*) iOutputsList->at(i);
-		if (state == aState)
-		{
-			iOutputsList->erase(iOutputsList->begin() + i);
-			found = ETrue;
-			break;
-		}
-	}
-	_FAP_ASSERT(found);
-}
-
-void CAE_State::RemoveInput(CAE_State* aState)
-{
-    TBool found = EFalse;
-    for (map<string, CAE_State*>::iterator i = iInpList.begin(); i != iInpList.end(); i++) {
-	if (i->second == aState) {
-	    i->second = NULL;
-	    found = ETrue; break;
-	}
-    }
-    _FAP_ASSERT(found);
-}
-
-CAE_State* CAE_State::Input(TInt aInd) 
-{ 
-    CAE_State* res = NULL;
-    map<string, CAE_State*>::iterator i;
-    if (aInd < iInpList.size()) {
-	for (TInt ind = 0; ind < aInd; ind++)
-	    i++;
-	res = i->second;
-    }
-    return res;
-}
-
-FAPWS_API CAE_State* CAE_State::Output(TInt aInd) 
-{ 
-	CAE_State* res = NULL;
-	if (aInd < iOutputsList->size())
-		res = (CAE_State*) iOutputsList->at(aInd);
-	return res;
 }
 
 void CAE_State::Reset()
@@ -553,23 +494,10 @@ TBool CAE_State::SetTrans(TTransInfo aTinfo)
 
 void CAE_State::DoTrans() 
 {
-	if (iTrans.iFun != NULL) 
-		iTrans.iFun((iTrans.iCbo != NULL) ? iTrans.iCbo : iMan, this);
-	else if (iTrans.iOpInd != 0)
-		DoOperation();
-	// TODO [YB] To consider if this case is still needed
-	else if (iInpList.size())
-	{
-	    CAE_State*inp = iInpList.begin()->second;
-	    if (inp != NULL) {
-		_FAP_ASSERT(iLen == inp->Len());
-		Set(inp->iCurr);
-	    }
-//	    memcpy(iNew, inp->iCurr, iLen);
-	}
-// [YB] Default transition denied (ref FAP_REQ_STA_01, bug#133)
-//	else
-//		memcpy(iNew, iCurr, iLen);
+    if (iTrans.iFun != NULL) 
+	iTrans.iFun((iTrans.iCbo != NULL) ? iTrans.iCbo : iMan, this);
+    else if (iTrans.iOpInd != 0)
+	DoOperation();
 };
 
 // The base class has the trivial implementation of operation

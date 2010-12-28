@@ -248,6 +248,7 @@ class CAE_ConnPin
 	CAE_ConnPin(const char* aRefType): iRefType(aRefType), iRef(NULL) {};
 	TBool Set(CAE_Base *aRef);
 	void Reset() { iRef = NULL; };
+	CAE_Base *Ref() { return iRef;};
     private:
 	// Type of interface referenced
 	string iRefType;
@@ -262,20 +263,31 @@ class CAE_ConnSlot
 {
     public:
 	CAE_ConnSlot(): iRef(NULL) {};
-	TBool Connect(CAE_ConnSlot *aSlot);
-    public:
+	~CAE_ConnSlot();
+	CAE_ConnPin* Dest(const char *aName) { return iDests.at(aName);};
+	map<string, CAE_ConnPin*>& Dests() { return iDests;};
+    private:
 	// Reference to reciprocal connection point
 	CAE_ConnPoint *iRef;
-	// Sources
-	map<string, CAE_ConnPoint*> iSrcs;
 	// Destinations
-	map<string, CAE_ConnPoint*> iDests;
+	map<string, CAE_ConnPin*> iDests;
 };
 
-// Connection point. Contains connection slots - implements connection multiplicity
+// Connection point. Contains connection slots - implements multipoint connection
 class CAE_ConnPoint
 {
     public:
+	CAE_ConnPoint();
+	~CAE_ConnPoint();
+	TBool Connect(CAE_ConnPoint *aConnPoint);
+	void Disconnect();
+	vector<CAE_ConnSlot*>& Slots() {return iSlots; };
+	CAE_ConnSlot* Slot(TInt aInd) {return iSlots.at(aInd); };
+	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
+    private:
+	// Sources
+	map<string, CAE_ConnPin*> iSrcs;
+	// Connection slots
 	vector<CAE_ConnSlot*> iSlots;
 };
 
@@ -353,12 +365,9 @@ public:
 	void Set(void* aNew);
 	void SetFromStr(const char *aStr);
 	const void* Value() const { return iCurr;}
-	void RefreshOutputs();
-	void RefreshOutput(CAE_State* aState);
-	CAE_State* Input(TInt aInd);
 	CAE_State* Input(const char* aName);
 	CAE_State* Input(const char* aName, TInt aExt);
-	CAE_State* Output(TInt aInd);
+	CAE_ConnPoint* Output() {return iOutput;};
 	void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
 	TBool IsOutput() { return iStateType == EType_Output;}
@@ -385,9 +394,6 @@ protected:
 private:
 	virtual void DoTrans();
 	virtual void DoOperation();
-	void AddOutputL(CAE_State* aState);
-	void RemoveOutput(CAE_State* aState);
-	void RemoveInput(CAE_State* aState);
 	const char *AccessType() const;
 	static char *FmtData(void *aData, int aLen);
 	void LogUpdate(TInt aLogData);
@@ -403,8 +409,8 @@ protected:
 	TInt iLen;
 	StateType iStateType;
 	TUint8		iFlags;
-	map<string, CAE_State*> iInpList;
-	vector<CAE_State*>* iOutputsList;
+	map<string, CAE_ConnPoint*> iInputs;
+	CAE_ConnPoint* iOutput;
 };
 
 inline const char *CAE_State::Type() { return "State";} 
