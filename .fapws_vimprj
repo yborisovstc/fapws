@@ -78,28 +78,8 @@ test=test CD=. filter="*" {
 }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {
- AUTHORS
- COPYING
- ChangeLog
- INSTALL
- Makefile
- Makefile.am
- Makefile.in
- NEWS
- README
- aclocal.m4
- autogen.sh
- config.guess
- config.status
- config.sub
- configure
  configure.ac
- depcomp
- install-sh
- libtool
- ltmain.sh
- missing
- config.log
+ Makefile.am
  debian=debian CD=. filter="*" {
   README.Debian
   changelog
