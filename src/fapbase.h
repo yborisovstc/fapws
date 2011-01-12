@@ -228,7 +228,10 @@ public:
 	const char* MansName(TInt aLevel) const;
 	void AddLogSpec(TInt aEvent, TInt aData);
 	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
+	static inline const char *Type(); 
 protected:
+	// From CAE_Base
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 	TInt GetLogSpecData(TInt aEvent) const;
 protected:
 	char* iInstName;
@@ -241,14 +244,20 @@ protected:
 	vector<TLogSpecBase>* iLogSpec;
 };
 
+inline const char *CAE_EBase::Type() { return "State";} 
+
 // Connection pin. Represents reference to interface
 class CAE_ConnPin
 {
     public:
 	CAE_ConnPin(const char* aRefType): iRefType(aRefType), iRef(NULL) {};
+	CAE_ConnPin(const char* aRefType, CAE_Base *aRef): iRefType(aRefType), iRef(aRef) {};
+	CAE_ConnPin(const CAE_ConnPin& aPin): iRefType(aPin.RefType()), iRef(aPin.Ref()) {};
 	TBool Set(CAE_Base *aRef);
 	void Reset() { iRef = NULL; };
 	CAE_Base *Ref() { return iRef;};
+	CAE_Base *Ref() const { return iRef;};
+	const string& RefType() const {return iRefType;};
     private:
 	// Type of interface referenced
 	string iRefType;
@@ -262,10 +271,11 @@ class CAE_ConnPoint;
 class CAE_ConnSlot
 {
     public:
-	CAE_ConnSlot(): iRef(NULL) {};
+	CAE_ConnSlot(CAE_ConnPoint *aRef): iRef(aRef) {};
 	~CAE_ConnSlot();
-	CAE_ConnPin* Dest(const char *aName) { return iDests.at(aName);};
+	CAE_ConnPin* Dest(const char *aName);
 	map<string, CAE_ConnPin*>& Dests() { return iDests;};
+	TBool SetDest(const map<string, string>& aTempl);
     private:
 	// Reference to reciprocal connection point
 	CAE_ConnPoint *iRef;
@@ -284,11 +294,14 @@ class CAE_ConnPoint
 	vector<CAE_ConnSlot*>& Slots() {return iSlots; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iSlots.at(aInd); };
 	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
+	map<string, string>& DestsTempl() {return iDestsTempl;};
     private:
 	// Sources
 	map<string, CAE_ConnPin*> iSrcs;
 	// Connection slots
 	vector<CAE_ConnSlot*> iSlots;
+	// Destinations template
+	map<string, string> iDestsTempl;
 };
 
 // Parameters of operation
@@ -387,9 +400,9 @@ public:
 	template <class T> inline operator CAE_TState<T>& ();
 	template <class T> inline operator const T& ();
 	virtual TOperationInfo OperationInfo(TUint8 aId) const;
-	// From CAE_EBase
-	virtual CAE_EBase *DoGetFbObj(const char *aName);
 protected:
+	// From CAE_Base
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 	void ConstructL();
 private:
 	virtual void DoTrans();
@@ -577,7 +590,7 @@ public:
 	// Create new inheritor of self. 
 	FAPWS_API CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 protected:
-	virtual CAE_EBase *DoGetFbObj(const char *aName);
+	virtual CAE_Base *DoGetFbObj(const char *aName);
 	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	FAPWS_API void ConstructL(const void* aChrom = NULL);
 	FAPWS_API void ConstructFromChromXL(const void* aChrom);

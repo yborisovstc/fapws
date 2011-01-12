@@ -52,6 +52,8 @@ void CFT_Simple::ConstructL(TInt aStepNumMaxValue, CAE_State::StateType aStepNum
 
     // [Yuri Borisov] Setting up initial value should be done as NEW value of state 
     *iStepNumMax = aStepNumMaxValue;
+    // [Yuri Borisov] Plus the state should be confirmed immediatelly to set state current value
+    iStepNumMax->Confirm();
 }
 
 CFT_Simple* CFT_Simple::NewL(const char* aInstName, CAE_Object* aMan, TInt aStepNumMax, CAE_State::StateType aNumMaxType)
