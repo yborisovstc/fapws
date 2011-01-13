@@ -273,14 +273,14 @@ class CAE_ConnSlot
     public:
 	CAE_ConnSlot(CAE_ConnPoint *aRef): iRef(aRef) {};
 	~CAE_ConnSlot();
-	CAE_ConnPin* Dest(const char *aName);
-	map<string, CAE_ConnPin*>& Dests() { return iDests;};
-	TBool SetDest(const map<string, string>& aTempl);
+	CAE_ConnPin* Pin(const char *aName);
+	map<string, CAE_ConnPin*>& Pins() { return iPins;};
+	TBool SetPins(const map<string, string>& aTempl);
     private:
 	// Reference to reciprocal connection point
 	CAE_ConnPoint *iRef;
-	// Destinations
-	map<string, CAE_ConnPin*> iDests;
+	// Pins
+	map<string, CAE_ConnPin*> iPins;
 };
 
 // Connection point. Contains connection slots - implements multipoint connection
@@ -291,15 +291,15 @@ class CAE_ConnPoint
 	~CAE_ConnPoint();
 	TBool Connect(CAE_ConnPoint *aConnPoint);
 	void Disconnect();
-	vector<CAE_ConnSlot*>& Slots() {return iSlots; };
-	CAE_ConnSlot* Slot(TInt aInd) {return iSlots.at(aInd); };
+	vector<CAE_ConnSlot*>& Dests() {return iDests; };
+	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
 	map<string, string>& DestsTempl() {return iDestsTempl;};
     private:
 	// Sources
 	map<string, CAE_ConnPin*> iSrcs;
 	// Connection slots
-	vector<CAE_ConnSlot*> iSlots;
+	vector<CAE_ConnSlot*> iDests;
 	// Destinations template
 	map<string, string> iDestsTempl;
 };

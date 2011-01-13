@@ -1,11 +1,17 @@
 window_sizes 1272 946 300 966 867 0
 diagrams
-  active  classdiagram_ref 134530 // fap~clsdgm
+  classdiagram_ref 134530 // fap~clsdgm
+    966 867 100 4 0 0
+  active  classdiagram_ref 141058 // fap1~clsdgm
     966 867 100 4 0 0
 end
 show_stereotypes
-selected classdiagram_ref 134530 // fap~clsdgm
+selected attribute_ref 136322 // iPins
 open
   classview_ref 134530 // fap~clsview
+  class_ref 148994 // CAE_Base
+  class_ref 149250 // CAE_ConnPin
+  class_ref 149378 // CAE_ConnPoint
+  class_ref 149506 // CAE_ConnSlot
 end
 end

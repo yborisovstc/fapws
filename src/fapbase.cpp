@@ -63,13 +63,13 @@ TBool CAE_ConnPin::Set(CAE_Base *aRef)
    return res; 
 };
 
-CAE_ConnPin* CAE_ConnSlot::Dest(const char *aName) 
+CAE_ConnPin* CAE_ConnSlot::Pin(const char *aName) 
 { 
-    map<string, CAE_ConnPin*>::iterator elem = iDests.find(aName);
-    return (elem == iDests.end()) ? NULL : elem->second;
+    map<string, CAE_ConnPin*>::iterator elem = iPins.find(aName);
+    return (elem == iPins.end()) ? NULL : elem->second;
 };
 
-TBool CAE_ConnSlot::SetDest(const map<string, string>& aTempl) 
+TBool CAE_ConnSlot::SetPins(const map<string, string>& aTempl) 
 {
     TBool res = ETrue;
     _FAP_ASSERT(iRef != NULL);
@@ -78,7 +78,7 @@ TBool CAE_ConnSlot::SetDest(const map<string, string>& aTempl)
 	// Check if there is the corresponding pin in sources
 	map<string, CAE_ConnPin*>::iterator si = iRef->Srcs().find(i->first);
 	if (si != iRef->Srcs().end()) {
-	    iDests[i->first] = new CAE_ConnPin(*(si->second));
+	    iPins[i->first] = new CAE_ConnPin(*(si->second));
 	}
 	else {
 	    res = EFalse; break;
@@ -102,9 +102,9 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPoint *aConnPoint)
     CAE_ConnSlot *slot = new CAE_ConnSlot(aConnPoint);
     // Copy Srcs from connected point to created slot
     if (!iSrcs.empty()) {
-	res = slot->SetDest(iDestsTempl);
+	res = slot->SetPins(iDestsTempl);
 	if (res) {
-	    iSlots.push_back(slot);
+	    iDests.push_back(slot);
 	}
     }
     return res;
@@ -246,8 +246,8 @@ void CAE_State::Confirm()
 {
     if (memcmp(iCurr, iNew, iLen))
     {
-	for (TInt i = 0; i < iOutput->Slots().size(); i++) {
-	    CAE_State* sout =  iOutput->Slot(i)->Dest("_1")->Ref()->GetFbObj(sout);
+	for (TInt i = 0; i < iOutput->Dests().size(); i++) {
+	    CAE_State* sout =  iOutput->Slot(i)->Pin("_1")->Ref()->GetFbObj(sout);
 	    _FAP_ASSERT(sout != NULL);
 	    sout->SetActive();
 	}
@@ -308,7 +308,7 @@ void CAE_State::LogUpdate(TInt aLogData)
 	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second;
-	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Dests().begin();
+	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
 	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
@@ -336,7 +336,7 @@ void CAE_State::LogTrans(TInt aLogData)
 	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second;
-	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Dests().begin();
+	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
 	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
@@ -395,7 +395,7 @@ CAE_State* CAE_State::Input(const char* aName)
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
     }
     else {
-	res = (*it).second->Slot(0)->Dests().begin()->second->Ref()->GetFbObj(res);
+	res = (*it).second->Slot(0)->Pins().begin()->second->Ref()->GetFbObj(res);
 	if (res == NULL) {
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
 	}
@@ -436,7 +436,9 @@ void CAE_State::AddInputL(const char* aName)
     CAE_ConnPin *spin = new CAE_ConnPin("", this);
     cpoint->Srcs()["_1"] =  spin;
     cpoint->DestsTempl()["_1"]  = "";
-    iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
+    pair<map<string, CAE_ConnPoint*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
+    bool bres = res.second;
+    map<string, CAE_ConnPoint*>::iterator it = res.first;
 }
 
 
@@ -456,7 +458,11 @@ void CAE_State::SetInputL(const char *aName, CAE_State* aState)
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
 	_FAP_ASSERT(name);
     }
-    CAE_ConnPoint *inp = iInputs[name];
+    // For extended input add the input because only template input was added on creation
+    if (extp != NULL) {
+	AddInputL(aName);
+    }
+    CAE_ConnPoint *inp = iInputs[aName];
     CAE_ConnPoint *out = aState->Output();
     if (!inp->Connect(out) || !out->Connect(inp)) {
 	if (Logger())

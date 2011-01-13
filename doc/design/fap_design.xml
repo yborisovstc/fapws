@@ -15,7 +15,7 @@ To transform to html:
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.01 at 11-Sep-2010</releaseinfo>
+	<releaseinfo>Ver.0.02 at 22-Dec-2010</releaseinfo>
 
 	<abstract>
 	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
@@ -24,6 +24,8 @@ To transform to html:
 	<revhistory>
 	    <revision> <revnumber>0.01</revnumber> <date>11-Sep-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Initial version</revremark> </revision>
+	    <revision> <revnumber>0.02</revnumber> <date>22-Dec-2010</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added <xref linkend="sec_conn"/>, <xref linkend="sec_ifaces"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -39,6 +41,64 @@ To transform to html:
 		of implementing functionality using finite automata paradigm.
 	    </simpara>
 	</sect2>
+    </sect1>
+
+    <sect1 id="sec_conn"><title>Refs, Connections</title>
+	<sect2><title>Introduction</title>
+	    <itemizedlist>
+		<listitem>Each FAP element can offer series of interfaces (thru ifaces or proxies)</listitem>
+		<listitem>The term "Connection" means here the established ref to some interface of some FAP Element. 
+		    For instance state's input is ref to "Data" interface of another state ("Data" interface allows get the data from the state)</listitem>
+		<listitem>There can be not established ref, i.e state input that is not set </listitem>
+		<listitem>There can be source and dest refs. Source ref is the established ref that can be used to be copied to another ref.
+		    Dest ref is the ref that has to be set.</listitem>
+		<listitem>The refs can be combined, for instance state's input can be represented by a couple of refs - 
+		    Source ref to state's "Activation" iface (that can be used to set the state as active), and Dest ref that has to be set with ref to Data
+		    iface of another state. Let's call this set of refs as refs socket
+		    <imageobject> <imagedata fileref="fig_refs_conns_1.png"/> </imageobject>
+		</listitem>
+		<listitem>The sockets can be compatible as illustrated on the figure above. In this case they can be "connected" - the dest refs set up with
+		    corresponding src ref.</listitem>
+		<listitem>It should be possible not only to connect two connection point but also to "extend" the connection point
+		    (ref <xref linkend="uc_conn_02"/> for usecase). This leads to some changes to the approach shown above. First, the connection
+		    by copying src to dest doesn't work here. Let's consider the situation: object "A" contains the state "A_s1" with the input "A_s1_i1".
+		    Object in turn has it's own input "A_i1" that is "connected" to "A_s1_i1". But what is this "connection". We cannot set up dest on "A_s1_i1"
+		    because the src on "A_i1" is not set yet.
+		    <simpara>So it would be more correct if we use dest as indirect ref to source instead of direct one.</simpara>
+		</listitem>
+	    </itemizedlist>
+	</sect2>
+	<sect2><title>Use cases</title>
+	    <sect3><title>UC_CONN_01 State inputs with date type checking</title>
+		The dest refs with type "Data" allows client to understand what data type is accepted by the ref.  
+	    </sect3>
+	    <sect3 id="uc_conn_02"><title>UC_CONN_02 Object has its own input that represent input of some internal state</title>
+		<simpara> It allows to has the unified interface for states and objects. Morover it solves the problem with access to the object.
+		    All access to the object shall be done via objects connection point.  </simpara> 
+	    </sect3>
+	    <sect3 id="uc_conn_03"><title>UC_CONN_03 Connection point can be connected to many connection points</title>
+		<simpara>An example is state output that can be connected to many state inputs. The alternative way could be to have many 
+		    connection points for output</simpara> 
+	    </sect3>
+	</sect2>
+	<sect2 id="sec_conn_objconn"><title>How to implement object connections: just representative?</title>
+	    <simpara>There are at least two options of implementation:</simpara>
+	    <itemizedlist>
+		<listitem>Object conn point is only "representation" of corresponding states conn point.
+		    <simpara>In this case objects conn point uses for connect the represented states conn point.</simpara>
+		</listitem>
+		<listitem>Object conn point is true connection point</listitem>
+		
+	    </itemizedlist>
+	</sect2>
+    </sect1>
+
+    <sect1 id="sec_ifaces"><title>Interfaces of state and object</title>
+	<simpara>States and objects have to represent itself by different interfaces. For instance the state should show inself as "Updatable" 
+	    in its input connection point (ref <xref linkend="sec_conn"/>) in order that connecting state have access to Update API only.</simpara>
+    </sect1>
+
+    <sect1 id="sec_proxy"><title>Proxy</title>
     </sect1>
 
 </article>
