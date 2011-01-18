@@ -13,6 +13,10 @@
 <caeenv>
     <object type="test" id="main_test">
 	<object type="none" id="snail" quiet="yes"> 
+
+	    <inp id="coord_others.*"/>
+	    <out id="coord"/>
+
 	    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
 	    <state type="StUint32" id="mass" access="Inp" transf="trans_mass" init="2"> 
@@ -24,8 +28,12 @@
 		<inp id="self"/> <inp id="mass"/> 
 	    </state>
 
-	    <conn state="mass"> <dep inp="coord_self" conn="coord"/> </conn>
-	    <conn state="coord"> <dep inp="self" conn="coord"/> <dep inp="mass" conn="mass"/> </conn>
+	    <conn inp="mass.coord_self" out="coord.output"/> 
+	    <conn inp="coord.self" out="coord.output"/> 
+	    <conn inp="coord.mass" out="mass.output"/>
+	    <conn inp="coord_others.*" out="mass.coord_others.*"/>
+	    <conn inp="coord" out="coord.output"/>
+
 	</object> <!-- snail -->
 
 	<object type="snail" id="snail_1" > <state mut="Change" id="mass" init="7"/></object>
@@ -35,9 +43,9 @@
 	<!-- For testing of adding ext inputs - adding coord_others.2 performed manually
 	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
 	-->
-	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> </conn>
-	<conn state="snail_2.mass"> <dep inp="coord_others.1" conn="snail_1.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
-	<conn state="snail_3.mass"> <dep inp="coord_others.1" conn="snail_1.coord"/> <dep inp="coord_others.2" conn="snail_2.coord"/> </conn>
+	<conn inp="snail_1.coord_others.1" out="snail_2.coord"/>
+	<conn inp="snail_2.coord_others.1" out="snail_1.coord"/> <conn inp="snail_2.coord_others.2" out="snail_3.coord"/>
+	<conn inp="snail_3.coord_others.1" out="snail_1.coord"/> <conn inp="snail_3.coord_others.2" out="snail_2.coord"/>
 
     </object> <!-- test -->
 </caeenv>

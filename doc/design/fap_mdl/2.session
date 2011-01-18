@@ -6,12 +6,13 @@ diagrams
     966 867 100 4 0 0
 end
 show_stereotypes
-selected attribute_ref 136322 // iPins
+selected class_ref 156034 // MAE_ConnPoint
 open
   classview_ref 134530 // fap~clsview
   class_ref 148994 // CAE_Base
   class_ref 149250 // CAE_ConnPin
   class_ref 149378 // CAE_ConnPoint
   class_ref 149506 // CAE_ConnSlot
+  class_ref 156034 // MAE_ConnPoint
 end
 end

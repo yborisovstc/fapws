@@ -92,12 +92,16 @@ CAE_ConnPoint::CAE_ConnPoint()
 
 CAE_ConnPoint::~CAE_ConnPoint() 
 {
-    Disconnect();
 }
 
-TBool CAE_ConnPoint::Connect(CAE_ConnPoint *aConnPoint) 
+void *CAE_ConnPoint::DoGetFbObj(const char *aName)
 {
-    TBool res = ETrue;
+    return (strcmp(aName, Type()) == 0) ? this : NULL;
+}
+
+TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint) 
+{
+    TBool res = EFalse;
     // Adding new slot
     CAE_ConnSlot *slot = new CAE_ConnSlot(aConnPoint);
     // Copy Srcs from connected point to created slot
@@ -110,8 +114,79 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPoint *aConnPoint)
     return res;
 }
 
-void CAE_ConnPoint::Disconnect() 
+
+TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint) 
 {
+    TBool res = EFalse;
+    CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
+    if (pair != NULL ) {
+	res = ConnectConnPoint(pair);
+    }
+    else {
+	CAE_ConnPointRef *pref = aConnPoint->GetFbObj(pref); 
+	if (pref != NULL) {
+	    if (pref->Ref() != NULL) {
+		CAE_ConnPoint *cpoint = pref->Ref()->GetFbObj(cpoint); 
+		if (cpoint != NULL) {
+		    res = ConnectConnPoint(cpoint);
+		}
+	    }
+	    else {
+		res = ETrue;
+	    }
+	}
+    }
+    return res;
+}
+
+void CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
+{
+}
+
+CAE_ConnPointRef::CAE_ConnPointRef(): CAE_ConnPointBase(), iRef(NULL)
+{
+}
+
+
+void *CAE_ConnPointRef::DoGetFbObj(const char *aName)
+{
+    return (strcmp(aName, Type()) == 0) ? this : ((iRef != NULL) ? iRef->GetFbObj(aName) : NULL);
+}
+
+CAE_ConnPointRef::~CAE_ConnPointRef() 
+{
+}
+
+// TODO [YB] Is it used?
+void CAE_ConnPointRef::Set(CAE_ConnPointBase *aConnPoint) 
+{
+    _FAP_ASSERT(iRef != NULL);
+    iRef = aConnPoint;
+}
+    
+void CAE_ConnPointRef::Unset() 
+{
+    iRef = NULL;
+}
+
+TBool CAE_ConnPointRef::Connect(CAE_ConnPointBase *aConnPoint) 
+{
+    TBool res = EFalse;
+    if (iRef != NULL) {
+	res = iRef->Connect(aConnPoint);
+    }
+    else {
+	iRef = aConnPoint;
+	res = ETrue;
+    }
+    return res;
+}
+
+void CAE_ConnPointRef::Disconnect(CAE_ConnPointBase *aConnPoint) 
+{
+    if (iRef != NULL) {
+	iRef->Disconnect(aConnPoint);
+    }
 }
 
 // CAE_EBase
@@ -193,14 +268,13 @@ const char* CAE_EBase::MansName(TInt aLevel) const
 }
 
 // From CAE_Base
-CAE_Base *CAE_EBase::DoGetFbObj(const char *aName)
+void *CAE_EBase::DoGetFbObj(const char *aName)
 {
     if ((iTypeName != NULL) && (strcmp(iTypeName, aName) == 0) || (strcmp(aName, Type()) == 0))
 	return this;
     else
 	return NULL;
 }
-;
 
 // CAE_State
 	
@@ -213,9 +287,10 @@ void CAE_State::ConstructL()
 	// TODO [YB] Do we need to assert iMan?
 	if (iMan)
 	    iMan->RegisterCompL(this);
-	iOutput = new CAE_ConnPoint();
-	iOutput->Srcs()["_1"] = new CAE_ConnPin("", this);
-	iOutput->DestsTempl()["_1"]  = "";
+	CAE_ConnPoint *outp = new CAE_ConnPoint(); 
+	iOutput = outp;
+	outp->Srcs()["_1"] = new CAE_ConnPin("", this);
+	outp->DestsTempl()["_1"]  = "";
 	if (Logger())
 	    Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
 }	
@@ -226,8 +301,8 @@ CAE_State::~CAE_State()
     free(iNew);
     TInt i = 0;
     // Delete inputs and outputs
-    for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++) {
-	CAE_ConnPoint* cpoint = i->second;
+    for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++) {
+	CAE_ConnPointBase* cpoint = i->second;
 	if (cpoint != NULL)
 	    delete cpoint;
     }
@@ -246,8 +321,10 @@ void CAE_State::Confirm()
 {
     if (memcmp(iCurr, iNew, iLen))
     {
-	for (TInt i = 0; i < iOutput->Dests().size(); i++) {
-	    CAE_State* sout =  iOutput->Slot(i)->Pin("_1")->Ref()->GetFbObj(sout);
+	CAE_ConnPoint *outp = iOutput->GetFbObj(outp);
+	_FAP_ASSERT(outp != NULL);
+	for (TInt i = 0; i < outp->Dests().size(); i++) {
+	    CAE_State* sout =  outp->Slot(i)->Pin("_1")->Ref()->GetFbObj(sout);
 	    _FAP_ASSERT(sout != NULL);
 	    sout->SetActive();
 	}
@@ -305,9 +382,9 @@ void CAE_State::LogUpdate(TInt aLogData)
     if (aLogData & KBaseDa_Dep)
     {
 	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <<<<< ", MansName(1), MansName(0), iInstName, buf_new);
-	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
+	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
-	    CAE_ConnPoint* cpoint = i->second;
+	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
 	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
 	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
@@ -333,9 +410,9 @@ void CAE_State::LogTrans(TInt aLogData)
     if (aLogData & KBaseDa_Dep)
     {
 	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s via ", MansName(1), MansName(0), iInstName, buf_cur);
-	for (map<string, CAE_ConnPoint*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
+	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
-	    CAE_ConnPoint* cpoint = i->second;
+	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
 	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
 	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
@@ -390,12 +467,13 @@ void CAE_State::SetFromStr(const char *aStr)
 CAE_State* CAE_State::Input(const char* aName)
 {
     CAE_State *res = NULL;
-    map<string, CAE_ConnPoint*>::iterator it = iInputs.find(aName);
+    map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aName);
     if (it == iInputs.end()) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
     }
     else {
-	res = (*it).second->Slot(0)->Pins().begin()->second->Ref()->GetFbObj(res);
+	CAE_ConnPoint *inp = it->second->GetFbObj(inp);
+	res = inp->Slot(0)->Pins().begin()->second->Ref()->GetFbObj(res);
 	if (res == NULL) {
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
 	}
@@ -436,9 +514,8 @@ void CAE_State::AddInputL(const char* aName)
     CAE_ConnPin *spin = new CAE_ConnPin("", this);
     cpoint->Srcs()["_1"] =  spin;
     cpoint->DestsTempl()["_1"]  = "";
-    pair<map<string, CAE_ConnPoint*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
+    pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
     bool bres = res.second;
-    map<string, CAE_ConnPoint*>::iterator it = res.first;
 }
 
 
@@ -462,8 +539,8 @@ void CAE_State::SetInputL(const char *aName, CAE_State* aState)
     if (extp != NULL) {
 	AddInputL(aName);
     }
-    CAE_ConnPoint *inp = iInputs[aName];
-    CAE_ConnPoint *out = aState->Output();
+    CAE_ConnPointBase *inp = iInputs[aName];
+    CAE_ConnPointBase *out = aState->Output();
     if (!inp->Connect(out) || !out->Connect(inp)) {
 	if (Logger())
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), InstName(), aName);
@@ -504,7 +581,7 @@ void CAE_State::AddExtInputL(const char *aName, CAE_State* aState)
 TInt CAE_State::GetExInpLastInd(const char *aName)
 {
     TInt ind = -1;
-    map<string, CAE_ConnPoint*>::iterator it = iInputs.end();
+    map<string, CAE_ConnPointBase*>::iterator it = iInputs.end();
     for (--it ; it != iInputs.begin(); it--) {
 	if (it->first.find(aName) == 0) {
 	    char *cstr = strdup(it->first.c_str());
@@ -569,7 +646,7 @@ FAPWS_API TOperationInfo CAE_State::OperationInfo(TUint8 aId) const
 }
 
 // From CAE_Base
-CAE_Base *CAE_State::DoGetFbObj(const char *aName)
+void *CAE_State::DoGetFbObj(const char *aName)
 {
     if ((iTypeName != NULL) && (strcmp(iTypeName, aName) == 0) || (strcmp(aName, Type()) == 0))
 	return this;
@@ -598,12 +675,13 @@ CAE_Formatter::~CAE_Formatter()
 //*********************************************************
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
-	CAE_EBase(aInstName, aMan), iCompReg(NULL), iChromX(NULL), iEnv(aEnv), 
-	iFitness(0), iFitness1(0)
+	CAE_EBase(aInstName, aMan), iChromX(NULL), iEnv(aEnv) 
 {
+    if (iMan != NULL) 
+	iMan->RegisterCompL(this);
 }
 
-CAE_Base *CAE_Object::DoGetFbObj(const char *aName)
+void *CAE_Object::DoGetFbObj(const char *aName)
 {
     CAE_EBase *res = NULL;
     if (strcmp(aName, Type()) == 0) {
@@ -636,18 +714,22 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, 
 // If there is the locus with the unallowed allele then it's considered as mutation
 // and the allele is generated randomly in the legal value interval   
 
+// TODO [YB] Do we need ConstructL? It's just wrapper of ConstructFromChromXL
 FAPWS_API void CAE_Object::ConstructL(const void* aChrom)
 {
-    if (iCompReg == NULL) {
-	iCompReg = new vector<CAE_EBase*>;
-	if (iMan != NULL  && iCompReg != NULL) 
-	    iMan->RegisterCompL(this);
-    }
     if (aChrom != NULL)
 	ConstructFromChromXL(aChrom);
     else if (iChromX != NULL)
 	ConstructFromChromXL(iChromX);
 }
+
+// TODO [YB] Prevent registering the same comp again. Migrate to map.
+void  CAE_Object::RegisterCompL(CAE_EBase* aComp) 
+{ 
+    iCompReg.push_back(aComp); 
+    aComp->SetMan(this);
+    if (aComp->IsUpdated()) SetUpdated();
+};
 
 FAPWS_API void CAE_Object::ChangeChrom(const void* aChrom)
 {
@@ -806,30 +888,54 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 		state->Confirm();
 	    }
 	}
+	else if (ftype == ECae_Stinp) {
+	    // Set inputs
+	    char *sinpid = chman->GetStrAttr(child, KXStateInpAttr_Id);
+	    if (sinpid == NULL)
+		Logger()->WriteFormat("ERROR: Creating object [%s]: empty input name", name);
+	    else {
+		if (iInputs.count(sinpid) > 0) {
+		    Logger()->WriteFormat("Object [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), InstName(), sinpid);
+		    _FAP_ASSERT(EFalse);
+		}
+		CAE_ConnPointRef *cpoint = new CAE_ConnPointRef();
+		pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPointBase*>(sinpid, cpoint));
+	    }
+	}
+	else if (ftype == ECae_Soutp) {
+	    // Set output
+	    char *sout = chman->GetStrAttr(child, KXStateInpAttr_Id);
+	    if (sout == NULL)
+		Logger()->WriteFormat("ERROR: Creating object [%s]: empty output name", name);
+	    else {
+		if (iOutputs.count(sout) > 0) {
+		    Logger()->WriteFormat("Object [%s.%s.%s]: Out [%s] already exists", MansName(1), MansName(0), InstName(), sout);
+		    _FAP_ASSERT(EFalse);
+		}
+		CAE_ConnPointRef *cpoint = new CAE_ConnPointRef();
+		pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iOutputs.insert(pair<string, CAE_ConnPointBase*>(sout, cpoint));
+	    }
+	}
 	else if (ftype == ECae_Conn)
 	{
-	    void *dep = NULL;
-	    char *state_name = chman->GetStrAttr(child, KXTransAttr_State);
-	    CAE_State* state = (CAE_State *) FindByName(state_name);
-	    if (state == NULL) {
-		Logger()->WriteFormat("ERROR: Connecting state [%s]: connection not found", state_name);
-	    }
-	    else {
-		for (dep = chman->GetChild(child); dep != NULL; dep = chman->GetNext(dep))
+	    char *p1_name = chman->GetStrAttr(child,"inp"); 
+	    char *p2_name = chman->GetStrAttr(child,"out"); 
+	    if ((p1_name != NULL) && (p2_name != NULL))
+	    {
+		CAE_ConnPointBase* p1 = GetConn(p1_name);
+		CAE_ConnPointBase* p2 = GetConn(p2_name);
+		if ((p1 != NULL) && (p2 != NULL))
 		{
-		    char *inp_name = chman->GetStrAttr(dep,"inp"); 
-		    char *dep_name = chman->GetStrAttr(dep,"conn"); 
-		    if (dep_name != NULL)
+		    if (!p1->Connect(p2) || ! p2->Connect(p1))
 		    {
-			CAE_State* dstate = (CAE_State *) FindByName(dep_name);
-			if (dstate != NULL)
-			{
-			    state->SetInputL(inp_name, dstate);
-			}
-			else {
-			    Logger()->WriteFormat("ERROR: Creating state [%s]: connection [%s] not found", name, dep_name);
-			}
+			Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: failure", p1_name, p2_name);
 		    }
+		}
+		else if (p2 == NULL) {
+		    Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: [%s] not found", p1_name, p2_name, p2_name);
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: [%s] not found", p1_name, p2_name, p1_name);
 		}
 	    }
 	}
@@ -842,16 +948,14 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 
 FAPWS_API CAE_Object::~CAE_Object()
 {
-	TInt count = iCompReg->size();
+	TInt count = iCompReg.size();
 	// Use the revers orders recalling that deleting object cause unregister it from parent
 	for (TInt i = count-1; i >= 0; i-- )
 	{
-		CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
+		CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
 		delete obj;
 	}
-	iCompReg->clear();
-	delete iCompReg;
-	iCompReg = NULL;
+	iCompReg.clear();
 	if (iChromX != NULL) {
 	    delete (char *) iChromX;
 	    iChromX = NULL;
@@ -878,9 +982,9 @@ TInt CAE_Object::LsDataFromStr(const char *aStr)
 
 FAPWS_API void CAE_Object::Confirm()
 {
-    for (TInt i = 0; i < iCompReg->size(); i++ )
+    for (TInt i = 0; i < iCompReg.size(); i++ )
     {
-	CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
+	CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
 	if (obj->IsUpdated() && !obj->IsQuiet())
 	{
 	    obj->Confirm();
@@ -896,9 +1000,9 @@ FAPWS_API void CAE_Object::DoMutation()
 
 FAPWS_API void CAE_Object::Update()
 {
-	for (TInt i = 0; i < iCompReg->size(); i++ )
+	for (TInt i = 0; i < iCompReg.size(); i++ )
 	{
-		CAE_EBase* obj = (CAE_EBase*) iCompReg->at(i);
+		CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
 		if (obj->IsActive() && !obj->IsQuiet())
 		{
 			obj->SetUpdated();
@@ -911,22 +1015,22 @@ FAPWS_API void CAE_Object::Update()
 
 void CAE_Object::UnregisterComp(CAE_EBase* aComp)
 {
-	for (TInt i = 0; i < iCompReg->size(); i++ )
-		if (iCompReg->at(i) == aComp) {iCompReg->erase(iCompReg->begin() + i); break; };
+	for (TInt i = 0; i < iCompReg.size(); i++ )
+		if (iCompReg.at(i) == aComp) {iCompReg.erase(iCompReg.begin() + i); break; };
 }
 
 FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
 {
     CAE_Object* res = NULL;
-    for (TInt i = 0; i < iCompReg->size(); i++) {
-	CAE_Object* comp = (CAE_Object*) iCompReg->at(i);
+    for (TInt i = 0; i < iCompReg.size(); i++) {
+	CAE_Object* comp = (CAE_Object*) iCompReg.at(i);
 	if (strcmp(aName, comp->InstName()) == 0) {
 	    res = comp; break;
 	}
     }
     if (res == NULL && aGlob) {
-	for (TInt i = 0; i < iCompReg->size() && res == NULL; i++) {
-	    CAE_Object* comp = (CAE_Object*) iCompReg->at(i);
+	for (TInt i = 0; i < iCompReg.size() && res == NULL; i++) {
+	    CAE_Object* comp = (CAE_Object*) iCompReg.at(i);
 	    res = comp->GetComp(aName, ETrue);
 	}
     }
@@ -937,11 +1041,11 @@ FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
 {
     TInt res = 0;
     if (aType == NULL) {
-	res = iCompReg->size();
+	res = iCompReg.size();
     }
     else {
-	for (TInt i = 0; i < iCompReg->size(); i++) {
-	    CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+	for (TInt i = 0; i < iCompReg.size(); i++) {
+	    CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 	    if (strcmp(comp->TypeName(), aType) == 0) {
 		res++;
 	    }
@@ -954,9 +1058,9 @@ FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
 FAPWS_API CAE_Object* CAE_Object::GetNextCompByFapType(const char *aType, int* aCtx) const
 {
     CAE_Object *res = NULL, *elem = NULL;
-    for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++)
+    for (TInt i = aCtx?*aCtx:0; i < iCompReg.size(); i++)
     {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 	if ((elem = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
 	{
 	    res = elem;
@@ -970,8 +1074,8 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByFapType(const char *aType, int* a
 FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx) const
 {
     CAE_Object *res = NULL, *elem = NULL;
-    for (TInt i = aCtx?*aCtx:0; i < iCompReg->size(); i++) {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+    for (TInt i = aCtx?*aCtx:0; i < iCompReg.size(); i++) {
+	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 	if ((strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
 	    res = elem;
 	    *aCtx = i+1;
@@ -995,9 +1099,9 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 		
 		if (tail == 0x00)
 		{ // Simple name
-			for (TInt i = 0; i < iCompReg->size(); i++)
+			for (TInt i = 0; i < iCompReg.size(); i++)
 			{
-				CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+				CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 				if ((comp->InstName() != NULL) && (strcmp(name, comp->InstName()) == 0))
 				{
 					res = comp; break;
@@ -1006,9 +1110,9 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 		}
 		else
 		{ // Full name
-			for (TInt i = 0; i < iCompReg->size(); i++)
+			for (TInt i = 0; i < iCompReg.size(); i++)
 			{
-				CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+				CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 				if (comp && strcmp(name, comp->InstName()) == 0)
 				{
 				    CAE_Object* obj = comp->GetFbObj(obj);
@@ -1023,11 +1127,102 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 	return res;
 }
 
+CAE_ConnPointBase* CAE_Object::GetConn(const char *aName)
+{
+    CAE_ConnPointBase *res = GetInpN(aName);
+    if (res == NULL)
+	res = GetOutpN(aName);
+    return res;
+}
+
+CAE_ConnPointBase* CAE_Object::GetInpN(const char *aName)
+{
+    CAE_EBase *elem = NULL;
+    CAE_ConnPointBase * res = NULL;
+    string ss(aName);
+    string ename;
+    string iname;
+    map<string, CAE_ConnPointBase*>::iterator it;
+    size_t found = ss.find_last_of(".");
+    if (found != string::npos) 
+    {
+	ename = ss.substr(0, found);
+	elem = FindByName(ename.c_str());
+	iname = ss.substr(found + 1);
+    }
+    else
+    {
+	elem = this;
+	iname = ss;
+    }
+    _FAP_ASSERT(elem != NULL);
+    CAE_State *state = elem->GetFbObj(state);
+    if (state != NULL)
+    {
+	it = state->Inputs().find(iname);
+	if (it != state->Inputs().end())
+	    res = it->second;
+    }
+    else 
+    {
+	CAE_Object *obj = elem->GetFbObj(obj);
+	if (obj != NULL)
+	{
+	    it = obj->Inputs().find(iname);
+	    if (it != state->Inputs().end())
+		res = it->second;
+	}
+    }
+    return res;
+}
+
+CAE_ConnPointBase* CAE_Object::GetOutpN(const char *aName)
+{
+    CAE_EBase *elem = NULL;
+    CAE_ConnPointBase * res = NULL;
+    string ss(aName);
+    string ename;
+    string iname;
+    map<string, CAE_ConnPointBase*>::iterator it;
+    size_t found = ss.find_last_of(".");
+    if (found != string::npos) 
+    {
+	ename = ss.substr(0, found);
+	elem = FindByName(ename.c_str());
+	iname = ss.substr(found + 1);
+    }
+    else
+    {
+	elem = this;
+	iname = ss;
+    }
+    _FAP_ASSERT(elem != NULL);
+    CAE_State *state = elem->GetFbObj(state);
+    if (state != NULL)
+    {
+	if (iname.compare("output") == 0) {
+	    res = state->Output();
+	}
+    }
+    else 
+    {
+	CAE_Object *obj = elem->GetFbObj(obj);
+	if (obj != NULL)
+	{
+	    it = obj->Outputs().find(iname);
+	    if (it != obj->Outputs().end())
+		res = it->second;
+	}
+    }
+    return res;
+}
+
+
 FAPWS_API void CAE_Object::LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTrans)
 {
-	_FAP_ASSERT(aTrans || (aInp->Len() == aOut->Len())); // Panic(EFapPan_IncorrLinksSize)); 
-	aInp->AddInputL("_Inp_1");
-	aInp->SetInputL("_Inp_1", aOut);
+    _FAP_ASSERT(aTrans || (aInp->Len() == aOut->Len())); // Panic(EFapPan_IncorrLinksSize)); 
+    aInp->AddInputL("_Inp_1");
+    aInp->SetInputL("_Inp_1", aOut);
 	aInp->SetTrans(TTransInfo(aTrans));
 }
 
@@ -1035,9 +1230,9 @@ FAPWS_API CAE_State* CAE_Object::GetInput(TUint32 aInd)
 {
 	CAE_State* res = NULL;
 	TUint32 sInd = 0;
-	for (TInt i = 0; i < iCompReg->size(); i++)
+	for (TInt i = 0; i < iCompReg.size(); i++)
 	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsInput())
 		{
@@ -1061,9 +1256,9 @@ FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)
 {
 	CAE_State* res = NULL;
 	TUint32 sInd = 0;
-	for (TInt i = 0; i < iCompReg->size(); i++)
+	for (TInt i = 0; i < iCompReg.size(); i++)
 	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
 		if (obj != NULL && obj->IsOutput())
 		{
@@ -1086,9 +1281,9 @@ FAPWS_API CAE_State* CAE_Object::GetOutput(const char *aName)
 FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 {
 	CAE_State* res = NULL;
-	if (aInd < iCompReg->size())
+	if (aInd < iCompReg.size())
 	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg->at(aInd);
+		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(aInd);
 		if (comp != NULL)
 		{
 			res = comp->GetFbObj(res);
@@ -1100,9 +1295,9 @@ FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
 FAPWS_API CAE_State* CAE_Object::GetStateByName(const char *aName)
 {
     CAE_State* res = NULL;
-    for (TInt i = 0; i < iCompReg->size(); i++)
+    for (TInt i = 0; i < iCompReg.size(); i++)
     {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg->at(i);
+	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
 	CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 	if (state != NULL && (strcmp(aName, state->InstName()) == 0))
 	{
@@ -1133,9 +1328,9 @@ TInt CAE_Object::ChromLen(const TUint8* aChrom) const
 
 FAPWS_API void CAE_Object::Reset()
 {
-	for (TInt i = 0; i < iCompReg->size(); i++)
+	for (TInt i = 0; i < iCompReg.size(); i++)
 	{
-		CAE_EBase* comp = iCompReg->at(i);
+		CAE_EBase* comp = iCompReg.at(i);
 		CAE_State* state = (CAE_State*) comp->GetFbObj(state);
 		if (state != NULL)
 		{

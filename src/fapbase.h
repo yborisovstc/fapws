@@ -58,8 +58,9 @@ enum TCaeElemType
     ECae_Logspec = 4,	// Logging specification
     ECae_Dep = 5,	// Dependency
     ECae_Logdata = 6,	// Logging data
-    ECae_Stinp = 7,	// State input
-    ECae_State_Mut = 8	// State mutation
+    ECae_Stinp = 7,	// State/system input
+    ECae_State_Mut = 8,	// State mutation
+    ECae_Soutp = 9	// State/system input
 };
 
 // CAE elements mutation type
@@ -199,7 +200,7 @@ public:
 	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
 	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
 protected:
-	virtual CAE_Base *DoGetFbObj(const char *aName) = 0;
+	virtual void *DoGetFbObj(const char *aName) = 0;
 };
 
 
@@ -231,7 +232,7 @@ public:
 	static inline const char *Type(); 
 protected:
 	// From CAE_Base
-	virtual CAE_Base *DoGetFbObj(const char *aName);
+	virtual void *DoGetFbObj(const char *aName);
 	TInt GetLogSpecData(TInt aEvent) const;
 protected:
 	char* iInstName;
@@ -245,6 +246,14 @@ protected:
 };
 
 inline const char *CAE_EBase::Type() { return "State";} 
+
+// Base class for connection points
+class CAE_ConnPointBase: public CAE_Base
+{
+    public:
+	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
+};
 
 // Connection pin. Represents reference to interface
 class CAE_ConnPin
@@ -283,18 +292,22 @@ class CAE_ConnSlot
 	map<string, CAE_ConnPin*> iPins;
 };
 
-// Connection point. Contains connection slots - implements multipoint connection
-class CAE_ConnPoint
+// Multilink Connection point. Contains multiple dests
+class CAE_ConnPoint: public CAE_ConnPointBase
 {
     public:
 	CAE_ConnPoint();
 	~CAE_ConnPoint();
-	TBool Connect(CAE_ConnPoint *aConnPoint);
-	void Disconnect();
+	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
 	map<string, string>& DestsTempl() {return iDestsTempl;};
+	static const char *Type() {return "ConnPoint";}; 
+    protected:
+	TBool ConnectConnPoint(CAE_ConnPoint *aConnPoint);
+	virtual void *DoGetFbObj(const char *aName);
     private:
 	// Sources
 	map<string, CAE_ConnPin*> iSrcs;
@@ -302,6 +315,25 @@ class CAE_ConnPoint
 	vector<CAE_ConnSlot*> iDests;
 	// Destinations template
 	map<string, string> iDestsTempl;
+};
+
+// Referencing Connection point. Just represent connection point
+// Used on object borders
+class CAE_ConnPointRef: public CAE_ConnPointBase
+{
+    public:
+	CAE_ConnPointRef();
+	~CAE_ConnPointRef();
+	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	void Set(CAE_ConnPointBase *aConnPoint);
+	void Unset();
+	CAE_ConnPointBase* Ref() {return iRef;};
+	static const char *Type() {return "ConnPointRef";}; 
+    protected:
+	virtual void *DoGetFbObj(const char *aName);
+    private:
+	CAE_ConnPointBase* iRef;
 };
 
 // Parameters of operation
@@ -380,7 +412,8 @@ public:
 	const void* Value() const { return iCurr;}
 	CAE_State* Input(const char* aName);
 	CAE_State* Input(const char* aName, TInt aExt);
-	CAE_ConnPoint* Output() {return iOutput;};
+	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
+	CAE_ConnPointBase* Output() {return iOutput;};
 	void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
 	TBool IsOutput() { return iStateType == EType_Output;}
@@ -402,7 +435,7 @@ public:
 	virtual TOperationInfo OperationInfo(TUint8 aId) const;
 protected:
 	// From CAE_Base
-	virtual CAE_Base *DoGetFbObj(const char *aName);
+	virtual void *DoGetFbObj(const char *aName);
 	void ConstructL();
 private:
 	virtual void DoTrans();
@@ -422,8 +455,8 @@ protected:
 	TInt iLen;
 	StateType iStateType;
 	TUint8		iFlags;
-	map<string, CAE_ConnPoint*> iInputs;
-	CAE_ConnPoint* iOutput;
+	map<string, CAE_ConnPointBase*> iInputs;
+	CAE_ConnPointBase* iOutput;
 };
 
 inline const char *CAE_State::Type() { return "State";} 
@@ -565,66 +598,63 @@ public:
 public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
-	FAPWS_API virtual ~CAE_Object();
-	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
+	virtual ~CAE_Object();
+	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
-	FAPWS_API static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
-	inline void RegisterCompL(CAE_EBase* aComp);
+	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
+	void RegisterCompL(CAE_EBase* aComp);
 	void UnregisterComp(CAE_EBase* aComp);
-	FAPWS_API virtual void Update();
-	FAPWS_API virtual void Confirm();
-	FAPWS_API void LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTrans = NULL);
-	FAPWS_API CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
-	FAPWS_API TInt CountCompWithType(const char *aType = NULL);
-	FAPWS_API CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
-	FAPWS_API CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
-	FAPWS_API CAE_EBase* FindByName(const char* aName);
-	FAPWS_API CAE_State* GetInput(TUint32 aInd);
-	FAPWS_API CAE_State* GetInput(const char *aName);
+	virtual void Update();
+	virtual void Confirm();
+	void LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTrans = NULL);
+	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
+	TInt CountCompWithType(const char *aType = NULL);
+	CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
+	CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
+	CAE_EBase* FindByName(const char* aName);
+	CAE_State* GetInput(TUint32 aInd);
+	CAE_State* GetInput(const char *aName);
 	CAE_State& GetInp(const char *aName) { return *GetInput(aName); };
-	FAPWS_API CAE_State* GetOutput(TUint32 aInd);
-	FAPWS_API CAE_State* GetOutput(const char *aName);
+	CAE_State* GetOutput(TUint32 aInd);
+	CAE_State* GetOutput(const char *aName);
 	CAE_State& GetOut(const char *aName) { return *GetOutput(aName); };
-	FAPWS_API void DoMutation();
-	FAPWS_API void Reset();
+	CAE_ConnPointBase* GetConn(const char *aName);
+	CAE_ConnPointBase* GetInpN(const char *aName);
+	CAE_ConnPointBase* GetOutpN(const char *aName);
+	void DoMutation();
+	void Reset();
+	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
+	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
 	// Create new inheritor of self. 
-	FAPWS_API CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
+	CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 protected:
-	virtual CAE_Base *DoGetFbObj(const char *aName);
-	FAPWS_API CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
-	FAPWS_API void ConstructL(const void* aChrom = NULL);
-	FAPWS_API void ConstructFromChromXL(const void* aChrom);
-	FAPWS_API void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
-	FAPWS_API void ChangeChrom(const void* aChrom);
+	virtual void *DoGetFbObj(const char *aName);
+	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
+	void ConstructL(const void* aChrom = NULL);
+	void ConstructFromChromXL(const void* aChrom);
+	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
+	void ChangeChrom(const void* aChrom);
 private:
-	FAPWS_API CAE_State* GetStateByInd(TUint32 aInd);
-	FAPWS_API CAE_State* GetStateByName(const char *aName);
+	CAE_State* GetStateByInd(TUint32 aInd);
+	CAE_State* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
 	// Get logspec event from string
 	static TInt LsEventFromStr(const char *aStr);
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
-public:
-	TUint32 iFitness; 
-	TUint32 iFitness1; 
 private:
-	vector<CAE_EBase*>* iCompReg;
+	vector<CAE_EBase*> iCompReg;
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
+	map<string, CAE_ConnPointBase*> iInputs;
+	map<string, CAE_ConnPointBase*> iOutputs;
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 
 
 
 inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
-
-inline void  CAE_Object::RegisterCompL(CAE_EBase* aComp) 
-{ 
-    iCompReg->push_back(aComp); 
-    aComp->SetMan(this);
-    if (aComp->IsUpdated()) SetUpdated();
-};
 	
 // Bit based authomata 
 class CAE_ObjectBa: public CAE_Object

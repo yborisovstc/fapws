@@ -23,6 +23,7 @@ const char* KCaeElTypeLogspec = "logspec";
 const char* KCaeElTypeLogdata = "logdata";
 const char* KCaeElTypeDep = "dep";
 const char* KCaeElTypeStinp = "inp";
+const char* KCaeElTypeSoutp = "out";
 
 // Base states registered by default
 const TStateInfo KSinfo_State = TStateInfo("State", (TStateFactFun) CAE_State::NewL );
@@ -345,6 +346,8 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Logdata;
     else if (strcmp(type, KCaeElTypeStinp) == 0)
 	res = ECae_Stinp;
+    else if (strcmp(type, KCaeElTypeSoutp) == 0)
+	res = ECae_Soutp;
     return res;
 }
 

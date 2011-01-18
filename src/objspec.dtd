@@ -19,19 +19,27 @@
 <!-- FAP object spec: 
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
+     inp - object inputs, 
+     out - object outputs
      logspec - logging spec,
      object - spec of added object(s),
      state - spec of added state(s) spec,
      state_mut - state mutation,
-     conn - connnection(s) -->
-<!ELEMENT object (logspec*, object* , state*, state_mut*, conn*)>
+     conn - connnection(s) 
+     note: inputs and outputs are just leaing-out of internal states and subsystems
+     so "connection" between input and internal state input is leading out state input
+     -->
+<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
 
 <!ELEMENT caeenv (object*)>
 
-<!-- State input -->
+<!-- Output -->
+<!ELEMENT out EMPTY>
+
+<!-- Input -->
 <!ELEMENT inp EMPTY>
 
 <!-- Transition function -->
@@ -89,8 +97,13 @@
     init CDATA #IMPLIED
 >
 
-<!-- State input attributes -->
+<!--  Input attributes -->
 <!ATTLIST inp 
+    id CDATA #REQUIRED
+>
+
+<!--  Output attributes -->
+<!ATTLIST out 
     id CDATA #REQUIRED
 >
 
@@ -98,16 +111,8 @@
    state - target state
      -->
 <!ATTLIST conn 
-    state CDATA #REQUIRED
->
-
-<!-- Dependency in state connections 
-   inp - target state input
-   conn - connected state name
-     -->
-<!ATTLIST dep 
-   inp CDATA #REQUIRED
-   conn CDATA #REQUIRED
+    inp  CDATA #REQUIRED
+    out  CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

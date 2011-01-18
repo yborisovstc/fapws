@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 1
+  revision 2
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -171,6 +171,13 @@ format 70
 	    classrelation_ref 149378 // <unidirectional association>
 	  b parent class_ref 149250 // CAE_ConnPin
       end
+
+      classrelation 156034 // <generalisation>
+	relation 156034 ---|>
+	  a public
+	    classrelation_ref 156034 // <generalisation>
+	  b parent class_ref 156034 // MAE_ConnPoint
+      end
     end
 
     class 149506 "CAE_ConnSlot"
@@ -205,6 +212,36 @@ format 70
 	  a role_name "" private
 	    classrelation_ref 149506 // <unidirectional association>
 	  b parent class_ref 149250 // CAE_ConnPin
+      end
+    end
+
+    class 156034 "MAE_ConnPoint"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 156674 "Connect"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 156802 "Disconnect"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
       end
     end
   end
