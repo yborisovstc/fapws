@@ -29,7 +29,7 @@
      note: inputs and outputs are just leaing-out of internal states and subsystems
      so "connection" between input and internal state input is leading out state input
      -->
-<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*)>
+<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*, ext*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
@@ -37,16 +37,22 @@
 <!ELEMENT caeenv (object*)>
 
 <!-- Output -->
-<!ELEMENT out EMPTY>
+<!ELEMENT out (src*, dest*)>
 
-<!-- Input -->
-<!ELEMENT inp EMPTY>
+<!-- Input - connection point that consumes variable data 
+     src - sources provided by connection point 
+     dest - destinations requested by coneection point
+     -->
+<!ELEMENT inp (src*, dest*)>
 
 <!-- Transition function -->
 <!ELEMENT transf (dep*)>
 
-<!-- Connection of state -->
-<!ELEMENT conn (dep*) >
+<!-- Connection -->
+<!ELEMENT conn EMPTY >
+
+<!-- Connecting Extention -->
+<!ELEMENT ext EMPTY >
 
 <!-- Dependency in state connection -->
 <!ELEMENT dep EMPTY >
@@ -107,12 +113,34 @@
     id CDATA #REQUIRED
 >
 
-<!-- Connections of state 
-   state - target state
+<!--  Connection point source -->
+<!ATTLIST src 
+    id CDATA #REQUIRED
+    type CDATA #REQUIRED
+>
+
+<!--  Connection point destination -->
+<!ATTLIST dest 
+    id CDATA #REQUIRED
+    type CDATA #REQUIRED
+>
+
+<!-- Connections
+   id - subject of connection
+   pair - object of connection
      -->
 <!ATTLIST conn 
-    inp  CDATA #REQUIRED
-    out  CDATA #REQUIRED
+    id  CDATA #REQUIRED
+    pair  CDATA #REQUIRED
+>
+
+<!-- Connecting extention
+   id - subject 
+   pair - object
+     -->
+<!ATTLIST ext 
+    id  CDATA #REQUIRED
+    pair  CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

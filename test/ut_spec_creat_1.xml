@@ -7,7 +7,7 @@
 <caeenv>
     <object type="test" id="main_test">
 	<object type="none" id="generator" quiet="yes"> 
-	    
+
 	    <inp id="enable"/>
 
 	    <out id="event"/>
@@ -26,12 +26,12 @@
 	    <state type="StUint32" id="period" len="4" access="Inp" init="6"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> </state>
 
-	    <conn inp="event.self" out="event.output"/> 
-	    <conn inp="event.count" out="count.output"/> 
-	    <conn inp="count.self" out="count.output"/> 
-	    <conn inp="count.period" out="period.output"/> 
-	    <conn inp="count.enable" out="enable"/> 
-	    <conn inp="event" out="event.output"/> 
+	    <conn id="event.self" pair="event.output"/> 
+	    <conn id="event.count" pair="count.output"/> 
+	    <conn id="count.self" pair="count.output"/> 
+	    <conn id="count.period" pair="period.output"/> 
+	    <ext id="enable" pair="count.enable"/> 
+	    <ext id="event" pair="event.output"/> 
 
 	</object> <!-- generator -->
 
@@ -41,8 +41,8 @@
 	<!-- Enable counting for the lowest count -->
 	<state type="StBool" id="enable_count" len="4" access="Reg" init="1"></state>
 
-	<conn inp="gen_1.enable" out="enable_count.output"/> 
-	<conn inp="gen_2.enable" out="gen_1.event"/>
+	<conn id="gen_1.enable" pair="enable_count.output"/> 
+	<conn id="gen_2.enable" pair="gen_1.event"/>
     </object> <!-- test -->
 </caeenv>
 

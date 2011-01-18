@@ -14,25 +14,26 @@
     <object type="test" id="main_test">
 	<object type="none" id="snail" quiet="yes"> 
 
-	    <inp id="coord_others.*"/>
+	    <inp id="coord_others"/>
 	    <out id="coord"/>
 
 	    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
 	    <state type="StUint32" id="mass" access="Inp" transf="trans_mass" init="2"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> 
-		<inp id="coord_self"/> <inp id="coord_others.*"/> </state>
+		<inp id="coord_self"/> <inp id="coord_others"/> </state>
 
 	    <state type="StUint32" id="coord" len="4" access="Out" transf="trans_coord" init="0"> 
 		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
 		<inp id="self"/> <inp id="mass"/> 
 	    </state>
 
-	    <conn inp="mass.coord_self" out="coord.output"/> 
-	    <conn inp="coord.self" out="coord.output"/> 
-	    <conn inp="coord.mass" out="mass.output"/>
-	    <conn inp="coord_others.*" out="mass.coord_others.*"/>
-	    <conn inp="coord" out="coord.output"/>
+	    <conn id="mass.coord_self" pair="coord.output"/> 
+	    <conn id="coord.self" pair="coord.output"/> 
+	    <conn id="coord.mass" pair="mass.output"/>
+
+	    <ext id="coord_others" pair="mass.coord_others"/>
+	    <ext id="coord" pair="coord.output"/>
 
 	</object> <!-- snail -->
 
@@ -43,9 +44,9 @@
 	<!-- For testing of adding ext inputs - adding coord_others.2 performed manually
 	<conn state="snail_1.mass"> <dep inp="coord_others.1" conn="snail_2.coord"/> <dep inp="coord_others.2" conn="snail_3.coord"/> </conn>
 	-->
-	<conn inp="snail_1.coord_others.1" out="snail_2.coord"/>
-	<conn inp="snail_2.coord_others.1" out="snail_1.coord"/> <conn inp="snail_2.coord_others.2" out="snail_3.coord"/>
-	<conn inp="snail_3.coord_others.1" out="snail_1.coord"/> <conn inp="snail_3.coord_others.2" out="snail_2.coord"/>
+	<conn id="snail_1.coord_others" pair="snail_2.coord"/><conn id="snail_1.coord_others" pair="snail_3.coord"/>
+	<conn id="snail_2.coord_others" pair="snail_1.coord"/> <conn id="snail_2.coord_others" pair="snail_3.coord"/>
+	<conn id="snail_3.coord_others" pair="snail_1.coord"/> <conn id="snail_3.coord_others" pair="snail_2.coord"/>
 
     </object> <!-- test -->
 </caeenv>

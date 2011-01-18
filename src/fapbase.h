@@ -60,7 +60,10 @@ enum TCaeElemType
     ECae_Logdata = 6,	// Logging data
     ECae_Stinp = 7,	// State/system input
     ECae_State_Mut = 8,	// State mutation
-    ECae_Soutp = 9	// State/system input
+    ECae_Soutp = 9,	// State/system output
+    ECae_CpSource = 10,	// Connection point source
+    ECae_CpDest = 11,	// Connection point destination
+    ECae_Cext = 12	// Connecting extention
 };
 
 // CAE elements mutation type
@@ -253,6 +256,8 @@ class CAE_ConnPointBase: public CAE_Base
     public:
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 };
 
 // Connection pin. Represents reference to interface
@@ -280,14 +285,13 @@ class CAE_ConnPoint;
 class CAE_ConnSlot
 {
     public:
-	CAE_ConnSlot(CAE_ConnPoint *aRef): iRef(aRef) {};
-	~CAE_ConnSlot();
+	CAE_ConnSlot() {};
+	~CAE_ConnSlot() {};
 	CAE_ConnPin* Pin(const char *aName);
 	map<string, CAE_ConnPin*>& Pins() { return iPins;};
-	TBool SetPins(const map<string, string>& aTempl);
+	TBool SetPin(const map<string, string>& aTempl, CAE_Base *aSrc);
+	TBool SetPins(const map<string, string>& aTempl, const map<string, CAE_ConnPin*>& aSrcs);
     private:
-	// Reference to reciprocal connection point
-	CAE_ConnPoint *iRef;
 	// Pins
 	map<string, CAE_ConnPin*> iPins;
 };
@@ -300,12 +304,16 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
+	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
 	map<string, string>& DestsTempl() {return iDestsTempl;};
 	static const char *Type() {return "ConnPoint";}; 
     protected:
+	TBool SetSrc(const string & aName, const string &aPairName, const map<string, CAE_ConnPin*>& aSrcs);
+	TBool SetSrcs(const map<string, CAE_ConnPin*>& aSrcs);
 	TBool ConnectConnPoint(CAE_ConnPoint *aConnPoint);
 	virtual void *DoGetFbObj(const char *aName);
     private:
@@ -326,6 +334,8 @@ class CAE_ConnPointRef: public CAE_ConnPointBase
 	~CAE_ConnPointRef();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
+	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
 	CAE_ConnPointBase* Ref() {return iRef;};
@@ -376,6 +386,7 @@ public:
 
 template <class T> class CAE_TState;
 
+
 // Base class for state with transition function
 // Transition function should be implemented as static function
 // There can be two kinds of state with transition function:
@@ -397,6 +408,22 @@ public:
 	EType_Output = 3
     };
 public:
+	// State input iterator for multiple point input
+	class mult_point_inp_iterator: public iterator<input_iterator_tag, CAE_State>
+    {
+	public:
+	    mult_point_inp_iterator(vector<CAE_ConnSlot*>& aDests, TInt aInd): iDests(aDests), iInd(aInd) {};
+	    mult_point_inp_iterator(const mult_point_inp_iterator& aIt): iDests(aIt.iDests), iInd(aIt.iInd) {};
+	    mult_point_inp_iterator& operator++() { iInd++; return *this; };
+	    mult_point_inp_iterator& operator++(int) { mult_point_inp_iterator tmp(*this); operator++(); return tmp; };
+	    TBool operator==(const mult_point_inp_iterator& aIt) { return (iInd == aIt.iInd); };
+	    TBool operator!=(const mult_point_inp_iterator& aIt) { return (iInd != aIt.iInd); };
+	    CAE_State& operator*() { CAE_State* st = iDests.at(iInd)->Pin("_1")->Ref()->GetFbObj(st); return *st;};
+	public:
+	    vector<CAE_ConnSlot*>& iDests;
+	    TInt iInd;
+    };
+public:
 	CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= EType_Reg);
 	static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= EType_Reg);  
 	virtual ~CAE_State();
@@ -413,6 +440,8 @@ public:
 	CAE_State* Input(const char* aName);
 	CAE_State* Input(const char* aName, TInt aExt);
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
+	mult_point_inp_iterator MpInput_begin(const char *aName);
+	mult_point_inp_iterator MpInput_end(const char *aName);
 	CAE_ConnPointBase* Output() {return iOutput;};
 	void Reset();
 	TBool IsInput() { return iStateType == EType_Input;}
