@@ -139,6 +139,7 @@ TBool CAE_ConnPoint::SetSrcs(const map<string, CAE_ConnPin*>& aSrcs)
     }
     return res;
 }
+
 TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint) 
 {
     TBool res = EFalse;
@@ -161,16 +162,16 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
 	string &tp = iDestsTempl.begin()->second;
-	if ((iDestsTempl.size() == 1) && (tp.compare(CAE_ConnPoint::Type()) == 0)) {
+	TBool isext = (iDestsTempl.size() == 1) && (tp.compare(CAE_ConnPoint::Type()) == 0);
+	if (!isext) {
+	    res = ConnectConnPoint(pair);
+	}
+	else {
 	    // Self is extention. Redirect to original connection points
 	    for (TInt i = 0; i < iDests.size(); i++) {
 		CAE_ConnPoint *ref = iDests.at(i)->Pin("_1")->Ref()->GetFbObj(ref);
-		_FAP_ASSERT(ref != NULL);
-		ref->Connect(aConnPoint);
+		res = ref->Connect(aConnPoint);
 	    }
-	}
-	else {
-	    res = ConnectConnPoint(pair);
 	}
     }
     else {

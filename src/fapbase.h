@@ -250,6 +250,7 @@ protected:
 
 inline const char *CAE_EBase::Type() { return "State";} 
 
+// TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
 class CAE_ConnPointBase: public CAE_Base
 {
@@ -327,6 +328,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 
 // Referencing Connection point. Just represent connection point
 // Used on object borders
+// TODO [YB] Not used. To be removed?
 class CAE_ConnPointRef: public CAE_ConnPointBase
 {
     public:
