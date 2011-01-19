@@ -63,6 +63,11 @@ TBool CAE_ConnPin::Set(CAE_Base *aRef)
    return res; 
 };
 
+TBool CAE_ConnPin::Set(CAE_ConnPin *aPin)
+{
+    return Set(aPin->Ref());
+}
+
 CAE_ConnPin* CAE_ConnSlot::Pin(const char *aName) 
 { 
     map<string, CAE_ConnPin*>::iterator elem = iPins.find(aName);
@@ -102,6 +107,12 @@ CAE_ConnPoint::CAE_ConnPoint()
 CAE_ConnPoint::~CAE_ConnPoint() 
 {
 }
+
+CAE_ConnPin *CAE_ConnPoint::Src(const char* aName) 
+{
+    map<string, CAE_ConnPin*>::iterator it = iSrcs.find(aName);
+    return (it == iSrcs.end()) ? NULL: it->second;
+};
 
 void *CAE_ConnPoint::DoGetFbObj(const char *aName)
 {
@@ -867,7 +878,8 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 			if (sinpid == NULL)
 			    Logger()->WriteFormat("ERROR: Creating state [%s]: empty input name", name);
 			else {
-			    state->AddInputL(sinpid);
+			    CreateStateInp(stelem, state);
+			    //state->AddInputL(sinpid);
 			}
 		    }
 		    else
@@ -897,28 +909,9 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 		state->Confirm();
 	    }
 	}
+	// Object input
 	else if (ftype == ECae_Stinp) {
-	    // Set inputs
-	    char *sinpid = chman->GetStrAttr(child, KXStateInpAttr_Id);
-	    if (sinpid == NULL)
-		Logger()->WriteFormat("ERROR: Creating object [%s]: empty input name", name);
-	    else {
-		if (iInputs.count(sinpid) > 0) {
-		    Logger()->WriteFormat("Object [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), InstName(), sinpid);
-		    _FAP_ASSERT(EFalse);
-		}
-		CAE_ConnPoint *cpoint = new CAE_ConnPoint();
-		cpoint->DestsTempl()["_1"] = CAE_ConnPoint::Type();
-		pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPointBase*>(sinpid, cpoint));
-		// Go thru connection point elements
-		for (void *cpelem = chman->GetChild(child); cpelem != NULL; cpelem = chman->GetNext(cpelem))
-		{
-		    TCaeElemType cpetype = chman->FapType(cpelem);
-		    if (cpetype == ECae_CpSource)
-		    {
-		    }
-		}
-	    }
+	    CreateConn(child, iInputs);
 	}
 	else if (ftype == ECae_Soutp) {
 	    // Set output
@@ -932,6 +925,20 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 		}
 		CAE_ConnPoint *cpoint = new CAE_ConnPoint();
 		cpoint->DestsTempl()["_1"] = CAE_ConnPoint::Type();
+		if (chman->GetChild(child) != NULL) {
+		    // There are pins spec, processing
+		    for (void *elem = chman->GetChild(child); elem != NULL; elem = chman->GetNext(elem)) {
+			TCaeElemType etype = chman->FapType(elem);
+			if (etype == ECae_CpSource)
+			{
+			    char *name = chman->GetStrAttr(elem,"id"); 
+			    char *type = chman->GetStrAttr(elem,"type"); 
+			    // Create default type pin if type isnt specified
+			    CAE_ConnPin *pin = new CAE_ConnPin(type ? type: "State");
+			    cpoint->Srcs()[name] = pin;
+			}
+		    }
+		}
 		pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iOutputs.insert(pair<string, CAE_ConnPointBase*>(sout, cpoint));
 	    }
 	}
@@ -983,10 +990,125 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 		}
 	    }
 	}
+	// Custom Connecting extention
+	else if (ftype == ECae_Cextc)
+	{
+	    char *exname = chman->GetStrAttr(child,"id"); 
+	    if (exname != NULL)
+	    {
+		CAE_ConnPointBase* epb = GetConn(exname);
+		CAE_ConnPoint* ep = epb->GetFbObj(ep);
+		if (ep != NULL) {
+		    // Go thru custom extention elements
+		    for (void *elem = chman->GetChild(child); elem != NULL; elem = chman->GetNext(elem))
+		    {
+			TCaeElemType etype = chman->FapType(elem);
+			if (etype == ECae_CextcSrc)
+			{
+			    char *src_name = chman->GetStrAttr(elem,"id"); 
+			    char *pair_name = chman->GetStrAttr(elem,"pair"); 
+			    CAE_ConnPointBase* pairb = GetConn(pair_name);
+			    CAE_ConnPin *srcpin = ep->Src(src_name);
+			    CAE_ConnPoint* pair = pairb? pairb->GetFbObj(pair) : NULL;
+			    if (srcpin != NULL) {
+				// Use pair first srcs pin by default
+				if (pair != NULL) {
+				    TBool res = srcpin->Set(pair->Src("_1"));
+				    if (!res) {
+					Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s] <> [%s]: fails", exname, src_name, pair_name);
+				    }
+				}
+				else {
+				    Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s]: pair [%s] not found", exname, src_name, pair_name);
+				}
+			    }
+			    else {
+				Logger()->WriteFormat("ERROR: Custom extenion [%s]: src pin [%s]  not found", exname, src_name);
+			    }
+			}
+		    }
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Custom extenion [%s] : conn point not found", exname);
+		}
+	    }
+	}
 	else
 	{
 	    // TODO Exception to be raised
 	}
+    }
+}
+
+void CAE_Object::CreateStateInp(void* aSpecNode, CAE_State *aState) 
+{
+    TBool r_dest_spec = EFalse;
+    MAE_ChroMan *chman = iEnv->Chman();
+    char *name = chman->GetStrAttr(aSpecNode, KXStateInpAttr_Id);
+    if (name == NULL)
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName(), name);
+    else {
+	if (aState->Inputs().count(name) > 0) {
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName(), name);
+	    _FAP_ASSERT(EFalse);
+	}
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint();
+	if (chman->GetChild(aSpecNode) != NULL) {
+	    // There are pins spec, processing
+	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
+		TCaeElemType etype = chman->FapType(elem);
+		if (etype == ECae_CpDest)
+		{
+		    char *name = chman->GetStrAttr(elem,"id"); 
+		    char *type = chman->GetStrAttr(elem,"type"); 
+		    // Create default templ if type isnt specified
+		    cpoint->DestsTempl()[name] = type ? type: "State";
+		    r_dest_spec = ETrue;
+		}
+	    }
+	}
+	cpoint->Srcs()["_1"] = new CAE_ConnPin("State", aState);
+	if (!r_dest_spec) {
+	    cpoint->DestsTempl()["_1"] = "State";
+	}
+	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
+    }
+}
+
+
+void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns) 
+{
+    TBool r_src_spec = EFalse;
+    MAE_ChroMan *chman = iEnv->Chman();
+    char *name = chman->GetStrAttr(aSpecNode, KXStateInpAttr_Id);
+    if (name == NULL)
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName(), name);
+    else {
+	if (aConns.count(name) > 0) {
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName(), name);
+	    _FAP_ASSERT(EFalse);
+	}
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint();
+	if (chman->GetChild(aSpecNode) != NULL) {
+	    // There are pins spec, processing
+	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
+		TCaeElemType etype = chman->FapType(elem);
+		if (etype == ECae_CpSource)
+		{
+		    char *name = chman->GetStrAttr(elem,"id"); 
+		    char *type = chman->GetStrAttr(elem,"type"); 
+		    // Create default type pin if type isnt specified
+		    CAE_ConnPin *pin = new CAE_ConnPin(type ? type: "State");
+		    cpoint->Srcs()[name] = pin;
+		    r_src_spec = ETrue;
+		}
+	    }
+	}
+	if (!r_src_spec) {
+	    cpoint->Srcs()["_1"] = new CAE_ConnPin("State");
+	}
+	cpoint->DestsTempl()["_1"] = CAE_ConnPoint::Type();
+	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
 }
 
@@ -1199,22 +1321,23 @@ CAE_ConnPointBase* CAE_Object::GetInpN(const char *aName)
 	elem = this;
 	iname = ss;
     }
-    _FAP_ASSERT(elem != NULL);
-    CAE_State *state = elem->GetFbObj(state);
-    if (state != NULL)
-    {
-	it = state->Inputs().find(iname);
-	if (it != state->Inputs().end())
-	    res = it->second;
-    }
-    else 
-    {
-	CAE_Object *obj = elem->GetFbObj(obj);
-	if (obj != NULL)
+    if (elem != NULL) {
+	CAE_State *state = elem->GetFbObj(state);
+	if (state != NULL)
 	{
-	    it = obj->Inputs().find(iname);
-	    if (it != obj->Inputs().end())
+	    it = state->Inputs().find(iname);
+	    if (it != state->Inputs().end())
 		res = it->second;
+	}
+	else 
+	{
+	    CAE_Object *obj = elem->GetFbObj(obj);
+	    if (obj != NULL)
+	    {
+		it = obj->Inputs().find(iname);
+		if (it != obj->Inputs().end())
+		    res = it->second;
+	    }
 	}
     }
     return res;
@@ -1240,22 +1363,23 @@ CAE_ConnPointBase* CAE_Object::GetOutpN(const char *aName)
 	elem = this;
 	iname = ss;
     }
-    _FAP_ASSERT(elem != NULL);
-    CAE_State *state = elem->GetFbObj(state);
-    if (state != NULL)
-    {
-	if (iname.compare("output") == 0) {
-	    res = state->Output();
-	}
-    }
-    else 
-    {
-	CAE_Object *obj = elem->GetFbObj(obj);
-	if (obj != NULL)
+    if (elem != NULL) {
+	CAE_State *state = elem->GetFbObj(state);
+	if (state != NULL)
 	{
-	    it = obj->Outputs().find(iname);
-	    if (it != obj->Outputs().end())
-		res = it->second;
+	    if (iname.compare("output") == 0) {
+		res = state->Output();
+	    }
+	}
+	else 
+	{
+	    CAE_Object *obj = elem->GetFbObj(obj);
+	    if (obj != NULL)
+	    {
+		it = obj->Outputs().find(iname);
+		if (it != obj->Outputs().end())
+		    res = it->second;
+	    }
 	}
     }
     return res;
@@ -1323,6 +1447,23 @@ CAE_State* CAE_Object::GetOutpState(const char* aName)
     CAE_State *res = NULL;
     map<string, CAE_ConnPointBase*>::iterator it = iOutputs.find(aName);
     if (it == iOutputs.end()) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
+    }
+    else {
+	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
+	res = cp->Srcs().begin()->second->Ref()->GetFbObj(res);
+	if (res == NULL) {
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
+	}
+    }
+    return res;
+}
+
+CAE_State* CAE_Object::GetInpState(const char* aName)
+{
+    CAE_State *res = NULL;
+    map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aName);
+    if (it == iInputs.end()) {
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
     }
     else {

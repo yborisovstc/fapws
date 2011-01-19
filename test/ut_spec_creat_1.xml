@@ -14,16 +14,16 @@
 
 	    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
-	    <state type="StBool" id="event" len="4" access="Out" transf="trans_event" init="0"> 
+	    <state type="StBool" id="event" len="4" transf="trans_event" init="0"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> 
 		<inp id="self"/> <inp id="count"/> </state>
 
-	    <state type="StUint32" id="count" len="4" access="Reg" transf="trans_count" init="0"> 
+	    <state type="StUint32" id="count" len="4" transf="trans_count" init="0"> 
 		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
 		<inp id="self"/> <inp id="enable"/> <inp id="period"/>
 	    </state>
 
-	    <state type="StUint32" id="period" len="4" access="Inp" init="6"> 
+	    <state type="StUint32" id="period" len="4" init="6"> 
 		<logspec event="upd"> <logdata id="new"/> </logspec> </state>
 
 	    <conn id="event.self" pair="event.output"/> 
@@ -39,7 +39,7 @@
 	<object type="generator" id="gen_2" />
 
 	<!-- Enable counting for the lowest count -->
-	<state type="StBool" id="enable_count" len="4" access="Reg" init="1"></state>
+	<state type="StBool" id="enable_count" len="4" init="1"></state>
 
 	<conn id="gen_1.enable" pair="enable_count.output"/> 
 	<conn id="gen_2.enable" pair="gen_1.event"/>

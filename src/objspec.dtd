@@ -29,7 +29,7 @@
      note: inputs and outputs are just leaing-out of internal states and subsystems
      so "connection" between input and internal state input is leading out state input
      -->
-<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*, ext*)>
+<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*, ext*, extc*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
@@ -53,6 +53,18 @@
 
 <!-- Connecting Extention -->
 <!ELEMENT ext EMPTY >
+
+<!-- Custom Connecting Extention -->
+<!ELEMENT extc (srcext+) >
+
+<!-- Connection point source pin -->
+<!ELEMENT src EMPTY >
+
+<!-- Connection point dest -->
+<!ELEMENT dest EMPTY >
+
+<!-- Custom extention source pin binding  -->
+<!ELEMENT srcext EMPTY >
 
 <!-- Dependency in state connection -->
 <!ELEMENT dep EMPTY >
@@ -87,7 +99,6 @@
     type CDATA #IMPLIED
     id CDATA #REQUIRED
     len CDATA #IMPLIED
-    access (Reg | Inp | Out) #IMPLIED
     transf CDATA #IMPLIED
     init CDATA #IMPLIED
 >
@@ -113,16 +124,20 @@
     id CDATA #REQUIRED
 >
 
-<!--  Connection point source -->
+<!--  Connection point source 
+      type is "State" by default
+      -->
 <!ATTLIST src 
     id CDATA #REQUIRED
-    type CDATA #REQUIRED
+    type CDATA #IMPLIED 
 >
 
-<!--  Connection point destination -->
+<!--  Connection point destination 
+      type is "State" by default
+      -->
 <!ATTLIST dest 
     id CDATA #REQUIRED
-    type CDATA #REQUIRED
+    type CDATA #IMPLIED 
 >
 
 <!-- Connections
@@ -139,6 +154,22 @@
    pair - object
      -->
 <!ATTLIST ext 
+    id  CDATA #REQUIRED
+    pair  CDATA #REQUIRED
+>
+
+<!-- Custom Connecting extention
+   id - subject 
+     -->
+<!ATTLIST extc 
+    id  CDATA #REQUIRED
+>
+
+<!-- Custom Connecting extention - source extention
+   id - source id 
+   pair - connecitn pair
+     -->
+<!ATTLIST srcext 
     id  CDATA #REQUIRED
     pair  CDATA #REQUIRED
 >

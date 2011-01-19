@@ -48,7 +48,7 @@ static void name##_S_(CAE_Object* aObject, CAE_State* aState) {((class*) aObject
 
 #define CAE_TRANS(name) name##_S_
 
-// Type of CAE element
+// Type of specification CAE element
 enum TCaeElemType
 {
     ECae_Unknown = 0,
@@ -63,7 +63,9 @@ enum TCaeElemType
     ECae_Soutp = 9,	// State/system output
     ECae_CpSource = 10,	// Connection point source
     ECae_CpDest = 11,	// Connection point destination
-    ECae_Cext = 12	// Connecting extention
+    ECae_Cext = 12,	// Connecting extention
+    ECae_Cextc = 13,	// Custom Connecting extention
+    ECae_CextcSrc = 14	// Custom Connecting extention src binding
 };
 
 // CAE elements mutation type
@@ -255,6 +257,7 @@ inline const char *CAE_EBase::Type() { return "State";}
 class CAE_ConnPointBase: public CAE_Base
 {
     public:
+	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
@@ -269,6 +272,7 @@ class CAE_ConnPin
 	CAE_ConnPin(const char* aRefType, CAE_Base *aRef): iRefType(aRefType), iRef(aRef) {};
 	CAE_ConnPin(const CAE_ConnPin& aPin): iRefType(aPin.RefType()), iRef(aPin.Ref()) {};
 	TBool Set(CAE_Base *aRef);
+	TBool Set(CAE_ConnPin *aPin);
 	void Reset() { iRef = NULL; };
 	CAE_Base *Ref() { return iRef;};
 	CAE_Base *Ref() const { return iRef;};
@@ -311,6 +315,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
 	map<string, string>& DestsTempl() {return iDestsTempl;};
+	CAE_ConnPin *Src(const char* aName);
 	static const char *Type() {return "ConnPoint";}; 
     protected:
 	TBool SetSrc(const string & aName, const string &aPairName, const map<string, CAE_ConnPin*>& aSrcs);
@@ -625,6 +630,7 @@ public:
 	CAE_ConnPointBase* GetInpN(const char *aName);
 	CAE_ConnPointBase* GetOutpN(const char *aName);
 	CAE_State* GetOutpState(const char* aName);
+	CAE_State* GetInpState(const char* aName);
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
 	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
 	// Create new inheritor of self. 
@@ -645,6 +651,8 @@ private:
 	static TInt LsEventFromStr(const char *aStr);
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
+	void CreateStateInp(void* aSpecNode, CAE_State *aState);
+	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
