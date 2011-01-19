@@ -1,3 +1,9 @@
+fapws (0.0.2-01) unstable; urgency=low
+
+  * Implemented connection concept, APIs changed
+
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Thu, 19 Jan 2010 21:22:27 +0400
+
 fapws (0.0.1-10) unstable; urgency=low
 
   * Added typified states
