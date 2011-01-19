@@ -75,10 +75,10 @@ CFT_GameXO::CFT_GameXO(const char* aInstName, CAE_Object* aMan):
 void CFT_GameXO::ConstructL(TBool aStartX)
 {
     CAE_Object::ConstructL();
-    iField = CAE_TState<CF_TField>::NewL("Field", this, CAE_TRANS(UpdateField), CAE_State::EType_Reg);
-    iStartX = CAE_TState<TBool>::NewL("StartX", this, TTransInfo(), CAE_State::EType_Reg);
-    iStepNum = CAE_TState<TInt>::NewL("StepNum", this, CAE_TRANS(UpdateStep), CAE_State::EType_Reg);
-    iFin = CAE_TState<TBool>::NewL("Fin", this, CAE_TRANS(UpdateFin), CAE_State::EType_Output);
+    iField = CAE_TState<CF_TField>::NewL("Field", this, CAE_TRANS(UpdateField));
+    iStartX = CAE_TState<TBool>::NewL("StartX", this, TTransInfo());
+    iStepNum = CAE_TState<TInt>::NewL("StepNum", this, CAE_TRANS(UpdateStep));
+    iFin = CAE_TState<TBool>::NewL("Fin", this, CAE_TRANS(UpdateFin));
 
     ~(*iStartX) = aStartX;
     ~(*iField) = CF_TField();

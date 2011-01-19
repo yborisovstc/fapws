@@ -19,26 +19,40 @@
 <!-- FAP object spec: 
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
+     inp - object inputs, 
+     out - object outputs
      logspec - logging spec,
      object - spec of added object(s),
      state - spec of added state(s) spec,
      state_mut - state mutation,
-     conn - connnection(s) -->
-<!ELEMENT object (logspec*, object* , state*, state_mut*, conn*)>
+     conn - connnection(s) 
+     note: inputs and outputs are just leaing-out of internal states and subsystems
+     so "connection" between input and internal state input is leading out state input
+     -->
+<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*, ext*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
 
 <!ELEMENT caeenv (object*)>
 
-<!-- State input -->
-<!ELEMENT inp EMPTY>
+<!-- Output -->
+<!ELEMENT out (src*, dest*)>
+
+<!-- Input - connection point that consumes variable data 
+     src - sources provided by connection point 
+     dest - destinations requested by coneection point
+     -->
+<!ELEMENT inp (src*, dest*)>
 
 <!-- Transition function -->
 <!ELEMENT transf (dep*)>
 
-<!-- Connection of state -->
-<!ELEMENT conn (dep*) >
+<!-- Connection -->
+<!ELEMENT conn EMPTY >
+
+<!-- Connecting Extention -->
+<!ELEMENT ext EMPTY >
 
 <!-- Dependency in state connection -->
 <!ELEMENT dep EMPTY >
@@ -89,25 +103,44 @@
     init CDATA #IMPLIED
 >
 
-<!-- State input attributes -->
+<!--  Input attributes -->
 <!ATTLIST inp 
     id CDATA #REQUIRED
 >
 
-<!-- Connections of state 
-   state - target state
-     -->
-<!ATTLIST conn 
-    state CDATA #REQUIRED
+<!--  Output attributes -->
+<!ATTLIST out 
+    id CDATA #REQUIRED
 >
 
-<!-- Dependency in state connections 
-   inp - target state input
-   conn - connected state name
+<!--  Connection point source -->
+<!ATTLIST src 
+    id CDATA #REQUIRED
+    type CDATA #REQUIRED
+>
+
+<!--  Connection point destination -->
+<!ATTLIST dest 
+    id CDATA #REQUIRED
+    type CDATA #REQUIRED
+>
+
+<!-- Connections
+   id - subject of connection
+   pair - object of connection
      -->
-<!ATTLIST dep 
-   inp CDATA #REQUIRED
-   conn CDATA #REQUIRED
+<!ATTLIST conn 
+    id  CDATA #REQUIRED
+    pair  CDATA #REQUIRED
+>
+
+<!-- Connecting extention
+   id - subject 
+   pair - object
+     -->
+<!ATTLIST ext 
+    id  CDATA #REQUIRED
+    pair  CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

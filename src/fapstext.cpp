@@ -25,10 +25,10 @@ template<> TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 		// Get operand types
 		CAE_State* sinp1 = NULL;
 		CAE_State* sinp2 = NULL;
-		TInt ninp = iInpList.size();
+		TInt ninp = iInputs.size();
 		if (ninp > 0)
 		{
-			CAE_State* sinp1 = Input(0);
+			CAE_State* sinp1 = Input("_0");
 			//CAE_TState<TUint8>* tsinp1 = sinp1->GetObject(tsinp1);
 			CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 			if (tsinp1 == NULL)
@@ -36,7 +36,7 @@ template<> TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 		}
 		if (!err && ninp > 1)
 		{
-			CAE_State* sinp2 = Input(1);
+			CAE_State* sinp2 = Input("_1");
 			CAE_TState<TUint8>* tsinp2 = sinp2->GetFbObj(tsinp2);
 			if (tsinp2 == NULL)
 				err = ETrue;
@@ -73,11 +73,11 @@ template<> TBool CAE_TState<TUint8>::SetTrans(TTransInfo aTinfo)
 
 template<> void CAE_TState<TUint8>::DoOperation()
 {
-	CAE_State* sinp1 = Input(0);
+	CAE_State* sinp1 = Input("_0");
 	_FAP_ASSERT(sinp1 != NULL);
 	CAE_TState<TUint8>* tsinp1 = sinp1->GetFbObj(tsinp1);
 	_FAP_ASSERT(tsinp1 != NULL);
-	CAE_State* sinp2 = Input(1);
+	CAE_State* sinp2 = Input("_1");
 	CAE_TState<TUint8>* tsinp2 = NULL;
 	if (sinp2 != NULL)
 		tsinp2 = sinp2->GetFbObj(tsinp2);

@@ -69,16 +69,39 @@ To transform to html:
 	    </itemizedlist>
 	</sect2>
 	<sect2><title>Use cases</title>
-	    <orderedlist>
-		<listitem>UC_CONN_01 State inputs with date type checking
-		    The dest refs with type "Data" allows client to understand what data type is accepted by the ref.  </listitem>
-		<listitem id="uc_conn_02" xreflabel="UC_CONN_02 "><simpara>UC_CONN_02 Object has its own input that represent input of some internal state</simpara>
-		    <simpara> It allows to has the unified interface for states and objects. Morover it solves the problem with access to the object.
-		    All access to the object shall be done via objects connection point.  </simpara> </listitem>
-		<listitem id="uc_conn_03" xreflabel="UC_CONN_03 "><simpara>UC_CONN_03 Connection point can be connected to many connection points</simpara>
-		    <simpara>An example is state output that can be connected to many state inputs. The alternative way could be to have many 
-			connection points for output</simpara> </listitem>
-	    </orderedlist>
+	    <sect3><title>UC_CONN_01 State inputs with date type checking</title>
+		The dest refs with type "Data" allows client to understand what data type is accepted by the ref.  
+	    </sect3>
+	    <sect3 id="uc_conn_02"><title>UC_CONN_02 Object has its own input that represent input of some internal state</title>
+		<simpara> It allows to has the unified interface for states and objects. Morover it solves the problem with access to the object.
+		    All access to the object shall be done via objects connection point.  </simpara> 
+	    </sect3>
+	    <sect3 id="uc_conn_03"><title>UC_CONN_03 Connection point can be connected to many connection points</title>
+		<simpara>An example is state output that can be connected to many state inputs. The alternative way could be to have many 
+		    connection points for output</simpara> 
+	    </sect3>
+	    <sect3 id="uc_conn_04"><title>UC_CONN_04 States connection changed involves state activation</title>
+	    </sect3>
+	    <sect3 id="uc_conn_05"><title>UC_CONN_05 Subsystem connections set can be state of system.</title>
+		<simpara>System controls the structure of subsystem (connections set, transition function). The structure
+		    is represented as state - it can be connected to other states, thus the change of structure will cause the activation
+		    of dependent states</simpara>
+	    </sect3>
+	</sect2>
+	<sect2 id="sec_conn_objconn"><title>How to implement object connections: just representative?</title>
+	    <simpara>There are at least two options of implementation:</simpara>
+	    <itemizedlist>
+		<listitem>Object conn point is only "representation" of corresponding states conn point.
+		    <simpara>In this case objects conn point uses for connect the represented states conn point.</simpara>
+		</listitem>
+		<listitem>Object conn point is true connection point</listitem>
+	    </itemizedlist>
+	</sect2>
+	<sect2 id="sec_conn_contr"><title>The control of subsystem structure</title>
+	    <simpara>There is usecase - <xref linkend="uc_conn_05"/></simpara>
+	    <simpara>This is like meta system - the system that controls the structure of other systems. But do we need to 
+		have the direct representation of the structure as data? The alternative way could be having access to subsystem interface
+		that allows metasystem change the connections</simpara>
 	</sect2>
     </sect1>
 
