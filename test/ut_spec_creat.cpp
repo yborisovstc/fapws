@@ -63,15 +63,12 @@ void UT_FAP_SpecCreat::tearDown()
 void UT_FAP_SpecCreat::test_SpecCreat_main()
 {
     printf("\n === Test of creation object from spec");
-    CAE_Object *gen = iEnv->Root()->GetComp("generator");
-    CPPUNIT_ASSERT_MESSAGE("Fail to get generator", gen != 0);
-    CAE_State *period = gen->GetInput("period");
-    CPPUNIT_ASSERT_MESSAGE("Fail to get period", period != 0);
-    CAE_TState<TUint32> *tper = CAE_TState<TUint32>::Interpret(period);
-    CPPUNIT_ASSERT_MESSAGE("Fail to interpret period", tper != 0);
-//    (*tper) = 5;// Implemented state init from spec
-    
-
+    CAE_Object *gen = iEnv->Root()->GetComp("gen_2");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get component [gen_2]", gen != 0);
+    CAE_State *event = gen->GetOutpState("event");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get output [event]", event != 0);
+    CAE_TState<TBool> *tevent = CAE_TState<TBool>::Interpret(event);
+    CPPUNIT_ASSERT_MESSAGE("Fail to interpret event", tevent != 0);
 
     for (TInt i=0; i<20; i++)
     {

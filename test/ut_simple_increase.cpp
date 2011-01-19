@@ -14,13 +14,13 @@ const char* KLogSpecFileName = "../testfaplogspec.txt";
 class CFT_Simple: public CAE_Object
 {
 public:
-    static CFT_Simple* NewL(const char* aInstName, CAE_Object* aMan, TInt aStepNumMaxValue, CAE_State::StateType aStepNumMaxType);
+    static CFT_Simple* NewL(const char* aInstName, CAE_Object* aMan, TInt aStepNumMaxValue);
     CFT_Simple(const char* aInstName, CAE_Object* aMan);
     TInt StepNum() {return iStepNum->Value();}
     TInt StepNumMax() {return iStepNumMax->Value();}
     TInt UpdateStepCallsNum() {return iUpdateStepCallsNum;}
 private:
-    void ConstructL(TInt aStepNumMaxValue, CAE_State::StateType aStepNumMaxType);
+    void ConstructL(TInt aStepNumMaxValue);
 protected:
     CAE_TRANS_DEF(UpdateStep, CFT_Simple);
 private:
@@ -34,12 +34,12 @@ CFT_Simple::CFT_Simple(const char* aInstName, CAE_Object* aMan):
 {
 }
 
-void CFT_Simple::ConstructL(TInt aStepNumMaxValue, CAE_State::StateType aStepNumMaxType)
+void CFT_Simple::ConstructL(TInt aStepNumMaxValue)
 {
     CAE_Object::ConstructL();
 
-    iStepNum = CAE_TState<TInt>::NewL("StepNum", this, CAE_TRANS(UpdateStep), CAE_State::EType_Reg);
-    iStepNumMax = CAE_TState<TInt>::NewL("StepNumMax", this, TTransInfo(), aStepNumMaxType);
+    iStepNum = CAE_TState<TInt>::NewL("StepNum", this, CAE_TRANS(UpdateStep));
+    iStepNumMax = CAE_TState<TInt>::NewL("StepNumMax", this, TTransInfo());
 
     // [Yuri Borisov] Setting up initial value should be done as NEW value of state 
     // [Yuri Borisov] We also need to confirm in order to set current value of state
@@ -58,10 +58,10 @@ void CFT_Simple::ConstructL(TInt aStepNumMaxValue, CAE_State::StateType aStepNum
     iStepNumMax->Confirm();
 }
 
-CFT_Simple* CFT_Simple::NewL(const char* aInstName, CAE_Object* aMan, TInt aStepNumMax, CAE_State::StateType aNumMaxType)
+CFT_Simple* CFT_Simple::NewL(const char* aInstName, CAE_Object* aMan, TInt aStepNumMax)
 {
     CFT_Simple* self = new CFT_Simple(aInstName, aMan);
-    self->ConstructL(aStepNumMax, aNumMaxType);
+    self->ConstructL(aStepNumMax);
     return self;
 }
 
@@ -86,9 +86,9 @@ void UT_FAP_SimpleIncrease::tearDown()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("tearDown", 0, 0);
 }
 
-void UT_FAP_SimpleIncrease::test_withMaxNum(TInt aMaxNum, CAE_State::StateType aNumMaxType)
+void UT_FAP_SimpleIncrease::test_withMaxNum(TInt aMaxNum)
 {
-    CFT_Simple* simple = CFT_Simple::NewL("Simple", iEnv->Root(), aMaxNum, aNumMaxType);
+    CFT_Simple* simple = CFT_Simple::NewL("Simple", iEnv->Root(), aMaxNum);
     CPPUNIT_ASSERT_MESSAGE("Fail to create CFT_Simple", simple != 0);
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect StepNum", 0, simple->StepNum());
     CPPUNIT_ASSERT_EQUAL_MESSAGE("Incorrect StepNumMax", aMaxNum, simple->StepNumMax());
@@ -120,10 +120,6 @@ void UT_FAP_SimpleIncrease::test_withMaxNum(TInt aMaxNum, CAE_State::StateType a
 
 void UT_FAP_SimpleIncrease::test_SimpleIncrease_Type_Reg()
 {
-    test_withMaxNum(5, CAE_State::EType_Reg);
+    test_withMaxNum(5);
 }
 
-void UT_FAP_SimpleIncrease::test_SimpleIncrease_Type_Input()
-{
-    test_withMaxNum(10, CAE_State::EType_Input);
-}

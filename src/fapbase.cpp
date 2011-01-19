@@ -364,7 +364,7 @@ void CAE_State::ConstructL()
 	outp->Srcs()["_1"] = new CAE_ConnPin("", this);
 	outp->DestsTempl()["_1"]  = "";
 	if (Logger())
-	    Logger()->WriteFormat("State created:: Name: %s, Len: %d, Access: %s", iInstName, iLen, AccessType());
+	    Logger()->WriteFormat("State created:: Name: %s, Len: %d", iInstName, iLen);
 }	
 
 CAE_State::~CAE_State()
@@ -394,11 +394,6 @@ CAE_State::mult_point_inp_iterator CAE_State::MpInput_end(const char *aName)
 { 
     CAE_ConnPoint *cp = iInputs.find(aName)->second->GetFbObj(cp); 
     return mult_point_inp_iterator(cp->Dests(), cp->Dests().size());
-}
-
-const char *CAE_State::AccessType() const
-{
-    return (iStateType == EType_Input) ? "Inp" : ((iStateType == EType_Reg) ? "Reg" : "Out");
 }
 
 void CAE_State::Confirm()
@@ -565,28 +560,6 @@ CAE_State* CAE_State::Input(const char* aName)
     return res;
 }
 
-CAE_State* CAE_State::Input(const char* aName, TInt aExt)
-{
-    CAE_State *res = NULL;
-    char *name = strdup(aName);
-    strcat(name, ".");
-    char ext[40] = "";
-    sprintf(ext, "%d", aExt);
-    strcat(name, ext);
-    // TODO YB To consider the way of logging config for avoiding spam
-    /*
-    if (it == iInpList.end()) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
-    }
-    if (it->second == NULL) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), name);
-    }
-    */
-    res = Input(name);
-    free(name);
-    return res;
-}
-
 void CAE_State::AddInputL(const char* aName) 
 {
     TBool exists = iInputs.find(aName) != iInputs.end();
@@ -640,64 +613,17 @@ void CAE_State::AddInputL(const char *aName, CAE_State* aState)
     SetInputL(aName, aState);
 }
 
-void CAE_State::AddExtInputL(const char *aName, CAE_State* aState)
-{
-    // Check if extended name registered
-    char *name = (char *) malloc(strlen(aName) + 40);
-    strcpy(name, aName);
-    strcat(name, ".*");
-    TBool exists = iInputs.find(name) != iInputs.end();
-    if (!exists) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Ext inp [%s] not exists", MansName(1), MansName(0), InstName(), name);
-	_FAP_ASSERT(EFalse);
-    }
-    TInt ind = GetExInpLastInd(aName);
-    char sind[40] = "";
-    sprintf(sind, "%d", ++ind);
-    strcpy(name, aName);
-    strcat(name, ".");
-    strcat(name, sind);
-    SetInputL(name, aState);
-    free(name);
-}
-
-// TODO [YB] Reconsider concept of ext inputs. We can use multimap instead
-TInt CAE_State::GetExInpLastInd(const char *aName)
-{
-    TInt ind = -1;
-    map<string, CAE_ConnPointBase*>::iterator it = iInputs.end();
-    for (--it ; it != iInputs.begin(); it--) {
-	if (it->first.find(aName) == 0) {
-	    char *cstr = strdup(it->first.c_str());
-	    char *ptr = strchr(cstr, '.');
-	    if (ptr != NULL && strlen(ptr) > 1 && ptr[1] != '*') {
-		sscanf(ptr+1, "%d", &ind);
-		break;
-	    }
-	    free(cstr);
-	} 
-    }
-    return ind;
-}
-
-void CAE_State::Reset()
-{
-	memset(iCurr, 0x00, iLen);
-	memset(iNew, 0x00, iLen);
-}
-
-
 const char* KCAE_StateName = "State";
 
-CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType):
-    CAE_EBase(aInstName, aMan), iLen(aLen), iStateType(aType), iFlags(0x00), iTrans(aTrans)
+CAE_State::CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans):
+    CAE_EBase(aInstName, aMan), iLen(aLen), iTrans(aTrans)
 {
     _FAP_ASSERT (iMan != NULL);
 }
 
-CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType)
+CAE_State* CAE_State::NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans)
 {
-	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans, aType);
+	CAE_State* self = new CAE_State(aInstName, aLen, aMan, aTrans);
 	self->ConstructL();
 	return self;
 }
@@ -883,7 +809,6 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 	    char *name = chman->GetName(child); 
 	    int len = chman->GetLen(child); 
 	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
-	    CAE_State::StateType access = chman->GetAccessType(child);
 	    const TTransInfo *trans = NULL;
 	    if (transf_name != NULL)
 	    {
@@ -894,7 +819,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 	    }
 	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
 	    if (mut == ECaeMut_Add) {
-		state = prov->CreateStateL(stype, name, this, access);  
+		state = prov->CreateStateL(stype, name, this);  
 		if (state == NULL)
 		    Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
 	    }
@@ -1345,72 +1270,6 @@ FAPWS_API void CAE_Object::LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTr
 	aInp->SetTrans(TTransInfo(aTrans));
 }
 
-FAPWS_API CAE_State* CAE_Object::GetInput(TUint32 aInd)
-{
-	CAE_State* res = NULL;
-	TUint32 sInd = 0;
-	for (TInt i = 0; i < iCompReg.size(); i++)
-	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
-		if (obj != NULL && obj->IsInput())
-		{
-			if (sInd++ == aInd)
-			{
-				res = obj; 
-				break;
-			}
-		}
-	}
-	return res;
-}
-
-FAPWS_API CAE_State* CAE_Object::GetInput(const char *aName)
-{
-    CAE_State* state = GetStateByName(aName);
-    return (state != NULL && state->IsInput()) ? state : NULL;
-}
-
-FAPWS_API CAE_State* CAE_Object::GetOutput(TUint32 aInd)
-{
-	CAE_State* res = NULL;
-	TUint32 sInd = 0;
-	for (TInt i = 0; i < iCompReg.size(); i++)
-	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-		CAE_State* obj = (CAE_State*) comp->GetFbObj(obj);
-		if (obj != NULL && obj->IsOutput())
-		{
-			if (sInd++ == aInd)
-			{
-				res = obj; 
-				break;
-			}
-		}
-	}
-	return res;
-}
-
-FAPWS_API CAE_State* CAE_Object::GetOutput(const char *aName)
-{
-    CAE_State* state = GetStateByName(aName);
-    return (state != NULL && state->IsOutput()) ? state : NULL;
-}
-
-FAPWS_API CAE_State* CAE_Object::GetStateByInd(TUint32 aInd)
-{
-	CAE_State* res = NULL;
-	if (aInd < iCompReg.size())
-	{
-		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(aInd);
-		if (comp != NULL)
-		{
-			res = comp->GetFbObj(res);
-		}
-	}
-	return res;
-}
-
 FAPWS_API CAE_State* CAE_Object::GetStateByName(const char *aName)
 {
     CAE_State* res = NULL;
@@ -1445,19 +1304,6 @@ TInt CAE_Object::ChromLen(const TUint8* aChrom) const
 	return len;
 }
 
-FAPWS_API void CAE_Object::Reset()
-{
-	for (TInt i = 0; i < iCompReg.size(); i++)
-	{
-		CAE_EBase* comp = iCompReg.at(i);
-		CAE_State* state = (CAE_State*) comp->GetFbObj(state);
-		if (state != NULL)
-		{
-			state->Reset();
-		}
-	}
-}
-
 // The inheritor is created by clone the parent and mutate it for now
 FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan)
 {
@@ -1472,6 +1318,22 @@ FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aNam
     return heir;
 }
 
+CAE_State* CAE_Object::GetOutpState(const char* aName)
+{
+    CAE_State *res = NULL;
+    map<string, CAE_ConnPointBase*>::iterator it = iOutputs.find(aName);
+    if (it == iOutputs.end()) {
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName(), aName);
+    }
+    else {
+	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
+	res = cp->Srcs().begin()->second->Ref()->GetFbObj(res);
+	if (res == NULL) {
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
+	}
+    }
+    return res;
+}
 
 
 //*********************************************************
@@ -1530,14 +1392,14 @@ FAPWS_API void CAE_ObjectBa::ConstructL()
 	{
 		iTrans = new TUint32[iLen*stwnum];
 	}
-	iInp = (CAE_TState<TInt>*) CAE_State::NewL("Inp", sizeof(TInt), this, TTransInfo(), CAE_State::EType_Input);
-	iStInp = (CAE_TState<TInt>*) CAE_State::NewL("StInp", sizeof(TInt), this, CAE_TRANS(UpdateInput), CAE_State::EType_Input);
+	iInp = (CAE_TState<TInt>*) CAE_State::NewL("Inp", sizeof(TInt), this, TTransInfo());
+	iStInp = (CAE_TState<TInt>*) CAE_State::NewL("StInp", sizeof(TInt), this, CAE_TRANS(UpdateInput));
 	iStInp->AddInputL("_Inp");
 	iStInpReset = (CAE_TState<TUint8>*) CAE_State::NewL("StInpReset", sizeof(TUint8), this, CAE_TRANS(UpdateInpReset));
 	iStInpReset->AddInputL("_InpReset");
-	iInpReset = (CAE_TState<TUint8>*) CAE_State::NewL("InpReset", sizeof(TUint8), this, TTransInfo(), CAE_State::EType_Reg);
+	iInpReset = (CAE_TState<TUint8>*) CAE_State::NewL("InpReset", sizeof(TUint8), this, TTransInfo());
 	iStFitness = (CAE_TState<TInt>*) CAE_State::NewL("Fitness", sizeof(TInt), this, TTransInfo());
-	iOut = (CAE_TState<TInt>*) CAE_State::NewL("Out", sizeof(TInt), this, TTransInfo(), CAE_State::EType_Reg);
+	iOut = (CAE_TState<TInt>*) CAE_State::NewL("Out", sizeof(TInt), this, TTransInfo());
 	iStInp->SetInputL("_Inp", iInp);
 	iStInpReset->SetInputL("_InpReset", iInpReset);
 }
@@ -1724,10 +1586,10 @@ void CAE_StateASrv::ConstructL(TInt aPriority)
 {
 	CAE_Object::ConstructL();
 	iReqMon = new CAE_ReqMon(aPriority, this);
-	iOutStatusPtr = (CAE_TState<TInt>*) CAE_State::NewL("OStatusPtr", sizeof(void*), this, TTransInfo(), CAE_State::EType_Output);
-	iOutStatus = CAE_State::NewL("OStatus", sizeof(TInt), this, TTransInfo(), CAE_State::EType_Output);
-	iInpSetActive = (CAE_TState<TUint8>*) CAE_State::NewL("ISetAct", sizeof(TUint8), this, TTransInfo(), CAE_State::EType_Input);
-	iInpCancel = (CAE_TState<TUint8>*) CAE_State::NewL("ICancel", sizeof(TUint8), this, TTransInfo(), CAE_State::EType_Input);
+	iOutStatusPtr = (CAE_TState<TInt>*) CAE_State::NewL("OStatusPtr", sizeof(void*), this, TTransInfo());
+	iOutStatus = CAE_State::NewL("OStatus", sizeof(TInt), this, TTransInfo());
+	iInpSetActive = (CAE_TState<TUint8>*) CAE_State::NewL("ISetAct", sizeof(TUint8), this, TTransInfo());
+	iInpCancel = (CAE_TState<TUint8>*) CAE_State::NewL("ICancel", sizeof(TUint8), this, TTransInfo());
 	iStSetActive = (CAE_TState<TUint8>*) CAE_State::NewL("SSetAct", sizeof(TUint8), this, CAE_TRANS(UpdateSetActive));
 	iStCancel = (CAE_TState<TUint8>*) CAE_State::NewL("SCancel", sizeof(TUint8), this, CAE_TRANS(UpdateCancel));
 	iStSetActive->AddInputL("_InpSetActive", iInpSetActive); 

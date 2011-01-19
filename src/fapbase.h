@@ -395,20 +395,10 @@ template <class T> class CAE_TState;
 // #1 Regular state. It has the transition function with only one argument- the pointer to state itself
 // #2 Special state. It has the transition function with two arguments- the pointer to object and to the state
 // Special state transition function can access to object data. So it should be used in the rare cases 
-// TODO YB: Consider to combine CAE_State with CAE_StateBase
 // TODO [YB] To add inputs type info (maybe checking in transf will be enough?)
-// TODO [YB] To add support of dynamic inputs (or sections?)
 class CAE_State: public CAE_EBase
 {
     friend class CAE_Object;
-public:
-    enum StateType
-    {
-	EType_Unknown = 0,
-	EType_Input = 1,
-	EType_Reg = 2,
-	EType_Output = 3
-    };
 public:
 	// State input iterator for multiple point input
 	class mult_point_inp_iterator: public iterator<input_iterator_tag, CAE_State>
@@ -426,8 +416,8 @@ public:
 	    TInt iInd;
     };
 public:
-	CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= EType_Reg);
-	static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= EType_Reg);  
+	CAE_State(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans);
+	static CAE_State* NewL(const char* aInstName, TInt aLen, CAE_Object* aMan,  TTransInfo aTrans);  
 	virtual ~CAE_State();
 	virtual void Confirm();
 	virtual void Update();
@@ -435,19 +425,14 @@ public:
 	void AddInputL(const char *aName);
 	void SetInputL(const char *aName, CAE_State* aState);
 	void AddInputL(const char *aName, CAE_State* aState);
-	void AddExtInputL(const char *aName, CAE_State* aState);
 	void Set(void* aNew);
 	void SetFromStr(const char *aStr);
 	const void* Value() const { return iCurr;}
 	CAE_State* Input(const char* aName);
-	CAE_State* Input(const char* aName, TInt aExt);
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
 	mult_point_inp_iterator MpInput_begin(const char *aName);
 	mult_point_inp_iterator MpInput_end(const char *aName);
 	CAE_ConnPointBase* Output() {return iOutput;};
-	void Reset();
-	TBool IsInput() { return iStateType == EType_Input;}
-	TBool IsOutput() { return iStateType == EType_Output;}
 	virtual char* DataToStr(TBool aCurr) const;
 	virtual void DataFromStr(const char* aStr, void *aData) const;
 	static inline const char *Type(); 
@@ -457,7 +442,6 @@ public:
 	// Returns true if given operation was set correctly 
 	virtual TBool SetTrans(TTransInfo aTinfo);
 	CAE_State& Inp(const char* aName) { return *((CAE_State *) Input(aName));};
-	CAE_State& Inp(const char* aName, TInt aExt) { return *((CAE_State *) Input(aName, aExt));};
 	inline TTransInfo GetTrans();
 	template <class T> inline operator CAE_TState<T>* ();
 	// TODO YB operator doesn't called
@@ -471,21 +455,16 @@ protected:
 private:
 	virtual void DoTrans();
 	virtual void DoOperation();
-	const char *AccessType() const;
 	static char *FmtData(void *aData, int aLen);
 	void LogUpdate(TInt aLogData);
 	void LogTrans(TInt aLogData);
 	inline MCAE_LogRec *Logger();
-	TInt GetExInpLastInd(const char *Name);
-
 public:
 	void	*iCurr, *iNew;
 	// Transition info
 	TTransInfo iTrans;
 protected:
 	TInt iLen;
-	StateType iStateType;
-	TUint8		iFlags;
 	map<string, CAE_ConnPointBase*> iInputs;
 	CAE_ConnPointBase* iOutput;
 };
@@ -500,9 +479,9 @@ template <class T>
 class CAE_TState: public CAE_State
 {
 public:
-	CAE_TState(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_State::EType_Reg):
-	  CAE_State(aInstName, sizeof(T), aMan, aTrans, aType) { iTypeName = strdup(Type());};
-	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType= CAE_State::EType_Reg);
+	CAE_TState(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans):
+	  CAE_State(aInstName, sizeof(T), aMan, aTrans) { iTypeName = strdup(Type());};
+	static CAE_TState* NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans);
 	T& operator~ () { return *((T*)iCurr); };
 	const T& Value() { return *((T*) CAE_State::Value()); }
 	// TODO [YB] to remove ! operator. No need of getting new values at all
@@ -542,15 +521,15 @@ inline CAE_TState<T>* CAE_TState<T>::Interpret(CAE_State* aPtr) {
 }; 
 
 template <class T>
-CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, StateType aType)
+CAE_TState<T>* CAE_TState<T>::NewL(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans)
 { 
-	CAE_TState* self = new CAE_TState(aInstName, aMan, aTrans, aType);
+	CAE_TState* self = new CAE_TState(aInstName, aMan, aTrans);
 	self->ConstructL();
 	return self;
 }
 
 // State factory function
-typedef CAE_State* (*TStateFactFun)(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans, CAE_State::StateType aType);
+typedef CAE_State* (*TStateFactFun)(const char* aInstName, CAE_Object* aMan,  TTransInfo aTrans);
 
 // State info
 // It is for registration of custom state into provider
@@ -574,7 +553,6 @@ class MAE_ChroMan
 	virtual void *GetNext(void *aChildSpec) = 0;
 	virtual char *GetType(void *aSpec) = 0;
 	virtual char *GetName(void *aSpec) = 0;
-	virtual CAE_State::StateType GetAccessType(void *aSpec) = 0;
 	virtual int GetLen(void *aSpec) = 0;
 	virtual TCaeElemType FapType(void *aElement) = 0;
 	virtual TCaeMut MutType(void *aElement) = 0;
@@ -586,10 +564,8 @@ class MAE_ChroMan
 class MAE_Provider
 {
     public:
-	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_State::StateType aType= CAE_State::EType_Reg) const = 0;
-	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan, 
-		CAE_State::StateType aType= CAE_State::EType_Reg) const = 0;
+	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
+	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
 	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_EBase* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
@@ -614,7 +590,7 @@ class MAE_Env
 // Base class for object. Object is container and owner of its component and states
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
-/* TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough */
+// TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough 
 class CAE_Object: public CAE_EBase
 {
 public:
@@ -640,24 +616,20 @@ public:
 	void LinkL(CAE_State* aInp, CAE_State* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	TInt CountCompWithType(const char *aType = NULL);
+	// TODO [YB] To restrict an access to components
 	CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
 	CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
+	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
 	CAE_EBase* FindByName(const char* aName);
-	CAE_State* GetInput(TUint32 aInd);
-	CAE_State* GetInput(const char *aName);
-	CAE_State& GetInp(const char *aName) { return *GetInput(aName); };
-	CAE_State* GetOutput(TUint32 aInd);
-	CAE_State* GetOutput(const char *aName);
-	CAE_State& GetOut(const char *aName) { return *GetOutput(aName); };
 	CAE_ConnPointBase* GetConn(const char *aName);
 	CAE_ConnPointBase* GetInpN(const char *aName);
 	CAE_ConnPointBase* GetOutpN(const char *aName);
-	void DoMutation();
-	void Reset();
+	CAE_State* GetOutpState(const char* aName);
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
 	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
 	// Create new inheritor of self. 
 	CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
+	void DoMutation();
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -666,7 +638,6 @@ protected:
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	void ChangeChrom(const void* aChrom);
 private:
-	CAE_State* GetStateByInd(TUint32 aInd);
 	CAE_State* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
@@ -675,6 +646,7 @@ private:
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
 private:
+	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
