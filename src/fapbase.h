@@ -65,7 +65,8 @@ enum TCaeElemType
     ECae_CpDest = 11,	// Connection point destination
     ECae_Cext = 12,	// Connecting extention
     ECae_Cextc = 13,	// Custom Connecting extention
-    ECae_CextcSrc = 14	// Custom Connecting extention src binding
+    ECae_CextcSrc = 14,	// Custom Connecting extention src spec
+    ECae_CextcDest = 15	// Custom Connecting extention dest spec
 };
 
 // CAE elements mutation type
@@ -258,6 +259,7 @@ class CAE_ConnPointBase: public CAE_Base
 {
     public:
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
+	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
@@ -306,10 +308,10 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 {
     public:
 	CAE_ConnPoint();
-	~CAE_ConnPoint();
+	virtual ~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
@@ -331,14 +333,11 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	map<string, string> iDestsTempl;
 };
 
-// Referencing Connection point. Just represent connection point
-// Used on object borders
-// TODO [YB] Not used. To be removed?
-class CAE_ConnPointRef: public CAE_ConnPointBase
+// Simple extender. Just contains the reference to connector
+class CAE_ConnPointExt: public CAE_ConnPointBase
 {
     public:
-	CAE_ConnPointRef();
-	~CAE_ConnPointRef();
+	CAE_ConnPointExt(): iRef(NULL) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
@@ -346,11 +345,58 @@ class CAE_ConnPointRef: public CAE_ConnPointBase
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
 	CAE_ConnPointBase* Ref() {return iRef;};
-	static const char *Type() {return "ConnPointRef";}; 
+	static const char *Type() {return "ConnPointExtC";}; 
     protected:
 	virtual void *DoGetFbObj(const char *aName);
     private:
 	CAE_ConnPointBase* iRef;
+};
+
+// 
+// Commutating extender. Allows pin commutation for srcs and dest
+class CAE_ConnPointExtC: public CAE_ConnPointBase
+{
+    public:
+	class SlotTempl
+	{
+	    public:
+	       	typedef string slot_templ_elem;
+	    public:
+		map<string, slot_templ_elem>& Srcs() { return iSrcs;};
+		map<string, slot_templ_elem>& Dests() { return iDests;};
+	    private:
+		// Element: [bus pin name]
+		map<string, slot_templ_elem> iSrcs;
+		map<string, slot_templ_elem> iDests;
+	};
+
+	class Slot
+	{
+	    public:
+		typedef pair<CAE_ConnPointBase*, string> slot_elem;
+		Slot(const SlotTempl& aTempl);
+		map<string, pair<CAE_ConnPointBase*, string> >& Srcs() { return iSrcs;};
+		map<string, pair<CAE_ConnPointBase*, string> >& Dests() { return iDests;};
+	    private:
+		// Element: [ref to connector, pin name]
+		map<string, slot_elem> iSrcs;
+		map<string, slot_elem> iDests;
+	};
+
+    public:
+	CAE_ConnPointExtC() {};
+	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
+	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
+	SlotTempl& Templ() { return iSlotTempl;};
+	vector<Slot>& Slots() { return iSlots; };
+	static const char *Type() {return "ConnPointExt";}; 
+    protected:
+	virtual void *DoGetFbObj(const char *aName);
+    private:
+	SlotTempl iSlotTempl;
+	vector<Slot> iSlots;
 };
 
 // Parameters of operation
