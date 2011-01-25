@@ -1,3 +1,9 @@
+fapws (0.0.1-11) unstable; urgency=low
+
+  * Added dtd to dev
+
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Thu, 25 Jan 2011 15:42:27 +0400
+
 fapws (0.0.1-10) unstable; urgency=low
 
   * Added typified states

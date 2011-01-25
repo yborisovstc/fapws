@@ -25,7 +25,9 @@ include_HEADERS = \
 		  fapext.h \
 		  fapstext.h \
 		  fapfact.h \
-		  fapplat.h
+		  fapplat.h \
+		  objspec.dtd
+
 
 
 libfapws_la_LDFLAGS = -rdynamic -no-undefined
