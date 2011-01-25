@@ -253,18 +253,6 @@ protected:
 
 inline const char *CAE_EBase::Type() { return "State";} 
 
-// TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
-// Base class for connection points
-class CAE_ConnPointBase: public CAE_Base
-{
-    public:
-	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
-	virtual ~CAE_ConnPointBase() {};
-	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
-};
 
 // Connection pin. Represents reference to interface
 class CAE_ConnPin
@@ -285,6 +273,22 @@ class CAE_ConnPin
 	// Reference to interface
 	CAE_Base *iRef;
 };
+
+// TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
+// Base class for connection points
+class CAE_ConnPointBase: public CAE_Base
+{
+    public:
+	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
+	virtual ~CAE_ConnPointBase() {};
+	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
+	virtual CAE_ConnPin* GetSrcPin(const char* aName) = 0;
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
+};
+
 
 class CAE_ConnPoint;
 
@@ -310,6 +314,8 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	CAE_ConnPoint();
 	virtual ~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
+	virtual CAE_ConnPin* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
@@ -339,6 +345,8 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
     public:
 	CAE_ConnPointExt(): iRef(NULL) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
+	virtual CAE_ConnPin* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
@@ -386,6 +394,8 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
     public:
 	CAE_ConnPointExtC() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
+	virtual CAE_ConnPin* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};

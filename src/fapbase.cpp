@@ -202,6 +202,26 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
+TBool CAE_ConnPoint::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
+{
+    TBool res = ETrue;
+    // Process all the slots
+    for (vector<CAE_ConnSlot*>::iterator is = iDests.begin(); is != iDests.end() && res; is++) {
+	// Redirect to connected pin
+	map<string, CAE_ConnPin*>::iterator id = (*is)->Pins().find(aPin);
+	CAE_ConnPin* pin = id->second;
+	CAE_ConnPin* pair_pin = aPair->GetSrcPin(aPairPin);
+	res = pin->Set(pair_pin);
+    }
+    return res;
+}
+
+CAE_ConnPin* CAE_ConnPoint::GetSrcPin(const char* aName)
+{
+    map<string, CAE_ConnPin*>::iterator it = iSrcs.find(aName);
+    return (it == iSrcs.end()) ? NULL : it->second;
+}
+
 void CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
 {
 }
@@ -215,14 +235,6 @@ void *CAE_ConnPointExt::DoGetFbObj(const char *aName)
 {
     return (strcmp(aName, Type()) == 0) ? this : ((iRef != NULL) ? iRef->GetFbObj(aName) : NULL);
 }
-
-
-TBool CAE_ConnPointExtC::Connect(CAE_ConnPointBase *aConnPoint) 
-{
-    TBool res = EFalse;
-    return res;
-}
-
 
 // TODO [YB] Is it used?
 void CAE_ConnPointExt::Set(CAE_ConnPointBase *aConnPoint) 
@@ -255,6 +267,70 @@ void CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint)
 	iRef->Disconnect(aConnPoint);
     }
 }
+
+
+CAE_ConnPin* CAE_ConnPointExt::GetSrcPin(const char* aName)
+{
+    return iRef->GetSrcPin(aName);
+}
+
+
+
+/*
+TBool CAE_ConnPointExtC::Connect(CAE_ConnPointBase *aConnPoint) 
+{
+    TBool res = ETrue;
+    // Process all the slots
+    for (vector<Slot>::iterator is = iSlots.begin(); is != iSlots.end() && res; is++) {
+	// Process all the dests
+	for (map<string, Slot::slot_elem>::iterator id = (*is).Dests().begin(); id != (*is).Dests().end() && res; id++) {
+	    CAE_ConnPointBase* cp = id->second.first;
+	    string& pin_name = id->second.second;
+	    const string& bus_pin_name = id->first;
+	    res = cp->ConnectPin(pin_name.c_str(), aConnPoint, bus_pin_name.c_str());
+	}
+    }
+    return res;
+}
+*/
+TBool CAE_ConnPointExtC::Connect(CAE_ConnPointBase *aConnPoint) 
+{
+    TBool res = ETrue;
+    // Connect all the bus pins
+    for (map<string, SlotTempl::slot_templ_elem>::iterator id = Templ().Dests().begin(); id != Templ().Dests().end() && res; id++) {
+	res = ConnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
+    }
+    return res;
+}
+
+TBool CAE_ConnPointExtC::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
+{
+    TBool res = ETrue;
+    // Process all the slots
+    for (vector<Slot>::iterator is = iSlots.begin(); is != iSlots.end() && res; is++) {
+	// Redirect to connected pin
+	map<string, Slot::slot_elem>::iterator id = (*is).Dests().find(aPin);
+	CAE_ConnPointBase* cp = id->second.first;
+	string& pin_name = id->second.second;
+	res = cp->ConnectPin(pin_name.c_str(), aPair, aPairPin);
+    }
+    return res;
+}
+
+CAE_ConnPin* CAE_ConnPointExtC::GetSrcPin(const char* aName)
+{
+    CAE_ConnPin* res = NULL;
+    // Redirect to connected pin
+    Slot& slot = iSlots.at(0);
+    map<string, Slot::slot_elem>::iterator it = slot.Srcs().find(aName);
+    if (it != slot.Srcs().end()) {
+	CAE_ConnPointBase* cp = it->second.first;
+	string& pin_name = it->second.second;
+	res = cp->GetSrcPin(pin_name.c_str());
+    }
+    return res;
+}
+
 
 // CAE_EBase
 
