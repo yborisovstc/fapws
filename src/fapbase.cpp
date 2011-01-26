@@ -170,33 +170,21 @@ TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint)
 TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint) 
 {
     TBool res = EFalse;
+    // Try to get connection
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
-	string &tp = iDestsTempl.begin()->second;
-	TBool isext = (iDestsTempl.size() == 1) && (tp.compare(CAE_ConnPoint::Type()) == 0);
-	if (!isext) {
-	    res = ConnectConnPoint(pair);
-	}
-	else {
-	    // Self is extention. Redirect to original connection points
-	    for (TInt i = 0; i < iDests.size(); i++) {
-		CAE_ConnPoint *ref = iDests.at(i)->Pin("_1")->Ref()->GetFbObj(ref);
-		res = ref->Connect(aConnPoint);
-	    }
-	}
+	res = ConnectConnPoint(pair);
     }
     else {
-	CAE_ConnPointExt *pref = aConnPoint->GetFbObj(pref); 
-	if (pref != NULL) {
-	    if (pref->Ref() != NULL) {
-		CAE_ConnPoint *cpoint = pref->Ref()->GetFbObj(cpoint); 
-		if (cpoint != NULL) {
-			    res = ConnectConnPoint(cpoint);
-		}
+	// Probably it's commutating extention
+	CAE_ConnPointExtC *pec = aConnPoint->GetFbObj(pec); 
+	if (pec != NULL) {
+	    // Connect all the dests pins
+	    TBool res1 = ETrue;
+	    for (map<string, string>::iterator id = iDestsTempl.begin(); id != iDestsTempl.end() && res1; id++) {
+		res1 = ConnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
 	    }
-	    else {
-		res = ETrue;
-	    }
+	    res = res1;
 	}
     }
     return res;
@@ -254,10 +242,6 @@ TBool CAE_ConnPointExt::Connect(CAE_ConnPointBase *aConnPoint)
     if (iRef != NULL) {
 	res = iRef->Connect(aConnPoint);
     }
-    else {
-	iRef = aConnPoint;
-	res = ETrue;
-    }
     return res;
 }
 
@@ -268,6 +252,15 @@ void CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint)
     }
 }
 
+TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint) 
+{
+    TBool res = EFalse;
+    if (iRef == NULL) { 
+	iRef = aConnPoint;
+       	res = ETrue;
+    }
+    return res;
+};
 
 CAE_ConnPin* CAE_ConnPointExt::GetSrcPin(const char* aName)
 {
@@ -331,6 +324,27 @@ CAE_ConnPin* CAE_ConnPointExtC::GetSrcPin(const char* aName)
     return res;
 }
 
+TBool CAE_ConnPointExtC::Extend(CAE_ConnPointBase *aConnPoint)
+{
+    return EFalse;
+}
+
+void *CAE_ConnPointExtC::DoGetFbObj(const char *aName)
+{
+    return (strcmp(aName, Type()) == 0) ? this : NULL;
+}
+
+CAE_ConnPointExtC::Slot::Slot(const SlotTempl& aTempl)
+{
+    Slot slot;
+    // Copy Dest and Srcs from template
+    for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = aTempl.Dests().begin(); it != aTempl.Dests().end(); it++) {
+	slot.Dests()[it->first] = slot_elem(NULL, "");
+    }
+    for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = aTempl.Srcs().begin(); it != aTempl.Srcs().end(); it++) {
+	slot.Srcs()[it->first] = slot_elem(NULL, "");
+    }
+}
 
 // CAE_EBase
 
@@ -1162,7 +1176,6 @@ void CAE_Object::CreateStateInp(void* aSpecNode, CAE_State *aState)
 
 void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns) 
 {
-    TBool r_src_spec = EFalse, r_dest_spec = EFalse;
     MAE_ChroMan *chman = iEnv->Chman();
     char *name = chman->GetStrAttr(aSpecNode, KXStateInpAttr_Id);
     if (name == NULL)
@@ -1172,35 +1185,30 @@ void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aC
 	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName(), name);
 	    _FAP_ASSERT(EFalse);
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint();
+	CAE_ConnPointBase* cp = NULL;
 	if (chman->GetChild(aSpecNode) != NULL) {
-	    // There are pins spec, processing
+	    // There are pins spec - Commutating extender
+	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC();
+	    cp = cpoint;
 	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
 		TCaeElemType etype = chman->FapType(elem);
 		if (etype == ECae_CpSource)
 		{
 		    char *name = chman->GetStrAttr(elem,"id"); 
-		    char *type = chman->GetStrAttr(elem,"type"); 
-		    // Create default type pin if type isnt specified
-		    CAE_ConnPin *pin = new CAE_ConnPin(type ? type: "State");
-		    cpoint->Srcs()[name] = pin;
-		    r_src_spec = ETrue;
+		    cpoint->Templ().Srcs()[name] = "";
 		}
 		else if (etype == ECae_CpDest)
 		{
 		    char *name = chman->GetStrAttr(elem,"id"); 
-		    char *type = chman->GetStrAttr(elem,"type"); 
-		    // Create default templ if type isnt specified
-		    cpoint->DestsTempl()[name] = type ? type: "State";
-		    r_dest_spec = ETrue;
+		    cpoint->Templ().Dests()[name] = "";
 		}
 	    }
 	}
-	if (!r_src_spec) {
-	    cpoint->Srcs()["_1"] = new CAE_ConnPin("State");
+	else {
+	    // Simple extender
+	    cp = new CAE_ConnPointExt();
 	}
-	cpoint->DestsTempl()["_1"] = CAE_ConnPoint::Type();
-	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
+	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cp));
     }
 }
 

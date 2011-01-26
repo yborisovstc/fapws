@@ -348,12 +348,12 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual CAE_ConnPin* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
 	CAE_ConnPointBase* Ref() {return iRef;};
-	static const char *Type() {return "ConnPointExtC";}; 
+	static const char *Type() {return "ConnPointExt";}; 
     protected:
 	virtual void *DoGetFbObj(const char *aName);
     private:
@@ -372,6 +372,8 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	    public:
 		map<string, slot_templ_elem>& Srcs() { return iSrcs;};
 		map<string, slot_templ_elem>& Dests() { return iDests;};
+		const map<string, slot_templ_elem>& Srcs(TInt a=0) const { return iSrcs;};
+		const map<string, slot_templ_elem>& Dests(TInt a=0) const { return iDests;};
 	    private:
 		// Element: [bus pin name]
 		map<string, slot_templ_elem> iSrcs;
@@ -382,6 +384,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	{
 	    public:
 		typedef pair<CAE_ConnPointBase*, string> slot_elem;
+		Slot() {};
 		Slot(const SlotTempl& aTempl);
 		map<string, pair<CAE_ConnPointBase*, string> >& Srcs() { return iSrcs;};
 		map<string, pair<CAE_ConnPointBase*, string> >& Dests() { return iDests;};
@@ -396,12 +399,12 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_ConnPin* GetSrcPin(const char* aName);
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
+	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) {};
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };
-	static const char *Type() {return "ConnPointExt";}; 
+	static const char *Type() {return "ConnPointExtC";}; 
     protected:
 	virtual void *DoGetFbObj(const char *aName);
     private:
