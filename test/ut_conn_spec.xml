@@ -48,6 +48,7 @@
 	    </state>
 
 	    <conn id="mass.coord_self" pair="coord.output"/> 
+	    <conn id="mass.frugal" pair="frugal.output"/> 
 	    <conn id="coord.self" pair="coord.output"/> 
 	    <conn id="coord.mass" pair="mass.output"/>
 

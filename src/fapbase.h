@@ -254,6 +254,9 @@ protected:
 inline const char *CAE_EBase::Type() { return "State";} 
 
 
+// TODO [YB] Do we need RefType within the pin. This seems redundant because within the slots
+// the pins are the same. The solution can be to move pins reftype into templates. In this
+// case we need to have srcs template too.
 // Connection pin. Represents reference to interface
 class CAE_ConnPin
 {
@@ -297,10 +300,11 @@ class CAE_ConnSlot
 {
     public:
 	CAE_ConnSlot() {};
+	CAE_ConnSlot(const map<string, string>& aTempl);
 	~CAE_ConnSlot() {};
 	CAE_ConnPin* Pin(const char *aName);
 	map<string, CAE_ConnPin*>& Pins() { return iPins;};
-	TBool SetPin(const map<string, string>& aTempl, CAE_Base *aSrc);
+	TBool SetPin(const map<string, string>& aTempl, const char* aName, CAE_ConnPin *aSrc);
 	TBool SetPins(const map<string, string>& aTempl, const map<string, CAE_ConnPin*>& aSrcs);
     private:
 	// Pins
@@ -475,6 +479,7 @@ public:
 	    TBool operator==(const mult_point_inp_iterator& aIt) { return (iInd == aIt.iInd); };
 	    TBool operator!=(const mult_point_inp_iterator& aIt) { return (iInd != aIt.iInd); };
 	    CAE_State& operator*() { CAE_State* st = iDests.at(iInd)->Pin("_1")->Ref()->GetFbObj(st); return *st;};
+	    CAE_State& State(const char* aName) { CAE_State* st = iDests.at(iInd)->Pin(aName)->Ref()->GetFbObj(st); return *st;};
 	public:
 	    vector<CAE_ConnSlot*>& iDests;
 	    TInt iInd;

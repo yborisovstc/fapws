@@ -57,9 +57,11 @@ void Panic(TInt aRes)
 TBool CAE_ConnPin::Set(CAE_Base *aRef) 
 { 
     TBool res = EFalse;
-    if (aRef->GetFbObj(iRefType.c_str())) { 
+    // TODO [YB] To migrate to pins without reftype (get it from template)
+    // Seems it is not needed at all - see slot's SetPin
+    //if (aRef->GetFbObj(iRefType.c_str())) { 
 	iRef = aRef; res = ETrue;
-    } 
+    //} 
    return res; 
 };
 
@@ -68,19 +70,29 @@ TBool CAE_ConnPin::Set(CAE_ConnPin *aPin)
     return Set(aPin->Ref());
 }
 
+
+CAE_ConnSlot::CAE_ConnSlot(const map<string, string>& aTempl)
+{
+    for (map<string, string>::const_iterator i = aTempl.begin(); i != aTempl.end(); i++) {
+	iPins[i->first] = new CAE_ConnPin(i->second.c_str());
+    }
+}
+
 CAE_ConnPin* CAE_ConnSlot::Pin(const char *aName) 
 { 
     map<string, CAE_ConnPin*>::iterator elem = iPins.find(aName);
     return (elem == iPins.end()) ? NULL : elem->second;
 };
 
-TBool CAE_ConnSlot::SetPin(const map<string, string>& aTempl, CAE_Base *aSrc) 
+TBool CAE_ConnSlot::SetPin(const map<string, string>& aTempl, const char* aName, CAE_ConnPin *aSrc) 
 {
     TBool res = EFalse;
     // TODO [YB] To check type in template
-    map<string, string>::const_iterator ti = aTempl.begin();
-    iPins[ti->first] = new CAE_ConnPin(ti->second.c_str(), aSrc);
-    res = ETrue;
+    map<string, string>::const_iterator tt = aTempl.find(aName);
+    if (tt != aTempl.end()) {
+	iPins[tt->first] = new CAE_ConnPin(tt->second.c_str(), aSrc->Ref());
+	res = ETrue;
+    }
     return res;
 }
 
@@ -190,17 +202,36 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
+// TODO [YB] Maybe reconsider the policy of connecting to the bus. Currently we attempt to connect the pin
+// in last slot. This means we have restriction here: when inp a.a connects to outp b.b1 b.b2 (buses)
+// then we need to complete all connections to b before go to c.
 TBool CAE_ConnPoint::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
 {
     TBool res = ETrue;
-    // Process all the slots
-    for (vector<CAE_ConnSlot*>::iterator is = iDests.begin(); is != iDests.end() && res; is++) {
-	// Redirect to connected pin
-	map<string, CAE_ConnPin*>::iterator id = (*is)->Pins().find(aPin);
-	CAE_ConnPin* pin = id->second;
-	CAE_ConnPin* pair_pin = aPair->GetSrcPin(aPairPin);
-	res = pin->Set(pair_pin);
+    TBool found = EFalse;
+    CAE_ConnSlot* slot = NULL;
+
+    // Check the latest slot, if the pin is not set, then set them, otherwise create new slot
+    for (vector<CAE_ConnSlot*>::iterator is = iDests.end(); is != iDests.begin() && !found; ) {
+	is--;
+	slot = *is;
+	map<string, CAE_ConnPin*>::iterator id = slot->Pins().find(aPin);
+	if (id != slot->Pins().end()) {
+	    CAE_ConnPin *pin = id->second;
+	    found = pin->Ref() == NULL;
+	}
     }
+    if (!found) {
+	slot = new CAE_ConnSlot(iDestsTempl);
+	iDests.push_back(slot);
+    }
+    // Redirect to the pin
+    CAE_ConnPin* pair_pin = aPair->GetSrcPin(aPairPin);
+    // Case when pair pin is not found is normal. When connect to the bus it maybe that bus doesn't contain the pair for pin
+    if (pair_pin != NULL) {
+	res = slot->SetPin(iDestsTempl, aPin, pair_pin);
+    }
+
     return res;
 }
 
@@ -637,7 +668,10 @@ CAE_State* CAE_State::Input(const char* aName)
     }
     else {
 	CAE_ConnPoint *inp = it->second->GetFbObj(inp);
-	res = inp->Slot(0)->Pins().begin()->second->Ref()->GetFbObj(res);
+	if (inp->Dests().size() > 0 ) {
+	    CAE_Base* refb = inp->Slot(0)->Pins().begin()->second->Ref();
+	    res = (refb != NULL) ? refb->GetFbObj(res) : NULL;
+	}
 	if (res == NULL) {
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
 	}

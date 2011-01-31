@@ -21,7 +21,7 @@ static const char* KSpecFileName = "ut_conn_spec.xml";
 static const TUint32 KMass_Min = 1;
 static const TUint32 KMass_Max = 100;
 // For how many snails is the feed prepared on theirs way
-static const TUint32 KMaxFeed = 2;
+static const TUint32 KMaxFeed = 4;
 
 void utconn_update_mass(CAE_Object* aObject, CAE_State* aState);
 void utconn_update_coord(CAE_Object* aObject, CAE_State* aState);
@@ -52,6 +52,7 @@ void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
 {
     CAE_TState<TUint32>& self = (CAE_TState<TUint32>&) *aState;
     const TUint32& coord_s = self.Inp("coord_self");
+    const TBool& frugal_s = self.Inp("frugal");
 
     TInt feed = KMaxFeed;
 /*
@@ -61,14 +62,15 @@ void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
 	    feed--;
     }
     */
-    for (CAE_State::mult_point_inp_iterator i = self.MpInput_begin("coord_others"); i != self.MpInput_end("coord_others"); i++)
+    for (CAE_State::mult_point_inp_iterator i = self.MpInput_begin("neighbor"); i != self.MpInput_end("neighbor"); i++)
     {
-	const TUint32& coord_o = *i;
+	const TUint32& coord_o = i.State("coord");
+	const TBool& frugal_o = i.State("frugal");
 	if (coord_o > coord_s && feed > 0)
-	    feed--;
+	    feed -= frugal_o ? 1 : 2;
     }
 
-    TUint32 newmass = ~self + feed - 1;
+    TUint32 newmass = ~self + ((feed <= 1) ? feed : (frugal_s ? 1 : 2));
     if (newmass > KMass_Max) newmass = KMass_Max;
     if (newmass < KMass_Min) newmass = KMass_Min;
     self = newmass;
