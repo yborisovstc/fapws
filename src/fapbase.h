@@ -253,30 +253,6 @@ protected:
 
 inline const char *CAE_EBase::Type() { return "State";} 
 
-
-// TODO [YB] Do we need RefType within the pin. This seems redundant because within the slots
-// the pins are the same. The solution can be to move pins reftype into templates. In this
-// case we need to have srcs template too.
-// Connection pin. Represents reference to interface
-class CAE_ConnPin
-{
-    public:
-	CAE_ConnPin(const char* aRefType): iRefType(aRefType), iRef(NULL) {};
-	CAE_ConnPin(const char* aRefType, CAE_Base *aRef): iRefType(aRefType), iRef(aRef) {};
-	CAE_ConnPin(const CAE_ConnPin& aPin): iRefType(aPin.RefType()), iRef(aPin.Ref()) {};
-	TBool Set(CAE_Base *aRef);
-	TBool Set(CAE_ConnPin *aPin);
-	void Reset() { iRef = NULL; };
-	CAE_Base *Ref() { return iRef;};
-	CAE_Base *Ref() const { return iRef;};
-	const string& RefType() const {return iRefType;};
-    private:
-	// Type of interface referenced
-	string iRefType;
-	// Reference to interface
-	CAE_Base *iRef;
-};
-
 // TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
 class CAE_ConnPointBase: public CAE_Base
@@ -287,7 +263,7 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
-	virtual CAE_ConnPin* GetSrcPin(const char* aName) = 0;
+	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 };
@@ -298,49 +274,53 @@ class CAE_ConnPoint;
 // Connection slot. Container of source pins, destination pins, and ref to connecred slot.
 class CAE_ConnSlot
 {
+    public: 
+	typedef string templ_elem; 
+	typedef map<string, templ_elem> Template;
     public:
-	CAE_ConnSlot() {};
-	CAE_ConnSlot(const map<string, string>& aTempl);
+	CAE_ConnSlot(const map<string, templ_elem>& aTempl);
 	~CAE_ConnSlot() {};
-	CAE_ConnPin* Pin(const char *aName);
-	map<string, CAE_ConnPin*>& Pins() { return iPins;};
-	TBool SetPin(const map<string, string>& aTempl, const char* aName, CAE_ConnPin *aSrc);
-	TBool SetPins(const map<string, string>& aTempl, const map<string, CAE_ConnPin*>& aSrcs);
+	CAE_Base* Pin(const char *aName);
+	const CAE_Base* Pin(const char *aName) const;
+	map<string, CAE_Base*>& Pins() { return iPins;};
+	TBool SetPin(const char* aName, CAE_Base *aSrc);
+	TBool Set(CAE_ConnSlot& aSrcs);
     private:
 	// Pins
-	map<string, CAE_ConnPin*> iPins;
+	map<string, CAE_Base*> iPins;
+	const map<string, templ_elem>& iTempl;
 };
 
 // Multilink Connection point. Contains multiple dests
 class CAE_ConnPoint: public CAE_ConnPointBase
 {
     public:
-	CAE_ConnPoint();
+	CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
 	virtual ~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
-	virtual CAE_ConnPin* GetSrcPin(const char* aName);
+	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
-	map<string, CAE_ConnPin*>& Srcs() {return iSrcs;};
+	CAE_ConnSlot* Srcs() {return iSrcs;};
 	map<string, string>& DestsTempl() {return iDestsTempl;};
-	CAE_ConnPin *Src(const char* aName);
+	map<string, string>& SrcsTempl() {return iSrcsTempl;};
 	static const char *Type() {return "ConnPoint";}; 
     protected:
-	TBool SetSrc(const string & aName, const string &aPairName, const map<string, CAE_ConnPin*>& aSrcs);
-	TBool SetSrcs(const map<string, CAE_ConnPin*>& aSrcs);
 	TBool ConnectConnPoint(CAE_ConnPoint *aConnPoint);
 	virtual void *DoGetFbObj(const char *aName);
     private:
 	// Sources
-	map<string, CAE_ConnPin*> iSrcs;
+	CAE_ConnSlot* iSrcs;
 	// Connection slots
 	vector<CAE_ConnSlot*> iDests;
 	// Destinations template
-	map<string, string> iDestsTempl;
+	map<string, CAE_ConnSlot::templ_elem> iDestsTempl;
+	// Sources template
+	map<string, CAE_ConnSlot::templ_elem> iSrcsTempl;
 };
 
 // Simple extender. Just contains the reference to connector
@@ -350,7 +330,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	CAE_ConnPointExt(): iRef(NULL) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
-	virtual CAE_ConnPin* GetSrcPin(const char* aName);
+	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
@@ -402,7 +382,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	CAE_ConnPointExtC() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
-	virtual CAE_ConnPin* GetSrcPin(const char* aName);
+	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) {};
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
@@ -478,8 +458,8 @@ public:
 	    mult_point_inp_iterator& operator++(int) { mult_point_inp_iterator tmp(*this); operator++(); return tmp; };
 	    TBool operator==(const mult_point_inp_iterator& aIt) { return (iInd == aIt.iInd); };
 	    TBool operator!=(const mult_point_inp_iterator& aIt) { return (iInd != aIt.iInd); };
-	    CAE_State& operator*() { CAE_State* st = iDests.at(iInd)->Pin("_1")->Ref()->GetFbObj(st); return *st;};
-	    CAE_State& State(const char* aName) { CAE_State* st = iDests.at(iInd)->Pin(aName)->Ref()->GetFbObj(st); return *st;};
+	    CAE_State& operator*() { CAE_State* st = iDests.at(iInd)->Pin("_1")->GetFbObj(st); return *st;};
+	    CAE_State& State(const char* aName) { CAE_State* st = iDests.at(iInd)->Pin(aName)->GetFbObj(st); return *st;};
 	public:
 	    vector<CAE_ConnSlot*>& iDests;
 	    TInt iInd;

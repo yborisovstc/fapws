@@ -54,57 +54,46 @@ void Panic(TInt aRes)
 	_IND_PANIC(KFapPanic, aRes);
 }
 
-TBool CAE_ConnPin::Set(CAE_Base *aRef) 
-{ 
-    TBool res = EFalse;
-    // TODO [YB] To migrate to pins without reftype (get it from template)
-    // Seems it is not needed at all - see slot's SetPin
-    //if (aRef->GetFbObj(iRefType.c_str())) { 
-	iRef = aRef; res = ETrue;
-    //} 
-   return res; 
-};
-
-TBool CAE_ConnPin::Set(CAE_ConnPin *aPin)
-{
-    return Set(aPin->Ref());
-}
-
-
-CAE_ConnSlot::CAE_ConnSlot(const map<string, string>& aTempl)
+CAE_ConnSlot::CAE_ConnSlot(const map<string, string>& aTempl): iTempl(aTempl)
 {
     for (map<string, string>::const_iterator i = aTempl.begin(); i != aTempl.end(); i++) {
-	iPins[i->first] = new CAE_ConnPin(i->second.c_str());
+	iPins[i->first] = NULL;
     }
 }
 
-CAE_ConnPin* CAE_ConnSlot::Pin(const char *aName) 
+CAE_Base* CAE_ConnSlot::Pin(const char *aName) 
 { 
-    map<string, CAE_ConnPin*>::iterator elem = iPins.find(aName);
+    map<string, CAE_Base*>::iterator elem = iPins.find(aName);
     return (elem == iPins.end()) ? NULL : elem->second;
 };
 
-TBool CAE_ConnSlot::SetPin(const map<string, string>& aTempl, const char* aName, CAE_ConnPin *aSrc) 
+const CAE_Base* CAE_ConnSlot::Pin(const char *aName) const
+{ 
+    map<string, CAE_Base*>::const_iterator elem = iPins.find(aName);
+    return (elem == iPins.end()) ? NULL : elem->second;
+};
+
+TBool CAE_ConnSlot::SetPin(const char* aName, CAE_Base *aSrc) 
 {
     TBool res = EFalse;
     // TODO [YB] To check type in template
-    map<string, string>::const_iterator tt = aTempl.find(aName);
-    if (tt != aTempl.end()) {
-	iPins[tt->first] = new CAE_ConnPin(tt->second.c_str(), aSrc->Ref());
+    map<string, string>::const_iterator tt = iTempl.find(aName);
+    if (tt != iTempl.end()) {
+	iPins[tt->first] = aSrc;
 	res = ETrue;
     }
     return res;
 }
 
-TBool CAE_ConnSlot::SetPins(const map<string, string>& aTempl, const map<string, CAE_ConnPin*>& aSrcs) 
+TBool CAE_ConnSlot::Set(CAE_ConnSlot& aSrcs) 
 {
     TBool res = ETrue;
     // Go thru all dest pins
-    for (map<string, string>::const_iterator i = aTempl.begin(); i != aTempl.end(); i++) {
+    for (map<string, string>::const_iterator i = iTempl.begin(); i != iTempl.end(); i++) {
 	// Check if there is the corresponding pin in sources
-	map<string, CAE_ConnPin*>::const_iterator si = aSrcs.find(i->first);
-	if (si != aSrcs.end()) {
-	    iPins[i->first] = new CAE_ConnPin(*(si->second));
+	CAE_Base* pin = aSrcs.Pin(i->first.c_str());
+	if (pin != NULL) {
+	    iPins[i->first] = pin;
 	}
 	else {
 	    res = EFalse; break;
@@ -113,67 +102,30 @@ TBool CAE_ConnSlot::SetPins(const map<string, string>& aTempl, const map<string,
     return res;
 }
 
-CAE_ConnPoint::CAE_ConnPoint() 
-{}
+CAE_ConnPoint::CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): 
+    iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
+{
+    iSrcs = new CAE_ConnSlot(iSrcsTempl);
+}
 
 CAE_ConnPoint::~CAE_ConnPoint() 
 {
 }
-
-CAE_ConnPin *CAE_ConnPoint::Src(const char* aName) 
-{
-    map<string, CAE_ConnPin*>::iterator it = iSrcs.find(aName);
-    return (it == iSrcs.end()) ? NULL: it->second;
-};
 
 void *CAE_ConnPoint::DoGetFbObj(const char *aName)
 {
     return (strcmp(aName, Type()) == 0) ? this : NULL;
 }
 
-// TODO [YB] Currently we use rather weird method of creating complex extending point
-// Normally the pins name should be corresponding in ext point source and a pair.
-// But we use here "manual" connection where ext point source with name "a" can be 
-// connected to pair source with the name "b". 
-// One of the possible way to avoid this would be having named slots for srcs where
-// within the slot the pins names would be corresponding.
-TBool CAE_ConnPoint::SetSrc(const string & aName, const string &aPairName, const map<string, CAE_ConnPin*>& aSrcs) 
-{
-    TBool res = EFalse;
-    // Get the source
-    map<string, CAE_ConnPin*>::iterator si = iSrcs.find(aName);
-    if (si != iSrcs.end()) {
-    }
-    return res;
-}
-
-// Copying srcs from the pair into empty sources
-TBool CAE_ConnPoint::SetSrcs(const map<string, CAE_ConnPin*>& aSrcs) 
-{
-    TBool res = ETrue;
-    if (iSrcs.size() > 0)
-	res = EFalse;
-    else {
-	// Go thru all pins
-	for (map<string, CAE_ConnPin*>::const_iterator i = aSrcs.begin(); i != aSrcs.end(); i++) {
-	    // Check if there is the corresponding pin 
-		iSrcs[i->first] = new CAE_ConnPin(*(i->second));
-	}
-    }
-    return res;
-}
-
 TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint) 
 {
     TBool res = EFalse;
     // Adding new slot
-    CAE_ConnSlot *slot = new CAE_ConnSlot();
+    CAE_ConnSlot *slot = new CAE_ConnSlot(iDestsTempl);
     // Copy Srcs from connected point to created slot
-    if (!iSrcs.empty()) {
-	res = slot->SetPins(iDestsTempl, aConnPoint->Srcs());
-	if (res) {
-	    iDests.push_back(slot);
-	}
+    res = slot->Set(*(aConnPoint->Srcs()));
+    if (res) {
+	iDests.push_back(slot);
     }
     return res;
 }
@@ -207,38 +159,36 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
 // then we need to complete all connections to b before go to c.
 TBool CAE_ConnPoint::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
 {
-    TBool res = ETrue;
+    TBool res = EFalse;
     TBool found = EFalse;
     CAE_ConnSlot* slot = NULL;
 
-    // Check the latest slot, if the pin is not set, then set them, otherwise create new slot
-    for (vector<CAE_ConnSlot*>::iterator is = iDests.end(); is != iDests.begin() && !found; ) {
-	is--;
-	slot = *is;
-	map<string, CAE_ConnPin*>::iterator id = slot->Pins().find(aPin);
-	if (id != slot->Pins().end()) {
-	    CAE_ConnPin *pin = id->second;
-	    found = pin->Ref() == NULL;
+    CAE_ConnSlot::Template::iterator ti = iDestsTempl.find(aPin);
+    if (ti != iDestsTempl.end()) {
+	// Check the latest slot, if the pin is not set, then set them, otherwise create new slot
+	for (vector<CAE_ConnSlot*>::iterator is = iDests.end(); is != iDests.begin() && !found; ) {
+	    is--;
+	    slot = *is;
+	    found = slot->Pin(aPin) == NULL;
 	}
-    }
-    if (!found) {
-	slot = new CAE_ConnSlot(iDestsTempl);
-	iDests.push_back(slot);
-    }
-    // Redirect to the pin
-    CAE_ConnPin* pair_pin = aPair->GetSrcPin(aPairPin);
-    // Case when pair pin is not found is normal. When connect to the bus it maybe that bus doesn't contain the pair for pin
-    if (pair_pin != NULL) {
-	res = slot->SetPin(iDestsTempl, aPin, pair_pin);
+	if (!found) {
+	    slot = new CAE_ConnSlot(iDestsTempl);
+	    iDests.push_back(slot);
+	}
+	// Redirect to the pin
+	CAE_Base* pair_pin = aPair->GetSrcPin(aPairPin);
+	// Case when pair pin is not found is normal. When connect to the bus it maybe that bus doesn't contain the pair for pin
+	if (pair_pin != NULL) {
+	    res = slot->SetPin(aPin, pair_pin);
+	}
     }
 
     return res;
 }
 
-CAE_ConnPin* CAE_ConnPoint::GetSrcPin(const char* aName)
+CAE_Base* CAE_ConnPoint::GetSrcPin(const char* aName)
 {
-    map<string, CAE_ConnPin*>::iterator it = iSrcs.find(aName);
-    return (it == iSrcs.end()) ? NULL : it->second;
+    return iSrcs->Pin(aName);
 }
 
 void CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
@@ -293,7 +243,7 @@ TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint)
     return res;
 };
 
-CAE_ConnPin* CAE_ConnPointExt::GetSrcPin(const char* aName)
+CAE_Base* CAE_ConnPointExt::GetSrcPin(const char* aName)
 {
     return iRef->GetSrcPin(aName);
 }
@@ -341,9 +291,9 @@ TBool CAE_ConnPointExtC::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, 
     return res;
 }
 
-CAE_ConnPin* CAE_ConnPointExtC::GetSrcPin(const char* aName)
+CAE_Base* CAE_ConnPointExtC::GetSrcPin(const char* aName)
 {
-    CAE_ConnPin* res = NULL;
+    CAE_Base* res = NULL;
     // Redirect to connected pin
     Slot& slot = iSlots.at(0);
     map<string, Slot::slot_elem>::iterator it = slot.Srcs().find(aName);
@@ -475,10 +425,12 @@ void CAE_State::ConstructL()
 	// TODO [YB] Do we need to assert iMan?
 	if (iMan)
 	    iMan->RegisterCompL(this);
-	CAE_ConnPoint *outp = new CAE_ConnPoint(); 
+	CAE_ConnSlot::Template dt, st;
+	dt["_1"]  = "State";
+	st["_1"]  = "State";
+	CAE_ConnPoint *outp = new CAE_ConnPoint(st, dt); 
 	iOutput = outp;
-	outp->Srcs()["_1"] = new CAE_ConnPin("", this);
-	outp->DestsTempl()["_1"]  = "";
+	outp->Srcs()->SetPin("_1", this);
 	if (Logger())
 	    Logger()->WriteFormat("State created:: Name: %s, Len: %d", iInstName, iLen);
 }	
@@ -519,7 +471,7 @@ void CAE_State::Confirm()
 	CAE_ConnPoint *outp = iOutput->GetFbObj(outp);
 	_FAP_ASSERT(outp != NULL);
 	for (TInt i = 0; i < outp->Dests().size(); i++) {
-	    CAE_State* sout =  outp->Slot(i)->Pin("_1")->Ref()->GetFbObj(sout);
+	    CAE_State* sout =  outp->Slot(i)->Pin("_1")->GetFbObj(sout);
 	    _FAP_ASSERT(sout != NULL);
 	    sout->SetActive();
 	}
@@ -580,8 +532,8 @@ void CAE_State::LogUpdate(TInt aLogData)
 	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
-	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
-	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
+	    map<string, CAE_Base*>::iterator it = cpoint->Slot(0)->Pins().begin();
+	    CAE_State* state = (*it).second->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
 		if (Logger())
@@ -608,8 +560,8 @@ void CAE_State::LogTrans(TInt aLogData)
 	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
-	    map<string, CAE_ConnPin*>::iterator it = cpoint->Slot(0)->Pins().begin();
-	    CAE_State* state = (*it).second->Ref()->GetFbObj(state);
+	    map<string, CAE_Base*>::iterator it = cpoint->Slot(0)->Pins().begin();
+	    CAE_State* state = (*it).second->GetFbObj(state);
 	    if (state != NULL) { /* input can be empty in case of ext input */
 		char* buf = state->DataToStr(ETrue);
 		if (Logger())
@@ -669,7 +621,7 @@ CAE_State* CAE_State::Input(const char* aName)
     else {
 	CAE_ConnPoint *inp = it->second->GetFbObj(inp);
 	if (inp->Dests().size() > 0 ) {
-	    CAE_Base* refb = inp->Slot(0)->Pins().begin()->second->Ref();
+	    CAE_Base* refb = inp->Slot(0)->Pins().begin()->second;
 	    res = (refb != NULL) ? refb->GetFbObj(res) : NULL;
 	}
 	if (res == NULL) {
@@ -686,10 +638,11 @@ void CAE_State::AddInputL(const char* aName)
 	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), InstName(), aName);
 	_FAP_ASSERT(!exists);
     }
-    CAE_ConnPoint *cpoint = new CAE_ConnPoint();
-    CAE_ConnPin *spin = new CAE_ConnPin("", this);
-    cpoint->Srcs()["_1"] =  spin;
-    cpoint->DestsTempl()["_1"]  = "";
+    CAE_ConnSlot::Template dt, st;
+    st["_1"]  = "State";
+    dt["_1"]  = "State";
+    CAE_ConnPoint *cpoint = new CAE_ConnPoint(st, dt);
+    cpoint->Srcs()->SetPin("_1", this);
     pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
     bool bres = res.second;
 }
@@ -1021,40 +974,9 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 	else if (ftype == ECae_Stinp) {
 	    CreateConn(child, iInputs);
 	}
+	// Object output
 	else if (ftype == ECae_Soutp) {
-	    // Set output
-	    char *sout = chman->GetStrAttr(child, KXStateInpAttr_Id);
-	    if (sout == NULL)
-		Logger()->WriteFormat("ERROR: Creating object [%s]: empty output name", name);
-	    else {
-		if (iOutputs.count(sout) > 0) {
-		    Logger()->WriteFormat("Object [%s.%s.%s]: Out [%s] already exists", MansName(1), MansName(0), InstName(), sout);
-		    _FAP_ASSERT(EFalse);
-		}
-		if (chman->GetChild(child) != NULL) {
-		    // There are pins spec - Commutating extender
-		    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC();
-		    for (void *elem = chman->GetChild(child); elem != NULL; elem = chman->GetNext(elem)) {
-			TCaeElemType etype = chman->FapType(elem);
-			if (etype == ECae_CpSource)
-			{
-			    char *name = chman->GetStrAttr(elem,"id"); 
-			    cpoint->Templ().Srcs()[name] = "";
-			}
-			else if (etype == ECae_CpDest)
-			{
-			    char *name = chman->GetStrAttr(elem,"id"); 
-			    cpoint->Templ().Dests()[name] = "";
-			}
-		    }
-		    pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iOutputs.insert(pair<string, CAE_ConnPointBase*>(sout, cpoint));
-		}
-		else {
-		    // Simple extender
-		    CAE_ConnPointExt *cpoint = new CAE_ConnPointExt();
-		    pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iOutputs.insert(pair<string, CAE_ConnPointBase*>(sout, cpoint));
-		}
-	    }
+	    CreateConn(child, iOutputs);
 	}
 	// Connection
 	else if (ftype == ECae_Conn)
@@ -1184,7 +1106,8 @@ void CAE_Object::CreateStateInp(void* aSpecNode, CAE_State *aState)
 	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName(), name);
 	    _FAP_ASSERT(EFalse);
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint();
+	CAE_ConnSlot::Template st, dt;
+	st["_1"] = "State";
 	if (chman->GetChild(aSpecNode) != NULL) {
 	    // There are pins spec, processing
 	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
@@ -1194,15 +1117,16 @@ void CAE_Object::CreateStateInp(void* aSpecNode, CAE_State *aState)
 		    char *name = chman->GetStrAttr(elem,"id"); 
 		    char *type = chman->GetStrAttr(elem,"type"); 
 		    // Create default templ if type isnt specified
-		    cpoint->DestsTempl()[name] = type ? type: "State";
+		    dt[name] = type ? type: "State";
 		    r_dest_spec = ETrue;
 		}
 	    }
 	}
-	cpoint->Srcs()["_1"] = new CAE_ConnPin("State", aState);
 	if (!r_dest_spec) {
-	    cpoint->DestsTempl()["_1"] = "State";
+	    dt["_1"] = "State";
 	}
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(st, dt);
+	cpoint->Srcs()->SetPin("_1", aState);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
 }
@@ -1585,7 +1509,7 @@ CAE_State* CAE_Object::GetOutpState(const char* aName)
     }
     else {
 	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
-	res = cp->Srcs().begin()->second->Ref()->GetFbObj(res);
+	res = cp->Srcs()->Pins().begin()->second->GetFbObj(res);
 	if (res == NULL) {
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
 	}
@@ -1602,7 +1526,7 @@ CAE_State* CAE_Object::GetInpState(const char* aName)
     }
     else {
 	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
-	res = cp->Srcs().begin()->second->Ref()->GetFbObj(res);
+	res = cp->Srcs()->Pins().begin()->second->GetFbObj(res);
 	if (res == NULL) {
 	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName(), aName);
 	}

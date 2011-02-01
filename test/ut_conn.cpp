@@ -111,6 +111,8 @@ void UT_FAP_Conn::test_Conn_main()
     {
         iEnv->Step();
     }
+    CAE_TState<TUint32> &coord_3t = *coord_3;
+    CPPUNIT_ASSERT_MESSAGE("Fail to compare [snail_3.coord]", ~coord_3t == 105);
 }
 
 
