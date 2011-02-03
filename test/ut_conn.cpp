@@ -25,10 +25,12 @@ static const TUint32 KMaxFeed = 4;
 
 void utconn_update_mass(CAE_Object* aObject, CAE_State* aState);
 void utconn_update_coord(CAE_Object* aObject, CAE_State* aState);
+void utconn_update_frugal(CAE_Object* aObject, CAE_State* aState);
 
 const TTransInfo KTinfo_Update_mass = TTransInfo(utconn_update_mass, "trans_mass");
 const TTransInfo KTinfo_Update_coord = TTransInfo(utconn_update_coord, "trans_coord");
-static const TTransInfo* tinfos[] = {&KTinfo_Update_mass, &KTinfo_Update_coord, NULL};
+const TTransInfo KTinfo_Update_frugal = TTransInfo(utconn_update_frugal, "trans_frugal");
+static const TTransInfo* tinfos[] = {&KTinfo_Update_mass, &KTinfo_Update_coord, &KTinfo_Update_frugal, NULL};
 
 
 
@@ -55,13 +57,6 @@ void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
     const TBool& frugal_s = self.Inp("frugal");
 
     TInt feed = KMaxFeed;
-/*
-    for (TInt i = 1; self.Input("coord_others", i) != NULL; i++) {
-	const TUint32& coord_o = self.Inp("coord_others", i);
-	if (coord_o > coord_s && feed > 0)
-	    feed--;
-    }
-    */
     for (CAE_State::mult_point_inp_iterator i = self.MpInput_begin("neighbor"); i != self.MpInput_end("neighbor"); i++)
     {
 	const TUint32& coord_o = i.State("coord");
@@ -73,7 +68,7 @@ void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
     TUint32 newmass = ~self + ((feed <= 1) ? feed : (frugal_s ? 1 : 2));
     if (newmass > KMass_Max) newmass = KMass_Max;
     if (newmass < KMass_Min) newmass = KMass_Min;
-    self = newmass;
+    self = newmass - 1;
 }
 
 void utconn_update_coord(CAE_Object* aObject, CAE_State* aState)
@@ -82,6 +77,23 @@ void utconn_update_coord(CAE_Object* aObject, CAE_State* aState)
     const TUint32& mass_s = self.Inp("mass");
     if (mass_s > 0) 
 	self = ~self + KMass_Max/mass_s;
+}
+
+void utconn_update_frugal(CAE_Object* aObject, CAE_State* aState)
+{
+    CAE_TState<TBool>& self = (CAE_TState<TUint32>&) *aState;
+    const TBool& frugal = self.Inp("self");
+    const TUint32& coord_s = self.Inp("coord");
+
+    TBool last = ETrue;
+    for (CAE_State::mult_point_inp_iterator i = self.MpInput_begin("coord_other"); i != self.MpInput_end("coord_other") && last; i++)
+    {
+	const TUint32& coord_o = i.State("_1");
+	if (coord_s >= coord_o)
+	    last = EFalse;
+    }
+    // If the last then stop to be frugal
+    self = last ? EFalse : frugal;
 }
 
 
@@ -112,7 +124,7 @@ void UT_FAP_Conn::test_Conn_main()
         iEnv->Step();
     }
     CAE_TState<TUint32> &coord_3t = *coord_3;
-    CPPUNIT_ASSERT_MESSAGE("Fail to compare [snail_3.coord]", ~coord_3t == 105);
+    CPPUNIT_ASSERT_MESSAGE("Fail to compare [snail_3.coord]", ~coord_3t == 296);
 }
 
 

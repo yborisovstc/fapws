@@ -29,6 +29,7 @@ const char* KCaeElTypeCpdest = "dest";
 const char* KCaeElTypeCext = "ext";
 const char* KCaeElTypeCextc = "extc";
 const char* KCaeElTypeCextcSrc = "srcext";
+const char* KCaeElTypeCextcDest = "dstext";
 
 // Base states registered by default
 const TStateInfo KSinfo_State = TStateInfo("State", (TStateFactFun) CAE_State::NewL );
@@ -362,6 +363,8 @@ TCaeElemType CAE_ChroManX::FapType(void *aElement)
 	res = ECae_Cextc;
     else if (strcmp(type, KCaeElTypeCextcSrc) == 0)
 	res = ECae_CextcSrc;
+    else if (strcmp(type, KCaeElTypeCextcDest) == 0)
+	res = ECae_CextcDest;
     return res;
 }
 

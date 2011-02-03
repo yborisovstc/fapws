@@ -1,12 +1,18 @@
 <?xml version="1.0" ?>
 
-<!-- Specification of FAP environment for unit test for extended inputs and object mutation -->
+<!-- Unit test for connections -->
 <!--
      There are several "snails" that are crawling to one direction
      The the less mass of snail the much its velocity  
      The snail that is crawling first eat more food and thus increase its mass
      The snail that falls behind gets less food and thus loosing its mass
      Also the snail can be frugal, which doesn't eat the whole portion, thus more food remains for the followers 
+
+     The following use cases are tested:
+     1. Object output extending of multiple state outputs to one bus
+     2. Object input extending of multiple state inputs to one bus
+     3. State input multiple connestion to outputs (snail.mass.neighbor to snail.out) 
+
      -->
 
 <!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
@@ -15,7 +21,9 @@
     <object type="test" id="main_test">
 	<object type="none" id="snail" quiet="yes"> 
 
-	    <inp id="neighbor"/>
+	    <inp id="neighbor">
+		<dest id="coord"/> <dest id="frugal"/> 
+	    </inp>
 	    <out id="coord"/>
 	    <!-- Custom output connection point: contains two pins on srcs: [coord] and [vip] -->
 	    <out id="outp">
@@ -42,15 +50,17 @@
 		<inp id="self"/> <inp id="mass"/> 
 	    </state>
 
-	    <state type="StBool" id="frugal" len="4" init="0"> 
+	    <state type="StBool" id="frugal" len="4" transf="trans_frugal" init="0"> 
 		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-		<inp id="self"/>  
+		<inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
 	    </state>
 
 	    <conn id="mass.coord_self" pair="coord.output"/> 
 	    <conn id="mass.frugal" pair="frugal.output"/> 
 	    <conn id="coord.self" pair="coord.output"/> 
 	    <conn id="coord.mass" pair="mass.output"/>
+	    <conn id="frugal.self" pair="frugal.output"/>
+	    <conn id="frugal.coord" pair="coord.output"/>
 
 	    <ext id="neighbor" pair="mass.neighbor"/>
 	    <ext id="coord" pair="coord.output"/>
@@ -58,12 +68,15 @@
 		<srcext id="coord" pair="coord.output"/>
 		<srcext id="frugal" pair="frugal.output"/>
 	    </extc>
+	    <extc id="neighbor">
+		<dstext id="coord" pair="frugal.coord_other"/>
+	    </extc>
 
 	</object> <!-- snail -->
 
-	<object type="snail" id="snail_1" > <state mut="Change" id="mass" init="7"/> <state mut="Change" id="frugal" init="True"/></object>
+	<object type="snail" id="snail_1" > <state mut="Change" id="mass" init="7"/> </object>
 	<object type="snail" id="snail_2" > <state mut="Change" id="mass" init="3"/></object>
-	<object type="snail" id="snail_3" > <state mut="Change" id="mass" init="16"/></object>
+	<object type="snail" id="snail_3" > <state mut="Change" id="mass" init="16"/>  <state mut="Change" id="frugal" init="True"/></object>
 
 	<conn id="snail_1.neighbor" pair="snail_2.outp"/><conn id="snail_1.neighbor" pair="snail_3.outp"/>
 	<conn id="snail_2.neighbor" pair="snail_1.outp"/> <conn id="snail_2.neighbor" pair="snail_3.outp"/>

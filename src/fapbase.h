@@ -358,6 +358,8 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 		map<string, slot_templ_elem>& Dests() { return iDests;};
 		const map<string, slot_templ_elem>& Srcs(TInt a=0) const { return iSrcs;};
 		const map<string, slot_templ_elem>& Dests(TInt a=0) const { return iDests;};
+		TInt SrcCnt(const char* aName);
+		TInt DestCnt(const char* aName);
 	    private:
 		// Element: [bus pin name]
 		map<string, slot_templ_elem> iSrcs;

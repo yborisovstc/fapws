@@ -285,8 +285,10 @@ TBool CAE_ConnPointExtC::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, 
 	// Redirect to connected pin
 	map<string, Slot::slot_elem>::iterator id = (*is).Dests().find(aPin);
 	CAE_ConnPointBase* cp = id->second.first;
-	string& pin_name = id->second.second;
-	res = cp->ConnectPin(pin_name.c_str(), aPair, aPairPin);
+	if (cp != NULL) {
+	    string& pin_name = id->second.second;
+	    res = cp->ConnectPin(pin_name.c_str(), aPair, aPairPin);
+	}
     }
     return res;
 }
@@ -307,7 +309,18 @@ CAE_Base* CAE_ConnPointExtC::GetSrcPin(const char* aName)
 
 TBool CAE_ConnPointExtC::Extend(CAE_ConnPointBase *aConnPoint)
 {
-    return EFalse;
+    // Just extend all the pins to given connpoint with the bus pin names
+    TBool res = EFalse;
+    CAE_ConnPointExtC::Slot slot(Templ());
+    for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = iSlotTempl.Dests().begin(); it != iSlotTempl.Dests().end(); it++) {
+	slot.Dests()[it->first] = Slot::slot_elem(aConnPoint, it->first);
+    }
+    for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = iSlotTempl.Srcs().begin(); it != iSlotTempl.Srcs().end(); it++) {
+	slot.Srcs()[it->first] = Slot::slot_elem(aConnPoint, it->first);
+    }
+    Slots().push_back(slot);
+    res = ETrue;
+    return res;
 }
 
 void *CAE_ConnPointExtC::DoGetFbObj(const char *aName)
@@ -315,15 +328,17 @@ void *CAE_ConnPointExtC::DoGetFbObj(const char *aName)
     return (strcmp(aName, Type()) == 0) ? this : NULL;
 }
 
+TInt CAE_ConnPointExtC::SlotTempl::SrcCnt(const char* aName) {return iSrcs.count(aName);};
+TInt CAE_ConnPointExtC::SlotTempl::DestCnt(const char* aName) {return iDests.count(aName);};
+
 CAE_ConnPointExtC::Slot::Slot(const SlotTempl& aTempl)
 {
-    Slot slot;
     // Copy Dest and Srcs from template
     for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = aTempl.Dests().begin(); it != aTempl.Dests().end(); it++) {
-	slot.Dests()[it->first] = slot_elem(NULL, "");
+	Dests()[it->first] = slot_elem(NULL, "");
     }
     for (map<string, SlotTempl::slot_templ_elem>::const_iterator it = aTempl.Srcs().begin(); it != aTempl.Srcs().end(); it++) {
-	slot.Srcs()[it->first] = slot_elem(NULL, "");
+	Srcs()[it->first] = slot_elem(NULL, "");
     }
 }
 
@@ -1076,6 +1091,9 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 			    else {
 				Logger()->WriteFormat("ERROR: Custom extenion [%s]: pin [%s]  not found", exname, pin_name);
 			    }
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Custom extenion [%s]: unknown spec element", exname);
 			}
 
 		    }
