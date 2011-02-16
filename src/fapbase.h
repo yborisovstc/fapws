@@ -457,7 +457,7 @@ public:
 	    mult_point_inp_iterator(vector<CAE_ConnSlot*>& aDests, TInt aInd): iDests(aDests), iInd(aInd) {};
 	    mult_point_inp_iterator(const mult_point_inp_iterator& aIt): iDests(aIt.iDests), iInd(aIt.iInd) {};
 	    mult_point_inp_iterator& operator++() { iInd++; return *this; };
-	    mult_point_inp_iterator& operator++(int) { mult_point_inp_iterator tmp(*this); operator++(); return tmp; };
+	    mult_point_inp_iterator operator++(int) { mult_point_inp_iterator tmp(*this); operator++(); return tmp; };
 	    TBool operator==(const mult_point_inp_iterator& aIt) { return (iInd == aIt.iInd); };
 	    TBool operator!=(const mult_point_inp_iterator& aIt) { return (iInd != aIt.iInd); };
 	    CAE_State& operator*() { CAE_State* st = iDests.at(iInd)->Pin("_1")->GetFbObj(st); return *st;};
@@ -594,6 +594,158 @@ class TStateInfo
 	TStateFactFun iFactFun;
 };
 
+enum NodeType
+{
+    ENt_Unknown = 0,
+    ENt_Object = 1,
+    ENt_State = 2,
+    ENt_Conn = 3,	   // Connection
+    ENt_Logspec = 4,  // Logging specification
+    ENt_Dep = 5,      // Dependency
+    ENt_Logdata = 6,  // Logging data
+    ENt_Stinp = 7,    // State/system input
+    ENt_Mut = 8,      // Mutation
+    ENt_Soutp = 9,    // State/system output
+    ENt_CpSource = 10,// Connection point source
+    ENt_CpDest = 11,  // Connection point destination
+    ENt_Cext = 12,    // Connecting extention
+    ENt_Cextc = 13,   // Custom Connecting extention
+    ENt_CextcSrc = 14,// Custom Connecting extention src spec
+    ENt_CextcDest = 15,// Custom Connecting extention dest spec
+    ENt_Env = 16,     // Environment
+    ENt_MutAdd = 17,  // Mutation - addition
+    ENt_MutRm = 18,   // Mutation - removal
+    ENt_MutChange = 19, // Mutation - change
+    ENt_Robject = 20, // Root of object
+};
+
+enum TNodeAttr
+{
+    ENa_Unknown = 0,
+    ENa_Id = 1,
+    ENa_Type = 2,
+    ENa_ObjQuiet = 3,
+    ENa_Transf = 4,
+    ENa_StInit = 5,
+    ENa_Logevent = 6,
+    ENa_StLen = 7,
+    ENa_PinType = 8,
+    ENa_ConnPair = 9,
+    ENa_MutNode = 10,
+    ENa_MutChgAttr = 11,
+    ENa_MutChgVal = 12,
+};
+
+// TODO [YB] Consider avoiding iHandle from Node
+class CAE_ChromoNode;
+
+class MAE_ChromoMdl
+{
+    public:
+	virtual NodeType GetType(const void* aHandle) = 0;
+	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual char* GetAttr(const void* aHandle, TNodeAttr aAttr) = 0;
+	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr) = 0;
+	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr) = 0;
+	virtual void* AddChild(void* aParent, NodeType aType) = 0;
+	virtual void* AddChild(void* aParent, const void* aHandle) = 0;
+	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
+};
+
+class CAE_ChromoMdlBase: public CAE_Base, public MAE_ChromoMdl
+{
+};
+
+// Node of chromo spec
+class CAE_ChromoNode
+{
+    public:
+	class Iterator: public iterator<input_iterator_tag, CAE_ChromoNode>
+    {
+	friend class CAE_ChromoNode;
+	public:
+	Iterator(const CAE_ChromoNode& aNode): iMdl(aNode.iMdl), iHandle(aNode.iHandle) {};
+	Iterator(CAE_ChromoMdlBase& aMdl, void* aHandle): iMdl(aMdl), iHandle(aHandle) {};
+	Iterator(const Iterator& aIt): iMdl(aIt.iMdl), iHandle(aIt.iHandle) {};
+	Iterator& operator=(const Iterator& aIt) { iMdl = aIt.iMdl; iHandle = aIt.iHandle; return *this; };
+	Iterator& operator++() { iHandle = iMdl.Next(iHandle); return *this; };
+	Iterator operator++(int) { Iterator tmp(*this); operator++(); return tmp; };
+	TBool operator==(const Iterator& aIt) { return (iHandle == aIt.iHandle); };
+	TBool operator!=(const Iterator& aIt) { return !(iHandle == aIt.iHandle); };
+	CAE_ChromoNode operator*() { return CAE_ChromoNode(iMdl, iHandle);};
+	public:
+	CAE_ChromoMdlBase& iMdl;
+	void* iHandle; // NULL point to the past-of-the-end element
+    };
+    public:
+	class Const_Iterator: public iterator<input_iterator_tag, CAE_ChromoNode>
+    {
+	friend class CAE_ChromoNode;
+	public:
+	Const_Iterator(const CAE_ChromoNode& aNode): iMdl(aNode.iMdl), iHandle(aNode.iHandle) {};
+	Const_Iterator(CAE_ChromoMdlBase& aMdl, void* aHandle): iMdl(aMdl), iHandle(aHandle) {};
+	Const_Iterator(const Const_Iterator& aIt): iMdl(aIt.iMdl), iHandle(aIt.iHandle) {};
+	Const_Iterator& operator=(const Const_Iterator& aIt) { iMdl = aIt.iMdl; iHandle = aIt.iHandle; return *this; };
+	Const_Iterator& operator++() { iHandle = iMdl.Next(iHandle); return *this; };
+	Const_Iterator operator++(int) { Const_Iterator tmp(*this); operator++(); return tmp; };
+	TBool operator==(const Const_Iterator& aIt) { return (iHandle == aIt.iHandle); };
+	TBool operator!=(const Const_Iterator& aIt) { return !(iHandle == aIt.iHandle); };
+	CAE_ChromoNode operator*() { return CAE_ChromoNode(iMdl, iHandle);};
+	public:
+	CAE_ChromoMdlBase& iMdl;
+	void* iHandle; // NULL point to the past-of-the-end element
+    };
+
+    public:
+	CAE_ChromoNode(CAE_ChromoMdlBase& aMdl, void* aHandle): iMdl(aMdl), iHandle(aHandle) {};
+	CAE_ChromoNode(const CAE_ChromoNode& aNode): iMdl(aNode.iMdl), iHandle(aNode.iHandle) {};
+	CAE_ChromoNode& operator=(const CAE_ChromoNode& aNode) { iMdl = aNode.iMdl; iHandle = aNode.iHandle; return *this; };
+	Iterator Begin() { return Iterator(iMdl, iMdl.GetFirstChild(iHandle)); };
+	Const_Iterator Begin() const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle)); };
+	Iterator End() { return Iterator(iMdl, NULL); };
+	Const_Iterator End() const { return Const_Iterator(iMdl, NULL); };
+	Iterator Find(NodeType aNodeType) { return Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
+	Const_Iterator Find(NodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
+    public:
+	NodeType Type() { return iMdl.GetType(iHandle); };
+	NodeType Type() const { return iMdl.GetType(iHandle); };
+	const string Name() { return Attr(ENa_Id);};
+	const string Name() const { return Attr(ENa_Id);};
+	const string Attr(TNodeAttr aAttr);
+	const string Attr(TNodeAttr aAttr) const;
+	TInt AttrInt(TNodeAttr aAttr) const;
+	TBool AttrExists(TNodeAttr aAttr) const { return iMdl.AttrExists(iHandle, aAttr);};
+	TBool AttrBool(TNodeAttr aAttr) const;
+	TNodeAttr AttrNatype(TNodeAttr aAttr) const { return iMdl.GetAttrNat(iHandle, aAttr); };
+	const void* Handle() { return iHandle;};
+	const void* Handle() const { return iHandle;};
+	CAE_ChromoMdlBase& Mdl() const { return iMdl;};
+	CAE_ChromoNode AddChild(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
+	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle())); };
+	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
+    private :
+	CAE_ChromoMdlBase& iMdl;
+	void* iHandle;
+};
+
+// Chromosome
+class MAE_Chromo 
+{
+    public:
+	virtual CAE_ChromoNode& Root() = 0;
+	virtual void Set(const char *aFileName) = 0;
+	virtual void Set(const CAE_ChromoNode& aRoot) = 0;
+	virtual void Init(NodeType aRootType) = 0;
+	virtual void Reset() = 0;
+};
+
+class CAE_ChromoBase: public MAE_Chromo
+{
+    public:
+	virtual ~CAE_ChromoBase() {};
+};
 
 // Chromosome manager
 class MAE_ChroMan
@@ -626,6 +778,7 @@ class MAE_Provider
 	virtual void RegisterTransfs(const TTransInfo **aNames) = 0;
 	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
 	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
+	virtual CAE_ChromoBase* CreateChromo() const = 0;
 };
 
 // FAP environment interface
@@ -660,6 +813,7 @@ public:
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
+	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	void RegisterCompL(CAE_EBase* aComp);
 	void UnregisterComp(CAE_EBase* aComp);
 	virtual void Update();
@@ -681,14 +835,17 @@ public:
 	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
 	// Create new inheritor of self. 
 	CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
+	CAE_Object* CreateHeir(const char *aName, CAE_Object *aMan);
+	void SetMutation(const CAE_ChromoNode& aMuta);
 	void DoMutation();
+	MAE_Chromo& Mut() { return *iMut;};
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
+	void Construct();
 	void ConstructL(const void* aChrom = NULL);
 	void ConstructFromChromXL(const void* aChrom);
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
-	void ChangeChrom(const void* aChrom);
 private:
 	CAE_State* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
@@ -698,7 +855,15 @@ private:
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
 	void CreateStateInp(void* aSpecNode, CAE_State *aState);
+	void CreateStateInp(const CAE_ChromoNode& aSpecNode, CAE_State *aState);
 	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
+	void AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
+	void AddObject(const CAE_ChromoNode& aNode);
+	void AddState(const CAE_ChromoNode& aSpec);
+	void AddConn(const CAE_ChromoNode& aSpec);
+	void AddExt(const CAE_ChromoNode& aSpec);
+	void AddExtc(const CAE_ChromoNode& aSpec);
+	void ChangeAttr(CAE_EBase& aElem, const CAE_ChromoNode& aSpec);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
@@ -706,6 +871,8 @@ private:
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
+	CAE_ChromoBase *iMut;
+	CAE_ChromoBase *iChromo;
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 

@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 2
+  revision 4
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -73,7 +73,7 @@ format 70
     end
 
     classdiagram 141058 "fap1~clsdgm"
-      draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+      draw_all_relations no hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
       size A4
     end
 
@@ -236,6 +236,124 @@ format 70
 
       operation 156802 "Disconnect"
 	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+    end
+
+    class 162562 "CAE_ChromoXml"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      attribute 143234 "iData"
+	private explicit_type "void*"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      classrelation 162562 // <generalisation>
+	relation 162562 ---|>
+	  a public
+	    classrelation_ref 162562 // <generalisation>
+	  b parent class_ref 169218 // MAE_Chromo
+      end
+    end
+
+    class 169218 "MAE_Chromo"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      class 162690 "Iterator"
+	visibility package 
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_2_2 python_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+      end
+
+      classrelation 162690 // <unidirectional association>
+	relation 162690 --->
+	  a role_name "" private
+	    classrelation_ref 162690 // <unidirectional association>
+	  b parent class_ref 169346 // CAE_ChromoNode
+      end
+
+      classrelation 162818 // <unidirectional association>
+	relation 162818 --->
+	  a role_name "" private
+	    classrelation_ref 162818 // <unidirectional association>
+	  b parent class_ref 162690 // Iterator
+      end
+    end
+
+    class 169346 "CAE_ChromoNode"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 162946 // <unidirectional association>
+	relation 162946 --->
+	  a role_name "" private
+	    classrelation_ref 162946 // <unidirectional association>
+	  b parent class_ref 162690 // Iterator
+      end
+
+      operation 163330 "Type"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 163458 "Name"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 163586 "Begin"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 163714 "End"
+	public explicit_return_type ""
 	nparams 0
 	
 	

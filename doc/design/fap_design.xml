@@ -15,7 +15,7 @@ To transform to html:
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.02 at 22-Dec-2010</releaseinfo>
+	<releaseinfo>Ver.0.03 at 03-Feb-2011</releaseinfo>
 
 	<abstract>
 	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
@@ -26,6 +26,8 @@ To transform to html:
 		<revremark>Initial version</revremark> </revision>
 	    <revision> <revnumber>0.02</revnumber> <date>22-Dec-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added <xref linkend="sec_conn"/>, <xref linkend="sec_ifaces"/></revremark> </revision>
+	    <revision> <revnumber>0.03</revnumber> <date>03-Feb-2011</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added <xref linkend="sec_obj_as_state"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -105,12 +107,107 @@ To transform to html:
 	</sect2>
     </sect1>
 
+    <sect1 id="sec_obj_as_state"><title>Controlling of the systems</title>
+	<sect2 id="sec_obj_as_state_intro"><title>Introduction</title>
+	    <simpara>The transition function of system can depends on system time, i.e. be changed during "life" of the system.</simpara>
+	    <simpara>This change needs to be done "synchronously", i.e. actualized at the end of system tick. It is also possible that some state 
+		of system depends on transition function of sybsystem.</simpara>
+	    <simpara>All these curcumstances show that it is resonable solution when system transition function is considered as state variable.</simpara>
+	</sect2>
+	<sect2 id="sec_obj_as_state_intro_solution"><title>Migration to solution</title>
+	    <simplelist type="horiz" columns="2">
+		<member>1.</member> <member>Add special class for chromo</member>
+		<member>2.</member> <member>Have two copies of chromo in object - new, old</member>
+	    </simplelist>
+	</sect2>
+	<sect2><title>Two approaches for chromo change: direct change and mutation</title>
+	    <sect3><title>Mutation</title>
+		<simpara>Whth this approach the system is unchangeable. The only way to change the system is to produce it's heir with mutation required
+		    and then maybe kill system itself. So each change is done via new attempt of chromo.</simpara>
+		<simpara>The question here is that the system most probably updated it's state variables (it is not chromo). But it is
+		    common use case when system wish to change it's sybsystem not touching the variables (for instance use case of sorting).</simpara>
+		<simpara>From this point of view the system can replace the subsystem with it's heir and move the heir to the same state as the parent was.</simpara>
+		<simpara>That looks like the parent create it's heir and gives to it all parent's variables (teached the heir).</simpara>
+		<simpara>It's OK for now. But look at the system itself. What is this change for the system? This is the change of system's structure, because
+		    istead of previous subsystem it becomes new object - heir of subsystem. Thus, to be logical, we need to consider it as system's chromo
+		    change that can be in turn done via regenerating the system itself. But if in turn the system is subsystem of higher level system then 
+		    this means the change of system owner etc., etc.</simpara>
+		<simpara>This seems to be contradiction, but in fact it is not. That's true that if the subsystem is a part of system chromo then the whole
+		    system needs to be regenerated to change the subsystem. But what if we consider system that doesn't include the "subsystem" as a part
+		    of chromo, but as a state variable? For instance the community of creatures is not chromo based, it cannot be evolve with using of chromo mutation 
+		    mechanism. It actually even doesn't have the chromo (really?)</simpara>
+	    </sect3>
+	</sect2>
+	<sect2 id="sec_obj_as_state_ucs"><title>Use cases</title>
+	    <sect3 id="uc_octrl_01"><title>UC_OCTRL_01 Client specifies the required mutation via Object API</title>
+	    </sect3>
+	    <sect3 id="uc_octrl_02"><title>UC_OCTRL_02 Object implies the mutation synchronously (on confirm)</title>
+	    </sect3>
+	    <sect3 id="uc_octrl_03"><title>UC_OCTRL_03 Client can create state based on object chromo</title>
+		<simpara>This state transition function can update object's chromo by specifying required mutation 
+		    (ref <xref linkend="uc_octrl_01"/></simpara>
+	    </sect3>
+	    <sect3 id="uc_octrl_04"><title>UC_OCTRL_04 Object's chromo is updated after mutation properly</title>
+	    </sect3>
+	    <sect3 id="uc_octrl_05"><title>UC_OCTRL_05 Object is specified via stating the parent and mutation</title>
+	    </sect3>
+	</sect2>
+	<sect2 id="sec_obj_as_state_mutspec"><title>Mutation spec</title>
+	    <sect3><title>Introduction</title>
+		<simpara>Mutation describes the changes in object's chromo. In fact when specifying a system we never use the spec of chromo but the
+		spec of mutation</simpara>
+	    <simpara>There could be two approaches considered: Action based and Structure based</simpara>
+	    </sect3>
+	    <simpara>Let's consider the details of mutation spec. The spec shoutd specify the change of chromo node. Each node 
+		consists of attributes and childs.</simpara>
+	    <sect3><title>Action based</title>
+		<simpara>Action based: specify action first then the node.  </simpara>
+		<programlisting>
+		    &lt;remove node="some_name"\&gt;
+		    &lt;add&gt; [spec of node] &lt;\add&gt;
+		    &lt;change&gt; [spec of node] &lt;\change&gt;
+		</programlisting>
+		<itemizedlist><title>Actions</title>
+		    <listitem>Add node</listitem>
+		    <listitem>Remove node</listitem>
+		    <listitem>Change node</listitem>
+		</itemizedlist>
+		<itemizedlist><title>Advantages</title>
+		    <listitem></listitem>
+		</itemizedlist>
+		<itemizedlist><title>Disadvantages</title>
+		</itemizedlist>
+	    </sect3>
+	    <sect3><title>Structure based</title>
+		<simpara> Structure based: specify node first then the action.</simpara>
+		<programlisting>
+		    &lt;state id="some_name" mut="rm"/&gt;
+		</programlisting>
+		<itemizedlist><title>Advantages</title>
+		    <listitem></listitem>
+		</itemizedlist>
+		<itemizedlist><title>Disadvantages</title>
+		    <listitem>Schema are unite for all the actions. But for "remove" it is redundant to specify any node elements other than the name.</listitem>
+		</itemizedlist>
+	    </sect3>
+	    <simpara>Mutation spec constits of the following elements:</simpara>
+	    <itemizedlist>
+		<listitem>Node to be changed</listitem>
+		<listitem>Change of attribute</listitem>
+		<listitem>Addition of child</listitem>
+		<listitem>Deletion of child</listitem>
+	    </itemizedlist>
+	</sect2>
+	<sect2 id="sec_obj_as_state_issues"><title>Questions, issues</title>
+	    <sect3><title></title>
+	    </sect3>
+	</sect2>
+    </sect1>
+
     <sect1 id="sec_ifaces"><title>Interfaces of state and object</title>
 	<simpara>States and objects have to represent itself by different interfaces. For instance the state should show inself as "Updatable" 
 	    in its input connection point (ref <xref linkend="sec_conn"/>) in order that connecting state have access to Update API only.</simpara>
     </sect1>
 
-    <sect1 id="sec_proxy"><title>Proxy</title>
-    </sect1>
 
 </article>

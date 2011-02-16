@@ -15,73 +15,84 @@
 
      -->
 
+ <!-- State [mass], inputs
+ coord_self - corrdinates of snail
+ frugal - if the snail is frugal
+ neighbor - status of other snails: coordinate and sign of frugality -->
+
 <!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
 <caeenv>
-    <object type="test" id="main_test">
-	<object type="none" id="snail" quiet="yes"> 
+    <iobject type="none" id="main_test">
+	<mut node="self">
+	    <add>
+		<iobject type="none" id="snail" quiet="yes"> 
+		    <mut node="self">
+			<add>
 
-	    <inp id="neighbor">
-		<dest id="coord"/> <dest id="frugal"/> 
-	    </inp>
-	    <out id="coord"/>
-	    <!-- Custom output connection point: contains two pins on srcs: [coord] and [vip] -->
-	    <out id="outp">
-		<src id="coord"/> <src id="frugal"/> 
-	    </out>
+			    <inp id="neighbor">
+				<dest id="coord"/> <dest id="frugal"/> 
+			    </inp>
+			    <out id="coord"/>
+			    <!-- Custom output connection point: contains two pins on srcs: [coord] and [vip] -->
+			    <out id="outp">
+				<src id="coord"/> <src id="frugal"/> 
+			    </out>
 
-	    <logspec  event="cre"> <logdata id="new"/> </logspec>
+			    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
-	    <!-- State [mass], inputs
-		 coord_self - corrdinates of snail
-		 frugal - if the snail is frugal
-		 neighbor - status of other snails: coordinate and sign of frugality
-		 -->
-	    <state type="StUint32" id="mass" transf="trans_mass" init="2"> 
-		<logspec event="upd"> <logdata id="new"/> </logspec> 
-		<inp id="coord_self"/> <inp id="frugal"/> 
-		<inp id="neighbor"> 
-		    <dest id="coord"/> <dest id="frugal"/> 
-		</inp>
-	    </state>
+			    <state type="StUint32" id="mass" transf="trans_mass" init="2"> 
+				<logspec event="upd"> <logdata id="new"/> </logspec> 
+				<inp id="coord_self"/> <inp id="frugal"/> 
+				<inp id="neighbor"> 
+				    <dest id="coord"/> <dest id="frugal"/> 
+				</inp>
+			    </state>
 
-	    <state type="StUint32" id="coord" len="4" transf="trans_coord" init="0"> 
-		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-		<inp id="self"/> <inp id="mass"/> 
-	    </state>
+			    <state type="StUint32" id="coord" len="4" transf="trans_coord" init="0"> 
+				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+				<inp id="self"/> <inp id="mass"/> 
+			    </state>
 
-	    <state type="StBool" id="frugal" len="4" transf="trans_frugal" init="0"> 
-		<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-		<inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
-	    </state>
+			    <state type="StBool" id="frugal" len="4" transf="trans_frugal" init="0"> 
+				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+				<inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
+			    </state>
 
-	    <conn id="mass.coord_self" pair="coord.output"/> 
-	    <conn id="mass.frugal" pair="frugal.output"/> 
-	    <conn id="coord.self" pair="coord.output"/> 
-	    <conn id="coord.mass" pair="mass.output"/>
-	    <conn id="frugal.self" pair="frugal.output"/>
-	    <conn id="frugal.coord" pair="coord.output"/>
+			    <conn id="mass.coord_self" pair="coord.output"/> 
+			    <conn id="mass.frugal" pair="frugal.output"/> 
+			    <conn id="coord.self" pair="coord.output"/> 
+			    <conn id="coord.mass" pair="mass.output"/>
+			    <conn id="frugal.self" pair="frugal.output"/>
+			    <conn id="frugal.coord" pair="coord.output"/>
 
-	    <ext id="neighbor" pair="mass.neighbor"/>
-	    <ext id="coord" pair="coord.output"/>
-	    <extc id="outp">
-		<srcext id="coord" pair="coord.output"/>
-		<srcext id="frugal" pair="frugal.output"/>
-	    </extc>
-	    <extc id="neighbor">
-		<dstext id="coord" pair="frugal.coord_other"/>
-	    </extc>
+			    <ext id="neighbor" pair="mass.neighbor"/>
+			    <ext id="coord" pair="coord.output"/>
+			    <extc id="outp">
+				<srcext id="coord" pair="coord.output"/>
+				<srcext id="frugal" pair="frugal.output"/>
+			    </extc>
+			    <extc id="neighbor">
+				<dstext id="coord" pair="frugal.coord_other"/>
+			    </extc>
 
-	</object> <!-- snail -->
+			</add>
+		    </mut>
+		</iobject> <!-- snail -->
 
-	<object type="snail" id="snail_1" > <state mut="Change" id="mass" init="7"/> </object>
-	<object type="snail" id="snail_2" > <state mut="Change" id="mass" init="3"/></object>
-	<object type="snail" id="snail_3" > <state mut="Change" id="mass" init="16"/>  <state mut="Change" id="frugal" init="True"/></object>
+		<iobject type="snail" id="snail_1" > <mut node="mass"> <change attr="init" val="7"/> </mut></iobject>
+		<iobject type="snail" id="snail_2" > <mut node="mass"> <change attr="init" val="3"/> </mut></iobject>
+		<iobject type="snail" id="snail_3" > 
+		    <mut node="mass"> <change attr="init" val="16"/> </mut>
+		    <mut node="frugal"> <change attr="init" val="True"/> </mut>
+		</iobject>
 
-	<conn id="snail_1.neighbor" pair="snail_2.outp"/><conn id="snail_1.neighbor" pair="snail_3.outp"/>
-	<conn id="snail_2.neighbor" pair="snail_1.outp"/> <conn id="snail_2.neighbor" pair="snail_3.outp"/>
-	<conn id="snail_3.neighbor" pair="snail_1.outp"/> <conn id="snail_3.neighbor" pair="snail_2.outp"/>
+		<conn id="snail_1.neighbor" pair="snail_2.outp"/><conn id="snail_1.neighbor" pair="snail_3.outp"/>
+		<conn id="snail_2.neighbor" pair="snail_1.outp"/> <conn id="snail_2.neighbor" pair="snail_3.outp"/>
+		<conn id="snail_3.neighbor" pair="snail_1.outp"/> <conn id="snail_3.neighbor" pair="snail_2.outp"/>
 
-    </object> <!-- test -->
+	    </add>
+	</mut>
+    </iobject> <!-- test -->
 </caeenv>
 

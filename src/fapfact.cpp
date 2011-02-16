@@ -47,6 +47,325 @@ static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StIn
     NULL};
 
 //*********************************************************
+// Model of XML based chromo
+//*********************************************************
+
+static map<string, NodeType> KNodeTypes;
+static map<NodeType, string> KNodeTypesNames;
+static map<TNodeAttr, string> KNodeAttrsNames;
+static map<string, TNodeAttr> KNodeAttrs;
+
+class CAE_ChromoMdlX: public CAE_ChromoMdlBase
+{
+    public:
+	CAE_ChromoMdlX();
+    public:
+	virtual NodeType GetType(const void* aHandle);
+	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual char *GetAttr(const void* aHandle, TNodeAttr aAttr);
+	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr);
+	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
+	virtual void* AddChild(void* aParent, NodeType aNode);
+	virtual void* AddChild(void* aParent, const void* aHandle);
+	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
+    public:
+	int GetAttrInt(void *aHandle, const char *aName);
+	void* Set(const char* aFileName);
+	void* Set(CAE_ChromoMdlX& aMdl, const void* aHandle);
+	xmlDoc* Doc() { return iDoc;};
+	static inline const char *Type() { return "ChromoMdlX";}; 
+	virtual void* Init(NodeType aRootType);
+	void Reset();
+    protected:
+	virtual void *DoGetFbObj(const char *aName);
+    private:
+	xmlDoc *iDoc;	// XML document
+	TBool iDocOwned;
+};
+
+CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
+{
+    if (KNodeTypes.size() == 0)
+    {
+	KNodeTypes["iobject"] = ENt_Object;
+	KNodeTypes["object"] = ENt_Robject;
+	KNodeTypes["state"] = ENt_State;
+	KNodeTypes["conn"] = ENt_Conn;
+	KNodeTypes["logspec"] = ENt_Logspec;
+	KNodeTypes["dep"] = ENt_Dep;
+	KNodeTypes["logdata"] = ENt_Logdata;
+	KNodeTypes["inp"] = ENt_Stinp;
+	KNodeTypes["mut"] = ENt_Mut;
+	KNodeTypes["out"] = ENt_Soutp;
+	KNodeTypes["src"] = ENt_CpSource;
+	KNodeTypes["dest"] = ENt_CpDest;
+	KNodeTypes["ext"] = ENt_Cext;
+	KNodeTypes["extc"] = ENt_Cextc;
+	KNodeTypes["srcext"] = ENt_CextcSrc;
+	KNodeTypes["dstext"] = ENt_CextcDest;
+	KNodeTypes["caeenv"] = ENt_Env;
+	KNodeTypes["add"] = ENt_MutAdd;
+	KNodeTypes["rm"] = ENt_MutRm;
+	KNodeTypes["change"] = ENt_MutChange;
+
+	for (map<string, NodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
+	    KNodeTypesNames[it->second] = it->first;
+	}
+    }
+    if (KNodeAttrsNames.size() == 0)
+    {
+	KNodeAttrsNames[ENa_Id] = "id";
+	KNodeAttrsNames[ENa_Type] = "type";
+	KNodeAttrsNames[ENa_ObjQuiet] = "quiet";
+	KNodeAttrsNames[ENa_Transf] = "transf";
+	KNodeAttrsNames[ENa_StInit] = "init";
+	KNodeAttrsNames[ENa_StLen] = "len";
+	KNodeAttrsNames[ENa_Logevent] = "event";
+	KNodeAttrsNames[ENa_PinType] = "type";
+	KNodeAttrsNames[ENa_ConnPair] = "pair";
+	KNodeAttrsNames[ENa_MutNode] = "node";
+	KNodeAttrsNames[ENa_MutChgAttr] = "attr";
+	KNodeAttrsNames[ENa_MutChgVal] = "val";
+
+	for (map<TNodeAttr, string>::const_iterator it = KNodeAttrsNames.begin(); it != KNodeAttrsNames.end(); it++) {
+	    KNodeAttrs[it->second] = it->first;
+	}
+    }
+};
+
+void *CAE_ChromoMdlX::DoGetFbObj(const char *aName)
+{
+    return (strcmp(aName, Type()) == 0) ? this : NULL;
+}
+
+void* CAE_ChromoMdlX::Init(NodeType aRootType)
+{
+    iDocOwned = ETrue;
+    iDoc = xmlNewDoc((const xmlChar*) "1.0");
+    string sroottype = KNodeTypesNames[aRootType];
+    xmlNodePtr root = xmlNewNode(NULL, (const xmlChar *) sroottype.c_str());
+    xmlDocSetRootElement(iDoc, root);
+    return root;
+}
+
+void CAE_ChromoMdlX::Reset()
+{
+    if (iDocOwned) {
+	xmlFreeDoc(iDoc);
+    }
+    iDoc = NULL;
+}
+
+void* CAE_ChromoMdlX::Set(const char *aFileName)
+{
+    xmlNode *sEnv = NULL; // Node of environment element
+    xmlNode *sRoot = NULL; // Node of root element
+    // Read and parse the CAE spec file
+    iDoc = xmlReadFile(aFileName, NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID);
+    _FAP_ASSERT(iDoc != NULL);
+    // Get the node of environment, not used for now
+    sEnv = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Env);
+    _FAP_ASSERT(sEnv != NULL);
+    sRoot = (xmlNodePtr) GetFirstChild((void *) sEnv, ENt_Object);
+    iDocOwned = EFalse;
+    return sRoot;
+}
+
+void* CAE_ChromoMdlX::Set(CAE_ChromoMdlX& aMdl, const void* aNode)
+{
+    iDoc = aMdl.Doc();
+    xmlNodePtr node = xmlDocCopyNode((xmlNodePtr) aNode, iDoc, 1);
+    return node;
+}
+
+NodeType CAE_ChromoMdlX::GetType(const void* aHandle)
+{
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    const char* type_name = (const char*) node->name;
+    return (KNodeTypes.count(type_name) == 0) ? ENt_Unknown: KNodeTypes[type_name];
+}
+
+void *CAE_ChromoMdlX::GetFirstChild(const void *aHandle, NodeType aType)
+{
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    _FAP_ASSERT(node != NULL);
+    xmlNodePtr res = node->children;
+    if (res != NULL) {
+	NodeType type = GetType((void*) res);
+	if ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))
+	    res = (xmlNodePtr) Next(res, aType);
+    }
+    return res;
+}
+
+void *CAE_ChromoMdlX::GetLastChild(const void *aHandle, NodeType aType)
+{
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    _FAP_ASSERT(node != NULL);
+    xmlNodePtr res = node->last;
+    if (res != NULL) {
+	NodeType type = GetType((void*) res);
+	if ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))
+	    res = (xmlNodePtr) Prev(res, aType);
+    }
+    return res;
+}
+
+void *CAE_ChromoMdlX::Next(const void *aHandle, NodeType aType)
+{
+    _FAP_ASSERT(aHandle!= NULL);
+    xmlNodePtr res = ((xmlNodePtr) aHandle)->next;
+    if (res != NULL) {
+	NodeType type = GetType((void*) res);
+	while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))) {
+	    res = res->next;
+	    if (res != NULL)
+		type = GetType((void*) res);
+	}
+    }
+    return res;
+}
+
+void *CAE_ChromoMdlX::Prev(const void *aHandle, NodeType aType)
+{
+    _FAP_ASSERT(aHandle!= NULL);
+    xmlNodePtr res = ((xmlNodePtr) aHandle)->prev;
+    NodeType type = GetType((void*) res);
+    while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown))))
+       	res = res->prev;
+    return res;
+}
+
+char *CAE_ChromoMdlX::GetAttr(const void* aHandle, TNodeAttr aAttr)
+{
+    _FAP_ASSERT(aHandle != NULL);
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    xmlChar *attr = xmlGetProp(node, (const xmlChar *) KNodeAttrsNames[aAttr].c_str());
+    return (char *) attr;
+}
+
+TBool CAE_ChromoMdlX::AttrExists(const void* aHandle, TNodeAttr aAttr)
+{
+    _FAP_ASSERT(aHandle != NULL);
+    TBool res = EFalse;
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    xmlChar *attr = xmlGetProp(node, (const xmlChar *) KNodeAttrsNames[aAttr].c_str());
+    res = (attr != NULL);
+    free (attr);
+    return res;
+}
+
+int CAE_ChromoMdlX::GetAttrInt(void *aHandle, const char *aName)
+{
+    int res = -1;
+    _FAP_ASSERT(aHandle!= NULL);
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    xmlChar *attr = xmlGetProp(node, (const xmlChar *) aName);
+    _FAP_ASSERT(attr != NULL);
+    res = atoi((const char *) attr);
+    free(attr);
+    return res;
+}
+
+TNodeAttr CAE_ChromoMdlX::GetAttrNat(const void* aHandle, TNodeAttr aAttr)
+{
+    TNodeAttr res = ENa_Unknown;
+    char* stattr = GetAttr(aHandle, aAttr);
+    if (KNodeAttrs.count(stattr) > 0) {
+	res = KNodeAttrs[stattr];
+    }
+    free(stattr);
+    return res;
+}
+
+void* CAE_ChromoMdlX::AddChild(void* aParent, NodeType aNode)
+{
+    string name = KNodeTypesNames[aNode];
+    xmlNodePtr node = xmlNewNode(NULL, (const xmlChar*) name.c_str());
+    return xmlAddChild((xmlNodePtr) aParent, node);
+}
+
+void* CAE_ChromoMdlX::AddChild(void* aParent, const void* aHandle)
+{
+    xmlNodePtr node = xmlCopyNode((xmlNodePtr) aHandle, 1);
+    return xmlAddChild((xmlNodePtr) aParent, node);
+}
+
+void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, const char* aVal)
+{
+    string name = KNodeAttrsNames[aType];
+    if (AttrExists(aNode, aType)) {
+	xmlSetProp((xmlNodePtr) aNode, (const xmlChar*) name.c_str(), (const xmlChar*) aVal);
+    }
+    else {
+	xmlNewProp((xmlNodePtr) aNode, (const xmlChar*) name.c_str(), (const xmlChar*) aVal);
+    }
+}
+
+//*********************************************************
+// XML based chromo
+//*********************************************************
+
+class CAE_ChromoX: public CAE_ChromoBase
+{
+    public:
+	CAE_ChromoX();
+	CAE_ChromoX(const char *aFileName);
+	virtual ~CAE_ChromoX();
+    public:
+	virtual CAE_ChromoNode& Root();
+	virtual void Set(const char *aFileName);
+	virtual void Set(const CAE_ChromoNode& aRoot);
+	virtual void Init(NodeType aRootType);
+	virtual void Reset();
+    private:
+	CAE_ChromoMdlX iMdl;
+	CAE_ChromoNode iRootNode;
+};
+
+
+CAE_ChromoX::CAE_ChromoX(): iRootNode(iMdl, NULL)
+{
+}
+
+void CAE_ChromoX::Set(const char *aFileName)
+{
+    void *root = iMdl.Set(aFileName);
+    iRootNode = CAE_ChromoNode(iMdl, root);
+}
+
+void CAE_ChromoX::Set(const CAE_ChromoNode& aRoot)
+{
+    CAE_ChromoMdlX *mdl = aRoot.Mdl().GetFbObj(mdl);
+    _FAP_ASSERT(mdl != NULL);
+    void *root = iMdl.Set(*mdl, aRoot.Handle());
+    iRootNode = CAE_ChromoNode(iMdl, root);
+}
+
+CAE_ChromoX::~CAE_ChromoX()
+{
+}
+
+CAE_ChromoNode& CAE_ChromoX::Root()
+{
+    return iRootNode;
+}
+
+void CAE_ChromoX::Reset()
+{
+    iMdl.Reset();
+}
+
+void CAE_ChromoX::Init(NodeType aRootType)
+{
+    void *root = iMdl.Init(aRootType);
+    iRootNode = CAE_ChromoNode(iMdl, root);
+}
+
+//*********************************************************
 // Base class of provider implementation
 //*********************************************************
 
@@ -225,6 +544,11 @@ void CAE_ProviderGen::RegisterFormatter(CAE_Formatter *aForm)
 void CAE_ProviderGen::RegisterFormatter(int aUid, TLogFormatFun aFun)
 {
     RegisterFormatter(new CAE_Formatter(aUid, aFun));
+}
+
+CAE_ChromoBase* CAE_ProviderGen::CreateChromo() const
+{
+    return new CAE_ChromoX();
 }
 
 //*********************************************************
@@ -439,7 +763,6 @@ int CAE_ChroManX::GetAttrInt(void *aSpec, const char *aName)
     return res;
 }
 
-
 //*********************************************************
 // Factory of element of object
 //*********************************************************
@@ -615,5 +938,15 @@ void CAE_Fact::RegisterFormatter(CAE_Formatter *aForm)
 	CAE_ProviderBase* prov = GetProviderAt(0);
 	prov->RegisterFormatter(aForm);
     }
+}
+
+CAE_ChromoBase* CAE_Fact::CreateChromo() const
+{
+    if (iProviders->size() > 0)
+    {
+	// Register in general provider
+	CAE_ProviderBase* prov = GetProviderAt(0);
+	prov->CreateChromo();
+    };
 }
 

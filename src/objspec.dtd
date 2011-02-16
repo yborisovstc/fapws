@@ -14,11 +14,43 @@
 <!-- Logspec includes attribute "levent" and assosiated logging data set -->
 <!ELEMENT logspec (logdata+)>
 
+<!-- 
+     Mutation
+-->
+<!ELEMENT mut (add*, remove*, change*)>
+
+<!-- 
+     Mutation - addition
+-->
+<!ELEMENT add (inp*, out*, logspec*, iobject* , state*, state_mut*, conn*, ext*, extc*)>
+
+<!-- 
+     Mutation - removal
+-->
+<!ELEMENT remove (node*)>
+
+<!-- 
+     Mutation - change
+-->
+<!ELEMENT change EMPTY>
+
+<!-- 
+     Node
+-->
+<!ELEMENT node EMPTY>
+
 <!ELEMENT state (logspec*, inp*)>
 
-<!-- FAP object spec: 
+<!-- 
+     Object inherited
+     This is the base spec of the object
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
+-->
+<!ELEMENT iobject (mut*)>
+
+<!-- object spec: 
+     This is pure chromo of object and normally shouldn't be used in spec
      inp - object inputs, 
      out - object outputs
      logspec - logging spec,
@@ -34,7 +66,7 @@
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
 
-<!ELEMENT caeenv (object*)>
+<!ELEMENT caeenv (iobject*)>
 
 <!-- Output -->
 <!ELEMENT out (src*, dest*)>
@@ -79,15 +111,21 @@
 <!ATTLIST logdata id (cur | new | dep) #REQUIRED>
 
 <!-- Object  attributes:
-     type - parent name,
      id - instance name,
-     prod - producing type
      -->
 <!ATTLIST object 
+   id CDATA #REQUIRED
+   quiet (yes) #IMPLIED
+>
+
+<!-- Inherited Object  attributes:
+     type - parent name,
+     id - instance name,
+     -->
+<!ATTLIST iobject 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
-    quiet (yes) #IMPLIED
-    prod (copy) #IMPLIED
+   quiet (yes) #IMPLIED
 >
 
 <!-- State added attributes:
@@ -184,6 +222,31 @@
 <!ATTLIST dstext 
     id  CDATA #REQUIRED
     pair  CDATA #REQUIRED
+>
+
+<!-- Mutation attributes:
+  node - identification of mutation subject
+  -->
+<!ATTLIST mut 
+    node CDATA #REQUIRED
+>
+
+<!-- Node  attributes:
+     type - node type (object, state etc.),
+     id - node name,
+     -->
+<!ATTLIST node 
+   type CDATA #REQUIRED
+   id CDATA #REQUIRED
+>
+
+<!-- Change  attributes:
+     attr - attr name,
+     val - attr value,
+     -->
+<!ATTLIST change 
+   attr CDATA #REQUIRED
+   val CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

@@ -51,7 +51,7 @@ void CAE_Env::ConstructL(const char* aLogSpecFile, const char *aLogFileName)
     iProvider = CAE_Fact::NewL();
     SetActive();
 }
-
+/*
 void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpec, 
 	const char* aLogSpecFile, const char *aLogFileName)
 {
@@ -66,6 +66,32 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
     }
     void *rootspec = Chman()->GetChild(NULL);
     iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) rootspec, this);
+    SetActive();
+}
+*/
+void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpec, 
+	const char* aLogSpecFile, const char *aLogFileName)
+{
+    iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
+    iProvider = CAE_Fact::NewL();
+    CAE_ChromoBase *spec = iProvider->CreateChromo();
+    spec->Set(aSpec);
+    if (aSinfos != NULL) {
+	iProvider->RegisterStates(aSinfos);
+    }
+    if (aTinfos != NULL) {
+	iProvider->RegisterTransfs(aTinfos);
+    }
+    // Create root system
+    // TODO [YB] Potentially the root also can be inherited form parent
+    const CAE_ChromoNode& root = spec->Root();
+    iRoot = CAE_Object::NewL(root.Name().c_str(), NULL, this);
+    for (CAE_ChromoNode::Const_Iterator imut = root.Begin(); imut != root.End(); imut++) {
+	if ((*imut).Type() == ENt_Mut) {
+	    iRoot->SetMutation(*imut);
+	    iRoot->DoMutation();
+	}
+    }
     SetActive();
 }
 
