@@ -541,7 +541,7 @@ public:
 	static inline TInt DataTypeUid();
 	//static inline const char *Type();
 	static const char *Type();
-	// [YB] Interpret is obsolete. Use CAE_State casting operator instead
+	// TODO [YB] Interpret is obsolete. Use CAE_State casting operator instead
 	inline static CAE_TState* Interpret(CAE_State* aPtr); 
 	FAPWS_API virtual TBool SetTrans(TTransInfo aTinfo);
 	virtual char* DataToStr(TBool aCurr) const;

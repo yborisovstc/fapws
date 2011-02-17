@@ -24,6 +24,7 @@
 // TODO [YB] How to define an access to internal object?
 // TODO [YB] To implement inputs and outputs for object
 // TODO [YB] To implement states group proxy
+// TODO [YB] To implement ifaces in conn pins
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1382,13 +1383,6 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	else {
 	    // Create heir from the parent
 	    obj = parent->CreateHeir(sname.c_str(), this);
-	    // Mutate it if needed
-	    for (CAE_ChromoNode::Const_Iterator imut = aNode.Begin(); imut != aNode.End(); imut++) {
-		if ((*imut).Type() == ENt_Mut) {
-		    obj->SetMutation(*imut);
-		    obj->DoMutation();
-		}
-	    }
 	}
     }
     if (obj == NULL) {
@@ -1398,13 +1392,13 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	obj->SetQuiet(squiet);
 	if (squiet) {
 	    Logger()->WriteFormat("ATTENTION: Object [%s] created as quiet", sname.c_str());
-
-	    CAE_ChromoNode::Const_Iterator mut = aNode.Find(ENt_Mut);
-	    if (mut != aNode.End())
-	    {
-		obj->SetMutation(*mut);
+	}
+	// Mutate object if needed
+	for (CAE_ChromoNode::Const_Iterator imut = aNode.Begin(); imut != aNode.End(); imut++) {
+	    if ((*imut).Type() == ENt_Mut) {
+		obj->SetMutation(*imut);
+		obj->DoMutation();
 	    }
-	    obj->DoMutation();
 	}
     }
 }
@@ -1513,6 +1507,7 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpec)
     }
 }
 
+// TODO [YB] For now it is not possible to have "multipoint" output that extends multiple output conn points. To implement.
 void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
 {
     string sname = aSpec.Name();

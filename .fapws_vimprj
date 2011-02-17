@@ -57,6 +57,8 @@ test=test CD=. filter="*" {
   Makefile.am
   Makefile.in
   ut-fapws-lib
+  ut_conn.cpp
+  ut_conn_spec.xml
   ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
@@ -138,3 +140,21 @@ gravityqt=/home/yborisov/projects/fap/michael/gravityqt CD=. filter="*" {
  gravityqt.pro
  main.cpp
 }
+gravityqt=/home/yborisov/projects/fap/michael/ver1/gravity CD=. filter="*.cpp *.h *.ui" {
+  GravityObject.cpp
+  GravityView.cpp
+  GravityWindow.cpp
+  ObjectPropDlg.cpp
+  main.cpp
+  moc_GravityView.cpp
+  moc_GravityWindow.cpp
+  moc_ObjectPropDlg.cpp
+  GravityObject.h
+  GravityView.h
+  GravityWindow.h
+  ObjectPropDlg.h
+  ui_GravityWindow.h
+  ui_ObjectPropDlg.h
+  GravityWindow.ui
+  ObjectPropDlg.ui
+{
