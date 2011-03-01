@@ -12,14 +12,14 @@ static const char* KLogSpecFileName = "../testfaplogspec.txt";
 static const char* KLogFileName = "ut_creat_log.txt";
 const char* KSpecFileName = "ut_spec_creat_1.xml";
 
-void update_event(CAE_Object* aObject, CAE_State* aState);
-void update_count(CAE_Object* aObject, CAE_State* aState);
+void update_event(CAE_Object* aObject, CAE_StateBase* aState);
+void update_count(CAE_Object* aObject, CAE_StateBase* aState);
 
 const TTransInfo KTinfo_Update_event = TTransInfo(update_event, "trans_event");
 const TTransInfo KTinfo_Update_timer = TTransInfo(update_count, "trans_count");
 const TTransInfo* tinfos[] = {&KTinfo_Update_event, &KTinfo_Update_timer, NULL};
 
-void update_event(CAE_Object* aObject, CAE_State* aState)
+void update_event(CAE_Object* aObject, CAE_StateBase* aState)
 {
     CAE_TState<TBool> *pself = (CAE_TState<TBool>*)aState;
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [event]", pself != 0);
@@ -33,9 +33,9 @@ void update_event(CAE_Object* aObject, CAE_State* aState)
     *pself = (vcount == 0);
 }
 
-void update_count(CAE_Object* aObject, CAE_State* aState)
+void update_count(CAE_Object* aObject, CAE_StateBase* aState)
 {
-    CAE_TState<TUint32> *pself = CAE_TState<TUint32>::Interpret(aState);
+    CAE_TState<TUint32> *pself = (CAE_TState<TUint32>*)aState;
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret state [count]", pself != 0);
     CAE_TState<TUint32> *period = CAE_TState<TUint32>::Interpret((CAE_State *)aState->Input("period"));
     CPPUNIT_ASSERT_MESSAGE("Fail getting period", period != 0);
@@ -65,7 +65,8 @@ void UT_FAP_SpecCreat::test_SpecCreat_main()
     printf("\n === Test of creation object from spec");
     CAE_Object *gen = iEnv->Root()->GetComp("gen_2");
     CPPUNIT_ASSERT_MESSAGE("Fail to get component [gen_2]", gen != 0);
-    CAE_State *event = gen->GetOutpState("event");
+    CAE_StateBase *eventb = gen->GetOutpState("event");
+    CAE_State *event = eventb->GetFbObj(event);
     CPPUNIT_ASSERT_MESSAGE("Fail to get output [event]", event != 0);
     CAE_TState<TBool> *tevent = CAE_TState<TBool>::Interpret(event);
     CPPUNIT_ASSERT_MESSAGE("Fail to interpret event", tevent != 0);

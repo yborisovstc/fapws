@@ -41,9 +41,10 @@ const TStateInfo KSinfo_Point = TStateInfo("StPoint", (TStateFactFun) CAE_TState
 const TStateInfo KSinfo_PointF = TStateInfo("StPointF", (TStateFactFun) CAE_TState<CF_TdPointF>::NewL );
 const TStateInfo KSinfo_VectF = TStateInfo("StVectF", (TStateFactFun) CAE_TState<CF_TdVectF>::NewL );
 const TStateInfo KSinfo_Rect = TStateInfo("StRect", (TStateFactFun) CAE_TState<CF_Rect>::NewL );
+const TStateInfo KSinfo_Contr = TStateInfo("StContr", (TStateFactFun) CAE_StateCtr::New );
 
 static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StInt, &KSinfo_StUint8, &KSinfo_StUint32, 
-    &KSinfo_Point, &KSinfo_PointF, &KSinfo_VectF, &KSinfo_Rect, 
+    &KSinfo_Point, &KSinfo_PointF, &KSinfo_VectF, &KSinfo_Rect, &KSinfo_Contr, 
     NULL};
 
 //*********************************************************
@@ -68,9 +69,13 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual char *GetAttr(const void* aHandle, TNodeAttr aAttr);
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr);
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
+	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
 	virtual void* AddChild(void* aParent, NodeType aNode);
 	virtual void* AddChild(void* aParent, const void* aHandle);
+	virtual void RmChild(void* aParent, void* aChild);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
+	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
+	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
     public:
 	int GetAttrInt(void *aHandle, const char *aName);
 	void* Set(const char* aFileName);
@@ -110,6 +115,8 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["add"] = ENt_MutAdd;
 	KNodeTypes["rm"] = ENt_MutRm;
 	KNodeTypes["change"] = ENt_MutChange;
+	KNodeTypes["node"] = ENt_Node;
+	KNodeTypes["chnode"] = ENt_ChNode;
 
 	for (map<string, NodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
 	    KNodeTypesNames[it->second] = it->first;
@@ -281,6 +288,18 @@ TNodeAttr CAE_ChromoMdlX::GetAttrNat(const void* aHandle, TNodeAttr aAttr)
     return res;
 }
 
+NodeType CAE_ChromoMdlX::GetAttrNt(const void* aHandle, TNodeAttr aAttr)
+{
+    NodeType res = ENt_Unknown;
+    char* str = GetAttr(aHandle, aAttr);
+    if (str != NULL && KNodeTypes.count(str) > 0) {
+	res = KNodeTypes[str];
+    }
+    free(str);
+    return res;
+
+}
+
 void* CAE_ChromoMdlX::AddChild(void* aParent, NodeType aNode)
 {
     string name = KNodeTypesNames[aNode];
@@ -305,6 +324,24 @@ void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, const char* aVal)
     }
 }
 
+void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, NodeType aVal)
+{
+    SetAttr(aNode, aType, KNodeTypesNames[aVal].c_str());
+}
+
+void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal)
+{
+    SetAttr(aNode, aType, KNodeAttrsNames[aVal].c_str());
+}
+
+void CAE_ChromoMdlX::RmChild(void* aParent, void* aChild)
+{
+    xmlNodePtr child = (xmlNodePtr) aChild;
+    xmlUnlinkNode(child);
+    xmlFreeNode(child);
+}
+
+
 //*********************************************************
 // XML based chromo
 //*********************************************************
@@ -317,6 +354,7 @@ class CAE_ChromoX: public CAE_ChromoBase
 	virtual ~CAE_ChromoX();
     public:
 	virtual CAE_ChromoNode& Root();
+	virtual const CAE_ChromoNode& Root() const;
 	virtual void Set(const char *aFileName);
 	virtual void Set(const CAE_ChromoNode& aRoot);
 	virtual void Init(NodeType aRootType);
@@ -350,6 +388,11 @@ CAE_ChromoX::~CAE_ChromoX()
 }
 
 CAE_ChromoNode& CAE_ChromoX::Root()
+{
+    return iRootNode;
+}
+
+const CAE_ChromoNode& CAE_ChromoX::Root() const
 {
     return iRootNode;
 }

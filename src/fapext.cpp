@@ -89,7 +89,7 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
     for (CAE_ChromoNode::Const_Iterator imut = root.Begin(); imut != root.End(); imut++) {
 	if ((*imut).Type() == ENt_Mut) {
 	    iRoot->SetMutation(*imut);
-	    iRoot->DoMutation();
+	    iRoot->Mutate();
 	}
     }
     SetActive();

@@ -23,9 +23,9 @@ static const TUint32 KMass_Max = 100;
 // For how many snails is the feed prepared on theirs way
 static const TUint32 KMaxFeed = 4;
 
-void utconn_update_mass(CAE_Object* aObject, CAE_State* aState);
-void utconn_update_coord(CAE_Object* aObject, CAE_State* aState);
-void utconn_update_frugal(CAE_Object* aObject, CAE_State* aState);
+void utconn_update_mass(CAE_Object* aObject, CAE_StateBase* aState);
+void utconn_update_coord(CAE_Object* aObject, CAE_StateBase* aState);
+void utconn_update_frugal(CAE_Object* aObject, CAE_StateBase* aState);
 
 const TTransInfo KTinfo_Update_mass = TTransInfo(utconn_update_mass, "trans_mass");
 const TTransInfo KTinfo_Update_coord = TTransInfo(utconn_update_coord, "trans_coord");
@@ -50,7 +50,7 @@ private:
 
 CPPUNIT_TEST_SUITE_REGISTRATION( UT_FAP_Conn );
 
-void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
+void utconn_update_mass(CAE_Object* aObject, CAE_StateBase* aState)
 {
     CAE_TState<TUint32>& self = (CAE_TState<TUint32>&) *aState;
     const TUint32& coord_s = self.Inp("coord_self");
@@ -71,7 +71,7 @@ void utconn_update_mass(CAE_Object* aObject, CAE_State* aState)
     self = newmass - 1;
 }
 
-void utconn_update_coord(CAE_Object* aObject, CAE_State* aState)
+void utconn_update_coord(CAE_Object* aObject, CAE_StateBase* aState)
 {
     CAE_TState<TUint32>& self = (CAE_TState<TUint32>&) *aState;
     const TUint32& mass_s = self.Inp("mass");
@@ -79,7 +79,7 @@ void utconn_update_coord(CAE_Object* aObject, CAE_State* aState)
 	self = ~self + KMass_Max/mass_s;
 }
 
-void utconn_update_frugal(CAE_Object* aObject, CAE_State* aState)
+void utconn_update_frugal(CAE_Object* aObject, CAE_StateBase* aState)
 {
     CAE_TState<TBool>& self = (CAE_TState<TUint32>&) *aState;
     const TBool& frugal = self.Inp("self");
@@ -116,7 +116,7 @@ void UT_FAP_Conn::test_Conn_main()
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1]", snail_1 != 0);
     CAE_Object *snail_3 = iEnv->Root()->GetComp("snail_3");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_3]", snail_3 != 0);
-    CAE_State *coord_3 = snail_3->GetOutpState("coord");
+    CAE_StateBase *coord_3 = snail_3->GetOutpState("coord");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_3.coord]", coord_3 != 0);
     
     for (TInt i=0; i<40; i++)

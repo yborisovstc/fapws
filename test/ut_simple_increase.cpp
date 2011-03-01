@@ -65,7 +65,7 @@ CFT_Simple* CFT_Simple::NewL(const char* aInstName, CAE_Object* aMan, TInt aStep
     return self;
 }
 
-void CFT_Simple::UpdateStep(CAE_State* aState)
+void CFT_Simple::UpdateStep(CAE_StateBase* aState)
 {
     printf("\nUpdateStep = %d \n", StepNum());
     iUpdateStepCallsNum++;

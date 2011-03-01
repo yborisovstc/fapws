@@ -30,7 +30,7 @@
 <!ELEMENT remove (node*)>
 
 <!-- 
-     Mutation - change
+     Mutation - change (attribute)
 -->
 <!ELEMENT change EMPTY>
 
@@ -244,7 +244,9 @@
      attr - attr name,
      val - attr value,
      -->
-<!ATTLIST change 
+<!ATTLIST change
+   type CDATA #REQUIRED
+   id CDATA #REQUIRED
    attr CDATA #REQUIRED
    val CDATA #REQUIRED
 >

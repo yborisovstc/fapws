@@ -80,11 +80,13 @@
 		    </mut>
 		</iobject> <!-- snail -->
 
-		<iobject type="snail" id="snail_1" > <mut node="mass"> <change attr="init" val="7"/> </mut></iobject>
-		<iobject type="snail" id="snail_2" > <mut node="mass"> <change attr="init" val="3"/> </mut></iobject>
+		<iobject type="snail" id="snail_1" > <mut node="self"> <change type="state" id="mass" attr="init" val="7"/> </mut></iobject>
+		<iobject type="snail" id="snail_2" > <mut node="self"> <change type="state" id="mass" attr="init" val="3"/> </mut></iobject>
 		<iobject type="snail" id="snail_3" > 
-		    <mut node="mass"> <change attr="init" val="16"/> </mut>
-		    <mut node="frugal"> <change attr="init" val="True"/> </mut>
+		    <mut node="self"> 
+			<change type="state" id="mass" attr="init" val="16"/> 
+			<change type="state" id="frugal" attr="init" val="True"/> 
+		    </mut>
 		</iobject>
 
 		<conn id="snail_1.neighbor" pair="snail_2.outp"/><conn id="snail_1.neighbor" pair="snail_3.outp"/>

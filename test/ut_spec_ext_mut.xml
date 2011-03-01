@@ -42,9 +42,9 @@
 
 		</iobject> <!-- snail -->
 
-		<iobject type="snail" id="snail_1" > <mut node="mass"> <change attr="init" val="7"/> </mut>  </iobject>
-		<iobject type="snail" id="snail_2" > <mut node="mass"> <change attr="init" val="3"/> </mut>  </iobject>
-		<iobject type="snail" id="snail_3" > <mut node="mass"> <change attr="init" val="16"/> </mut> </iobject>
+		<iobject type="snail" id="snail_1" > <mut node="self"> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_2" > <mut node="self"> <change type="state" id="mass" attr="init" val="3"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_3" > <mut node="self"> <change type="state" id="mass" attr="init" val="16"/> </mut> </iobject>
 
 		<conn id="snail_1.coord_others" pair="snail_2.coord"/><conn id="snail_1.coord_others" pair="snail_3.coord"/>
 		<conn id="snail_2.coord_others" pair="snail_1.coord"/> <conn id="snail_2.coord_others" pair="snail_3.coord"/>
