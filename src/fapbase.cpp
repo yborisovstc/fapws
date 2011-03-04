@@ -1677,27 +1677,13 @@ void CAE_Object::Confirm()
 	    for (TInt i = 0; i < iCompReg.size(); i++ )
 	    {
 		CAE_EBase* elem = (CAE_EBase*) iCompReg.at(i);
-		CAE_Object* obj = elem->GetFbObj(obj); 
-		if (obj != NULL) {
-		    obj->SetActiveRec();
-		}
-		else {
+		if (elem != NULL) {
 		    elem->SetActive();
 		}
 	    }
 	}
     }
 };
-
-void CAE_Object::SetActiveRec()
-{
-    CAE_EBase::SetActive();
-    for (TInt i = 0; i < iCompReg.size(); i++ )
-    {
-	CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
-	obj->SetActive();
-    }
-}
 
 void CAE_Object::SetMutation(const CAE_ChromoNode& aMuta)
 {
@@ -2051,8 +2037,9 @@ void CAE_Object::Mutate()
 void CAE_Object::DoMutation()
 {
     CAE_ChromoNode& root = iMut->Root();
+    TBool emnode = root.AttrExists(ENa_MutNode);
     string mnode = root.Attr(ENa_MutNode);
-    CAE_EBase* node = (mnode.compare("self") == 0) ? this: FindByName(mnode.c_str());
+    CAE_EBase* node = (!emnode || (mnode.compare("self") == 0)) ? this: FindByName(mnode.c_str());
     CAE_ChromoNode& chrroot = iChromo->Root();
     // Handling mutations
     for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End(); mit++)

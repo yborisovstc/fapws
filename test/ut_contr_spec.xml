@@ -89,11 +89,12 @@
 					    </mut>
 					</iobject> <!-- Subject -->
 
-					<iobject type="Terminal" id="_Most"><mut node="self"><change type="state" id="mass" attr="init" val="10000"/></mut></iobject>
-					<iobject type="Terminal" id="_Less"><mut node="self"><change type="state" id="mass" attr="init" val="0"/></mut></iobject>
-					<iobject type="Subject" id="Peter"><mut node="self"><change type="state" id="mass" attr="init" val="5"/></mut></iobject>
-					<iobject type="Subject" id="Alex"><mut node="self"><change type="state" id="mass" attr="init" val="7"/></mut></iobject>
-					<iobject type="Subject" id="John"><mut node="self"><change type="state" id="mass" attr="init" val="2"/></mut></iobject>
+					<iobject type="Terminal" id="_Most">
+					    <mut><change type="state" id="mass" attr="init" val="10000"/></mut></iobject>
+					<iobject type="Terminal" id="_Less"><mut><change type="state" id="mass" attr="init" val="0"/></mut></iobject>
+					<iobject type="Subject" id="Peter"><mut><change type="state" id="mass" attr="init" val="5"/></mut></iobject>
+					<iobject type="Subject" id="Alex"><mut><change type="state" id="mass" attr="init" val="7"/></mut></iobject>
+					<iobject type="Subject" id="John"><mut><change type="state" id="mass" attr="init" val="2"/></mut></iobject>
 
 					<conn id="Peter.input" pair="_Most.output"/> 
 					<conn id="Alex.input" pair="Peter.output"/> 

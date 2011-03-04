@@ -226,10 +226,7 @@ public:
 	void ResetActive() { iActive = EFalse;};
 	void SetUpdated(); 
 	void ResetUpdated() {iUpdated = EFalse;};
-	// TODO [YB] To remove WasUpdated
-	void SetWasUpdated(TBool aData) { iWasUpdated = aData;}; 
 	TBool IsUpdated() const { return iUpdated; };
-	TBool WasUpdated() const { return iWasUpdated; };
 	TBool IsQuiet() const { return iQuiet; };
 	void SetName(const char *aName);
 	void SetType(const char *aType);
@@ -248,7 +245,7 @@ protected:
 	char* iInstName;
 	/* Name of ancestor */
 	char* iTypeName;
-	TBool	iUpdated, iActive, iWasUpdated;
+	TBool	iUpdated, iActive;
 	/* Element is not "moving" - cannot be activated */
 	TBool iQuiet; 
 	CAE_Object* iMan;
@@ -932,7 +929,6 @@ public:
 	void UnregisterComp(CAE_EBase* aComp);
 	virtual void Update();
 	virtual void Confirm();
-	void SetActiveRec();
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	TInt CountCompWithType(const char *aType = NULL);
