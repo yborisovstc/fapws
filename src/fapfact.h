@@ -59,6 +59,7 @@ class CAE_Fact: public MAE_Provider
 	virtual const CAE_Formatter* GetFormatter(int aUid) const;
 	virtual void RegisterFormatter(CAE_Formatter *aForm);
 	virtual CAE_ChromoBase* CreateChromo() const;
+	virtual CAE_TranExBase* CreateTranEx() const;
     protected:
 	FAPWS_API CAE_Fact();
 	FAPWS_API void ConstructL();
@@ -88,6 +89,7 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	virtual const CAE_Formatter* GetFormatter(int aUid) const;
 	virtual void RegisterFormatter(CAE_Formatter *aForm);
 	virtual CAE_ChromoBase* CreateChromo() const;
+	virtual CAE_TranExBase* CreateTranEx() const;
     private:
 	void RegisterFormatter(int aUid, TLogFormatFun aFun);
 	const TStateInfo* GetStateInfo(const char *aType) const;

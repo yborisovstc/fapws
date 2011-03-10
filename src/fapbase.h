@@ -40,7 +40,6 @@ using namespace std;
 #define KCommand_On 1
 #define KCommand_Off 0
 
-
 #define KRequestPending -1
 
 #define CAE_TRANS_DEF(name, class) void name(CAE_StateBase* aState);\
@@ -437,13 +436,13 @@ class CAE_Formatter
 class TTransInfo
 {
 public:
-	TTransInfo(): iFun(NULL), iOpInd(0), iCbo(NULL), iId(NULL) {}
-	TTransInfo(TTransFun aFun, const char* aId = NULL, CAE_Object* aCbo = NULL):
-	    iFun(aFun), iCbo(aCbo), iOpInd(0), iId(aId) {}
+	TTransInfo(): iFun(NULL), iOpInd(0), iHandle(NULL), iId(NULL) {}
+	TTransInfo(TTransFun aFun, const char* aId = NULL, void* aHandle = NULL):
+	    iFun(aFun), iHandle(aHandle), iOpInd(0), iId(aId) {}
 	TTransInfo(TUint32 aOpInd): iFun(NULL), iOpInd(aOpInd) {}
 public:
 	TTransFun iFun;
-	CAE_Object* iCbo; // Keep Cbo in order to be compatible with legacy projects
+	void* iHandle; // Handle of trans within system chromo
 	TUint32 iOpInd;
 	const char *iId;	// Unique identificator of Transition
 };
@@ -499,12 +498,15 @@ public:
 	// The method verifies operation attempted and set the most passed operation if incorrect
 	// Returns true if given operation was set correctly 
 	virtual TBool SetTrans(TTransInfo aTinfo);
-	inline TTransInfo GetTrans();
+	inline const TTransInfo& GetTrans();
 	virtual TOperationInfo OperationInfo(TUint8 aId) const;
 	template <class T> inline operator CAE_TState<T>* ();
 	// TODO YB operator doesn't called
 	template <class T> inline operator CAE_TState<T>& ();
 	template <class T> inline operator const T& ();
+public:
+	const string ValStr() const;
+	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	void ConstructL();
@@ -526,7 +528,7 @@ protected:
 
 inline const char *CAE_StateBase::Type() { return "StateBase";} 
 
-inline TTransInfo CAE_StateBase::GetTrans() { return iTrans; };
+inline const TTransInfo& CAE_StateBase::GetTrans() { return iTrans; };
 
 
 
@@ -702,6 +704,7 @@ enum NodeType
     ENt_Robject = 20, // Root of object
     ENt_Node = 21, // Node spec (i.e in remove mutation)
     ENt_ChNode = 22, // Change of node
+    ENt_Trans = 23, // Transtion function of state
 };
 
 enum TNodeAttr
@@ -729,9 +732,12 @@ class MAE_ChromoMdl
     public:
 	virtual NodeType GetType(const void* aHandle) = 0;
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* NextText(const void* aHandle) = 0;
 	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
 	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* GetFirstTextChild(const void* aHandle) = 0;
 	virtual char* GetAttr(const void* aHandle, TNodeAttr aAttr) = 0;
+	virtual char* GetContent(const void* aHandle) = 0;
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
@@ -797,6 +803,7 @@ class CAE_ChromoNode
 	Const_Iterator End() const { return Const_Iterator(iMdl, NULL); };
 	Iterator Find(NodeType aNodeType) { return Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
 	Const_Iterator Find(NodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
+	Iterator FindText() { return Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
     public:
 	NodeType Type() { return iMdl.GetType(iHandle); };
 	NodeType Type() const { return iMdl.GetType(iHandle); };
@@ -804,6 +811,7 @@ class CAE_ChromoNode
 	const string Name() const { return Attr(ENa_Id);};
 	const string Attr(TNodeAttr aAttr);
 	const string Attr(TNodeAttr aAttr) const;
+	const string Content() { return iMdl.GetContent(iHandle);};
 	TInt AttrInt(TNodeAttr aAttr) const;
 	TBool AttrExists(TNodeAttr aAttr) const { return iMdl.AttrExists(iHandle, aAttr);};
 	TBool AttrBool(TNodeAttr aAttr) const;
@@ -860,6 +868,21 @@ class MAE_ChroMan
 	virtual int GetAttrInt(void *aSpec, const char *aName) = 0;
 };
 
+// Executable agent for FAP transtions
+class MAE_TranEx
+{
+    public:
+	virtual void EvalTrans(CAE_StateBase* aState, const string& aTrans) = 0;
+};
+
+// Executable agent base 
+class CAE_TranExBase: public CAE_Base, public MAE_TranEx
+{
+    public:
+	CAE_TranExBase() {};
+};
+
+
 // Provider of CAE elements
 class MAE_Provider
 {
@@ -876,6 +899,7 @@ class MAE_Provider
 	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
 	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
 	virtual CAE_ChromoBase* CreateChromo() const = 0;
+	virtual CAE_TranExBase* CreateTranEx() const = 0;
 };
 
 // FAP environment interface
@@ -886,6 +910,7 @@ class MAE_Env
 	// Getting Cromosome manager
 	virtual MAE_ChroMan *Chman() const = 0;
 	virtual MCAE_LogRec *Logger() = 0;
+	virtual MAE_TranEx *Tranex() = 0;
 };
 
 // Base class for object. Object is container and owner of its component and states
@@ -952,6 +977,7 @@ public:
 	const MAE_Chromo& Chromo() { return *iChromo;};
 	CAE_Object::ChromoPx* ChromoIface() { return &iChromoIface;};
 	void Mutate();
+	void DoTrans(CAE_StateBase* aState);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);

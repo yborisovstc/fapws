@@ -34,6 +34,7 @@ public:
 	virtual MAE_Provider *Provider() const;
 	virtual MAE_ChroMan *Chman() const;
 	virtual MCAE_LogRec *Logger();
+	virtual MAE_TranEx *Tranex();
 protected:
 	FAPWS_API CAE_Env(TInt aPriority, TInt aLoad = KEnvLoadDefault);
 	FAPWS_API void ConstructL(const char* aLogSpecFile, const char *aLogFileName = NULL);
@@ -48,6 +49,7 @@ private:
 	TUint32		iStepCount;
 	CAE_ChroManBase *iChroman; // Chromosome manager
 	MAE_Provider *iProvider;
+	CAE_TranExBase* iTranEx;
 };
 
 

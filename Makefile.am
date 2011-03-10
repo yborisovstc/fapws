@@ -1,5 +1,5 @@
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libfapws.pc
 
-SUBDIRS = src test
+SUBDIRS = src test trag
 

@@ -8,9 +8,8 @@ ut_fapws_lib_SOURCES = \
 	ut_spec_creat.h \
 	ut_ext_mut.cpp \
 	ut_conn.cpp \
-	ut_control.cpp 
-	ut_game_xo.cpp \
-	ut_game_xo.h
+	ut_control.cpp \
+	ut_emtran.cpp 
 
 AM_CPPFLAGS = -D_PLAT_LINUX_ -g -O0
 ut_fapws_lib_LDFLAGS=-L../src -lfapws  -lcppunit

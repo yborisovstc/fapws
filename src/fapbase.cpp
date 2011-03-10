@@ -800,9 +800,12 @@ TBool CAE_StateBase::SetTrans(TTransInfo aTinfo)
 void CAE_StateBase::DoTrans() 
 {
     if (iTrans.iFun != NULL) 
-	iTrans.iFun((iTrans.iCbo != NULL) ? iTrans.iCbo : iMan, this);
+	iTrans.iFun(iMan, this);
     else if (iTrans.iOpInd != 0)
 	DoOperation();
+    else if ((iTrans.iId != NULL) && (strcmp(iTrans.iId, "_emb") == 0)) {
+	iMan->DoTrans(this);
+    }
 };
 
 // The base class has the trivial implementation of operation
@@ -832,6 +835,13 @@ void *CAE_StateBase::DoGetFbObj(const char *aName)
 	return CAE_EBase::DoGetFbObj(aName);
 }
 
+const string CAE_StateBase::ValStr() const 
+{ 
+    char* data = DataToStr(ETrue); 
+    string res(data); 
+    free(data);
+    return res;
+}
 
 // ******************************************************************************
 // CAE_State - state handling owned data
@@ -1798,6 +1808,11 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 		    CreateStateInp(stelem, state);
 		}
 	    }
+	    else if (stelem.Type() == ENt_Trans) {
+		// Embedded transition
+		TTransInfo tinfo(NULL, "_emb", NULL);
+		state->SetTrans(tinfo);
+	    }
 	    else
 	    {
 		Logger()->WriteFormat("ERROR: Unknown type [%s]", stelemname.c_str());
@@ -2079,7 +2094,7 @@ void CAE_Object::DoMutation()
 		    else {
 			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
 		    }
-		    iChromo->Root().AddChild(mano);
+		    chrroot.AddChild(mano);
 		}
 	    }
 	    else if (mno.Type() == ENt_MutRm) 
@@ -2462,6 +2477,29 @@ CAE_StateBase* CAE_Object::GetInpState(const char* aName)
     return res;
 }
 
+void CAE_Object::DoTrans(CAE_StateBase* aState)
+{
+    // Find the state in chromo
+    CAE_ChromoNode chroot = iChromo->Root();
+    void* handle = aState->GetTrans().iHandle;
+    if (handle == NULL) {
+	for (CAE_ChromoNode::Iterator it = chroot.Begin(); it != chroot.End(); it++ ) {
+	    CAE_ChromoNode node = *it;
+	    if ((node.Type() == ENt_State) && (node.Name().compare(aState->InstName()) == 0)) {
+		CAE_ChromoNode::Iterator itrans = node.Find(ENt_Trans);
+		CAE_ChromoNode trans = *itrans;
+		handle = (void *) trans.Handle();
+		TTransInfo tinfo(NULL, "_emb", handle);
+		aState->SetTrans(tinfo);
+		break;
+	    }
+	}
+    }
+    CAE_ChromoNode ntrans(chroot.Mdl(), handle);
+    CAE_ChromoNode::Iterator iconnode = ntrans.FindText();
+    const string content = (*iconnode).Content();
+    iEnv->Tranex()->EvalTrans(aState, content);
+}
 
 //*********************************************************
 // CAE_ObjectBa - bit automata

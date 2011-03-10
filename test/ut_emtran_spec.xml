@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+
+<!-- Unit test for embedded transitions -->
+<!--
+     -->
+
+<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+
+<caeenv>
+    <iobject type="none" id="Test">
+	<mut node="self">
+	    <add>
+		<logspec  event="cre"> <logdata id="new"/> </logspec>
+
+		<iobject type="none" id="Incrementer">
+		    <mut node="self">
+			<add>
+			    <out id="output"/>
+
+
+			    <!-- State that contains data -->
+			    <state type="StUint32" id="S_Count" init="5"> 
+				<logspec event="cre"> <logdata id="new"/> </logspec> 
+				<logspec event="upd"> <logdata id="new"/> </logspec> 
+				<trans>
+				    let add := _add_int
+				    let add :: TInt TInt TInt
+				    _set add 2 _inp self
+				</trans>
+				<inp id="self"/> 
+			    </state>
+
+			    <conn id="S_Count.self" pair="S_Count.output"/> 
+			    <ext id="output" pair="S_Count.output"/>
+
+			</add>
+		    </mut>
+		</iobject> <!-- Incrementer -->
+
+	    </add>
+	</mut>
+    </iobject> <!-- Test -->
+</caeenv>
+

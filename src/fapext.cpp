@@ -25,6 +25,11 @@ FAPWS_API CAE_Env::~CAE_Env()
 	delete iChroman;
 	iChroman = NULL;
     }
+    if (iTranEx != NULL)
+    {
+	delete iTranEx;
+	iTranEx = NULL;
+    }
     delete iLogger;
 }
 
@@ -74,6 +79,7 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
 {
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
+    iTranEx = iProvider->CreateTranEx();
     CAE_ChromoBase *spec = iProvider->CreateChromo();
     spec->Set(aSpec);
     if (aSinfos != NULL) {
@@ -148,6 +154,11 @@ MCAE_LogRec *CAE_Env::Logger()
 FAPWS_API MAE_ChroMan* CAE_Env::Chman() const 
 { 
     return iChroman;
+}
+
+MAE_TranEx *CAE_Env::Tranex()
+{
+    return iTranEx;
 }
 
 FAPWS_API void CAE_Env::AddChmanXml(const char *aXmlFileName)

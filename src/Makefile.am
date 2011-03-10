@@ -15,9 +15,13 @@ libfapws_la_SOURCES = \
 		       fapfact.h \
 		       faplogger.cpp \
 		       faplogger.h \
+		       tadesl.cpp \
+		       tadesl.h \
 		       fapws.cpp \
 		       fapws.h \
-		       fapplat.h
+		       fapplat.h \
+		       deslbase.cpp \
+		       deslbase.h 
 
 
 include_HEADERS = \

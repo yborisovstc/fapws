@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+
+<!-- Specification of FAP environment for unit test for extended inputs and object mutation -->
+<!--
+     There are several "snails" that are crawling to one direction
+     The the less mass of snail the much its velocity  
+     The snail that is crawling first eat more food and thus increase its mass
+     The snail that falls behind gets less food and thus loosing its mass
+     -->
+
+<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+
+<caeenv>
+    <iobject type="none" id="main_test">
+	<mut node="self">
+	    <add>
+		<iobject type="none" id="snail" quiet="yes"> 
+		    <mut node="self">
+			<add>
+			    <inp id="coord_others"/>
+			    <out id="coord"/>
+
+			    <logspec  event="cre"> <logdata id="new"/> </logspec>
+
+			    <state type="StUint32" id="mass" init="2"> 
+				<logspec event="upd"> <logdata id="new"/> </logspec> 
+				<inp id="coord_self"/> <inp id="coord_others"/> 
+				<trans>
+				</trans>
+			    </state>
+
+			    <state type="StUint32" id="coord" len="4" init="0"> 
+				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+				<inp id="self"/> <inp id="mass"/> 
+				<trans>
+				</trans>
+			    </state>
+
+			    <conn id="mass.coord_self" pair="coord.output"/> 
+			    <conn id="coord.self" pair="coord.output"/> 
+			    <conn id="coord.mass" pair="mass.output"/>
+
+			    <ext id="coord_others" pair="mass.coord_others"/>
+			    <ext id="coord" pair="coord.output"/>
+			</add>
+		    </mut>
+
+		</iobject> <!-- snail -->
+
+		<iobject type="snail" id="snail_1" > <mut node="self"> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_2" > <mut node="self"> <change type="state" id="mass" attr="init" val="3"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_3" > <mut node="self"> <change type="state" id="mass" attr="init" val="16"/> </mut> </iobject>
+
+		<conn id="snail_1.coord_others" pair="snail_2.coord"/><conn id="snail_1.coord_others" pair="snail_3.coord"/>
+		<conn id="snail_2.coord_others" pair="snail_1.coord"/> <conn id="snail_2.coord_others" pair="snail_3.coord"/>
+		<conn id="snail_3.coord_others" pair="snail_1.coord"/> <conn id="snail_3.coord_others" pair="snail_2.coord"/>
+
+	    </add>
+	</mut>
+    </iobject> <!-- test -->
+</caeenv>
+

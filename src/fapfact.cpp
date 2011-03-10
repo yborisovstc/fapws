@@ -12,6 +12,7 @@
 #include "fapstext.h"
 #include "faplogger.h"
 #include "panics.h"
+#include "tadesl.h"
 
 // XML CAE spec parameters
 // Element types
@@ -63,10 +64,13 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
     public:
 	virtual NodeType GetType(const void* aHandle);
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* NextText(const void* aHandle);
 	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
 	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown);
 	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* GetFirstTextChild(const void* aHandle);
 	virtual char *GetAttr(const void* aHandle, TNodeAttr aAttr);
+	virtual char* GetContent(const void* aHandle);
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr);
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
@@ -117,6 +121,7 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["change"] = ENt_MutChange;
 	KNodeTypes["node"] = ENt_Node;
 	KNodeTypes["chnode"] = ENt_ChNode;
+	KNodeTypes["trans"] = ENt_Trans;
 
 	for (map<string, NodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
 	    KNodeTypesNames[it->second] = it->first;
@@ -221,6 +226,18 @@ void *CAE_ChromoMdlX::GetLastChild(const void *aHandle, NodeType aType)
     return res;
 }
 
+void* CAE_ChromoMdlX::GetFirstTextChild(const void* aHandle)
+{
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    _FAP_ASSERT(node != NULL);
+    xmlNodePtr res = node->children;
+    if (res != NULL) {
+	if (res->type != XML_TEXT_NODE)
+	    res = (xmlNodePtr) NextText(res);
+    }
+    return res;
+}
+
 void *CAE_ChromoMdlX::Next(const void *aHandle, NodeType aType)
 {
     _FAP_ASSERT(aHandle!= NULL);
@@ -231,6 +248,18 @@ void *CAE_ChromoMdlX::Next(const void *aHandle, NodeType aType)
 	    res = res->next;
 	    if (res != NULL)
 		type = GetType((void*) res);
+	}
+    }
+    return res;
+}
+
+void* CAE_ChromoMdlX::NextText(const void* aHandle)
+{
+    _FAP_ASSERT(aHandle!= NULL);
+    xmlNodePtr res = ((xmlNodePtr) aHandle)->next;
+    if (res != NULL) {
+	while ((res != NULL) && (res->type != XML_TEXT_NODE)) {
+	    res = res->next;
 	}
     }
     return res;
@@ -263,6 +292,14 @@ TBool CAE_ChromoMdlX::AttrExists(const void* aHandle, TNodeAttr aAttr)
     res = (attr != NULL);
     free (attr);
     return res;
+}
+
+char* CAE_ChromoMdlX::GetContent(const void* aHandle)
+{
+    _FAP_ASSERT(aHandle != NULL);
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    xmlChar *cont = xmlNodeGetContent(node);
+    return (char *) cont;
 }
 
 int CAE_ChromoMdlX::GetAttrInt(void *aHandle, const char *aName)
@@ -593,6 +630,12 @@ CAE_ChromoBase* CAE_ProviderGen::CreateChromo() const
 {
     return new CAE_ChromoX();
 }
+
+CAE_TranExBase* CAE_ProviderGen::CreateTranEx() const
+{
+    return new CAE_TaDesl();
+}
+
 
 //*********************************************************
 // Chromosome manager for XML based chromosome
@@ -991,5 +1034,10 @@ CAE_ChromoBase* CAE_Fact::CreateChromo() const
 	CAE_ProviderBase* prov = GetProviderAt(0);
 	prov->CreateChromo();
     };
+}
+
+CAE_TranExBase* CAE_Fact::CreateTranEx() const
+{
+    GetProviderAt(0)->CreateTranEx();
 }
 

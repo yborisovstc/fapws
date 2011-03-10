@@ -95,14 +95,4 @@ struct CF_Rect
 };
 
 
-/*
-   template<>inline const char *CAE_TState<TUint8>::Type() {return "StUint8"; }
-
-template<>inline const char *CAE_TState<TInt>::Type() {return "StInt"; }
-
-template<>inline const char *CAE_TState<TUint32>::Type() {return "StUint32"; }
-
-template<>inline const char *CAE_TState<TBool>::Type() {return "StBool"; }
-*/
-
 #endif // __FAP_STEXT_H

@@ -39,7 +39,9 @@
 -->
 <!ELEMENT node EMPTY>
 
-<!ELEMENT state (logspec*, inp*)>
+<!ELEMENT state (logspec*, trans*, inp*)>
+
+<!ELEMENT trans ANY>
 
 <!-- 
      Object inherited
