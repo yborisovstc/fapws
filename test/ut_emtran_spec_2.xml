@@ -22,14 +22,18 @@
 
 			    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
-			    <state type="StUint32" id="mass" init="2"> 
+			    <state type="StInt" id="mass" init="2"> 
 				<logspec event="upd"> <logdata id="new"/> </logspec> 
 				<inp id="coord_self"/> <inp id="coord_others"/> 
 				<trans>
+				    let icothers :: [TInt] := inp coord_others
+				    let icself :: TInt := inp coord_self
+				    let ffun :: TBool TInt := gt icselt
+				    let infront :: [TInt] := filter ffun icothers
 				</trans>
 			    </state>
 
-			    <state type="StUint32" id="coord" len="4" init="0"> 
+			    <state type="StInt" id="coord" len="4" init="0"> 
 				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
 				<inp id="self"/> <inp id="mass"/> 
 				<trans>

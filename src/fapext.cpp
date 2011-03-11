@@ -79,7 +79,7 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
 {
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
-    iTranEx = iProvider->CreateTranEx();
+    iTranEx = iProvider->CreateTranEx(Logger());
     CAE_ChromoBase *spec = iProvider->CreateChromo();
     spec->Set(aSpec);
     if (aSinfos != NULL) {

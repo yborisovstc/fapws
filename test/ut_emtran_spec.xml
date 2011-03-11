@@ -19,18 +19,29 @@
 
 
 			    <!-- State that contains data -->
-			    <state type="StUint32" id="S_Count" init="5"> 
+			    <state type="StInt" id="S_Count" init="5"> 
+				<logspec event="cre"> <logdata id="new"/> </logspec> 
+				<logspec event="upd"> <logdata id="new"/> </logspec> 
+				<inp id="self"/> 
+				<trans>
+				    let iself :: TInt := inp self
+				    set if lt iself 20 add iself 1 iself
+				</trans>
+			    </state>
+
+			    <!-- State that contains data -->
+			    <state type="StVectF" id="S_VCount" init="5"> 
 				<logspec event="cre"> <logdata id="new"/> </logspec> 
 				<logspec event="upd"> <logdata id="new"/> </logspec> 
 				<trans>
-				    let add := _add_int
-				    let add :: TInt TInt TInt
-				    _set add 2 _inp self
+				    set add (2.0,3.0) inp self
 				</trans>
 				<inp id="self"/> 
 			    </state>
 
+
 			    <conn id="S_Count.self" pair="S_Count.output"/> 
+			    <conn id="S_VCount.self" pair="S_VCount.output"/> 
 			    <ext id="output" pair="S_Count.output"/>
 
 			</add>

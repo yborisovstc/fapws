@@ -9,7 +9,7 @@
 class CAE_TaDesl: public CAE_TranExBase
 {
     public:
-	CAE_TaDesl();
+	CAE_TaDesl(MCAE_LogRec* aLogger);
 	virtual ~CAE_TaDesl();
 	// From MAE_TranEx
 	virtual void EvalTrans(CAE_StateBase* aState, const string& aTrans);

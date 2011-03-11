@@ -12,8 +12,8 @@
 
 static const char* KLogSpecFileName = "../testfaplogspec.txt";
 static const char* KLogFileName = "ut_emtran_log.txt";
-// static const char* KSpecFileName = "ut_emtran_spec_2.xml";
-static const char* KSpecFileName = "ut_emtran_spec.xml";
+static const char* KSpecFileName = "ut_emtran_spec_2.xml";
+// static const char* KSpecFileName = "ut_emtran_spec.xml";
 
 
 static const TTransInfo* tinfos[] = { NULL};

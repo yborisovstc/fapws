@@ -879,7 +879,9 @@ class MAE_TranEx
 class CAE_TranExBase: public CAE_Base, public MAE_TranEx
 {
     public:
-	CAE_TranExBase() {};
+	CAE_TranExBase(MCAE_LogRec* aLogger): iLogger(aLogger) {};
+    protected:
+	MCAE_LogRec* iLogger;
 };
 
 
@@ -899,7 +901,7 @@ class MAE_Provider
 	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
 	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
 	virtual CAE_ChromoBase* CreateChromo() const = 0;
-	virtual CAE_TranExBase* CreateTranEx() const = 0;
+	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const = 0;
 };
 
 // FAP environment interface

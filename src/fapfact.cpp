@@ -631,9 +631,9 @@ CAE_ChromoBase* CAE_ProviderGen::CreateChromo() const
     return new CAE_ChromoX();
 }
 
-CAE_TranExBase* CAE_ProviderGen::CreateTranEx() const
+CAE_TranExBase* CAE_ProviderGen::CreateTranEx(MCAE_LogRec* aLogger) const
 {
-    return new CAE_TaDesl();
+    return new CAE_TaDesl(aLogger);
 }
 
 
@@ -1036,8 +1036,8 @@ CAE_ChromoBase* CAE_Fact::CreateChromo() const
     };
 }
 
-CAE_TranExBase* CAE_Fact::CreateTranEx() const
+CAE_TranExBase* CAE_Fact::CreateTranEx(MCAE_LogRec* aLogger) const
 {
-    GetProviderAt(0)->CreateTranEx();
+    GetProviderAt(0)->CreateTranEx(aLogger);
 }
 

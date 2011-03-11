@@ -203,7 +203,7 @@ template<> const char* CAE_TState<CF_TdPointF>::Type() {return "StPointF";};
 
 template<> const char* CAE_TState<CF_TdVectF>::Type() {return "StVectF";};
 
-template<> const char* CAE_TState<CF_Rect>::Type() {return "StVectF";};
+template<> const char* CAE_TState<CF_Rect>::Type() {return "StRect";};
 
 
 

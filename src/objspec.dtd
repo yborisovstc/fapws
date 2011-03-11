@@ -39,7 +39,7 @@
 -->
 <!ELEMENT node EMPTY>
 
-<!ELEMENT state (logspec*, trans*, inp*)>
+<!ELEMENT state (logspec*, inp*, trans*)>
 
 <!ELEMENT trans ANY>
 
