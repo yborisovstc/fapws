@@ -1,3 +1,9 @@
+fapws (0.0.3-01) unstable; urgency=low
+
+  * Embedded transitions: phase#1 - base functions, snails base
+
+ -- Yuri Borisov <yuri.borisov.v@gmail.com>  Fri, 04 Mar 2011 19:30:00 +0400
+
 fapws (0.0.2-03) unstable; urgency=low
 
   * Controlling phase#2 - UT pass

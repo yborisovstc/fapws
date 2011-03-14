@@ -9,6 +9,7 @@ ChangeLog
 README
 NEWS
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
+  deslbase.h
   fapbase.h
   fapext.h
   fapfact.h
@@ -18,12 +19,15 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   faptran.h
   fapws.h
   panics.h
+  tadesl.h
+  deslbase.cpp
   fapbase.cpp
   fapext.cpp
   fapfact.cpp
   faplogger.cpp
   fapstext.cpp
   fapws.cpp
+  tadesl.cpp
   objspec.dtd
   Makefile.am
 } 
@@ -47,10 +51,12 @@ debian=debian CD=. filter="*" {
   fapws.debhelper.log
 }
  trag=trag CD=. filter="*" {
+  Makefile.am
   tadesl=tadesl CD=. filter="*.cpp *.h *.am Makefile" {
    tadesl.cpp
    tadesl.h
    Makefile.am
+   Makefile
   }
  }
 doc=doc CD=. filter="*" {
@@ -71,6 +77,9 @@ test=test CD=. filter="*" {
   ut_conn_spec.xml
   ut_contr_spec.xml
   ut_control.cpp
+  ut_emtran.cpp
+  ut_emtran_spec.xml
+  ut_emtran_spec_2.xml
   ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
@@ -82,9 +91,10 @@ test=test CD=. filter="*" {
   ut_spec_creat_1.xml
   ut_spec_ext_mut.xml
   ut_fapws_lib-ut_conn.o
+  ut_fapws_lib-ut_control.o
+  ut_fapws_lib-ut_emtran.o
   ut_fapws_lib-ut_ext_mut.o
   ut_fapws_lib-ut_fapws_main.o
-  ut_fapws_lib-ut_game_xo.o
   ut_fapws_lib-ut_simple_increase.o
   ut_fapws_lib-ut_spec_creat.o
   libs=.libs CD=. filter="*" {

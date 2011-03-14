@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 
-<!-- Specification of FAP environment for unit test for extended inputs and object mutation -->
+<!-- Specification of FAP environment for unit test for embedded transition -->
 <!--
      There are several "snails" that are crawling to one direction
      The the less mass of snail the much its velocity  
@@ -24,12 +24,21 @@
 
 			    <state type="StInt" id="mass" init="2"> 
 				<logspec event="upd"> <logdata id="new"/> </logspec> 
-				<inp id="coord_self"/> <inp id="coord_others"/> 
+				<inp id="self"/> <inp id="coord_self"/> <inp id="coord_others"/> 
 				<trans>
+				    let KMinMass :: TInt := 1
+				    let KMaxMass :: TInt := 100
+				    let KMaxFeed :: TInt := 2
 				    let icothers :: [TInt] := inp coord_others
 				    let icself :: TInt := inp coord_self
-				    let ffun :: TBool TInt := gt icselt
+				    let self :: TInt := inp self
+				    let ffun :: TBool TInt := lt icself
 				    let infront :: [TInt] := filter ffun icothers
+				    let infrontcnt :: TInt := count infront
+				    let rmass :: TInt := sub add self sub KMaxFeed infrontcnt 1
+				    let mass1 :: TInt := if gt rmass KMaxMass KMaxMass rmass
+				    let mass :: TInt := if lt rmass KMinMass KMinMass mass1
+				    set mass
 				</trans>
 			    </state>
 
@@ -37,9 +46,15 @@
 				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
 				<inp id="self"/> <inp id="mass"/> 
 				<trans>
+				    let KMinMass :: TInt := 1
+				    let KMaxMass :: TInt := 100
+				    let self :: TInt := inp self
+				    let mass :: TInt := inp mass
+				    set add self div KMaxMass mass
 				</trans>
 			    </state>
 
+			    <conn id="mass.self" pair="mass.output"/> 
 			    <conn id="mass.coord_self" pair="coord.output"/> 
 			    <conn id="coord.self" pair="coord.output"/> 
 			    <conn id="coord.mass" pair="mass.output"/>

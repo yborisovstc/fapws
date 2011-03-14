@@ -59,7 +59,7 @@ void CSL_ExprBase::EvalArgs(MSL_ExprEnv& aEnv, const string& aReqType, vector<st
 	aArgr++;
 	if (expr != NULL) {
 	    // Known term
-	    if ((expr->Type().size() > 1) && (aArgr != aArgs.end())) {
+	    if (!expr->IsTypeOf(aReqType) && (aArgr != aArgs.end())) {
 		expr->ApplyArgs(aArgs, aArgr, aRes);
 	    }
 	    else {
@@ -128,7 +128,21 @@ void CSL_ExprBase::AcceptArg(CSL_ExprBase& aArg)
     iType.pop_back();
 }
 
+string CSL_ExprBase::TypeLn(vector<string>::const_iterator& aTop) const
+{
+    string res;
+    for (vector<string>::const_iterator it = iType.begin(); it <= aTop; it++) {
+	res += *it; 
+	if (it < aTop)
+	    res += " ";
+    }
+    return res;
+}
 
+TBool CSL_ExprBase::IsTypeOf(const string& aType) const
+{
+    return (aType.compare(TypeLn()) == 0);
+}
 
 void CSL_EfInp::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
@@ -207,6 +221,36 @@ void CSL_EfAddInt_1::Apply(vector<string>& aArgs, vector<string>::iterator& aArg
     res = x + y;
     aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
 }
+
+void CSL_EfSubInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aArgs, aArgr, aArg, aRes);
+    }
+    else {
+	TInt x,y, res;
+	CSL_EfTInt::FromStr(x, iArgs[0]->SData());
+	CSL_EfTInt::FromStr(y, aArg.SData());
+	res = x - y;
+	aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
+    }
+}
+
+void CSL_EfDivInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aArgs, aArgr, aArg, aRes);
+    }
+    else {
+	TInt x,y, res = 0;
+	CSL_EfTInt::FromStr(x, iArgs[0]->SData());
+	CSL_EfTInt::FromStr(y, aArg.SData());
+	if (y != 0)
+	    res = x / y;
+	aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
+    }
+}
+
 
 void CSL_EfTInt::FromStr(TInt& aData, const string& aStr)
 {
@@ -331,6 +375,11 @@ void CSL_EfFilter::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
     }
 }
 
+void CSL_EfCount::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
+{
+    TInt count = aArg.Data().size();
+    aRes = new CSL_EfTInt(iEnv, count);
+}
 
 
 static map<string, string> KStateDataTypes;
@@ -341,6 +390,8 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger)
     // Register embedded function
     SetExpr("VectF", new CSL_EfVectF(*this));
     SetExpr("add", new CSL_EfAddInt(*this));
+    SetExpr("sub", new CSL_EfSubInt(*this));
+    SetExpr("div", new CSL_EfDivInt(*this));
     SetExpr("add", new CSL_EfAddVectF(*this));
     SetExpr("inp", new CSL_EfInp(*this, "TInt TString"));
     SetExpr("inp", new CSL_EfInp(*this, "TVectF TString"));
@@ -349,8 +400,9 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger)
     SetExpr("set", new CSL_EfSet(*this, "TVectF TVectF"));
     SetExpr("if", new CSL_EfIf(*this, "TInt TInt TInt TBool"));
     SetExpr("lt", new CSL_EfLtInt(*this));
-    SetExpr("gt", new CSL_EfLtInt(*this));
+    SetExpr("gt", new CSL_EfGtInt(*this));
     SetExpr("filter", new CSL_EfFilter(*this, "TInt"));
+    SetExpr("count", new CSL_EfCount(*this, "TInt"));
 
     // Set datatypes map
     KStateDataTypes["StInt"] = "TInt";
@@ -461,8 +513,8 @@ CSL_ExprBase* CSL_Interpr::GetExpr(const string& aName, const string& aRtype)
 void CSL_Interpr::SetExpr(const string& aName, CSL_ExprBase* aExpr)
 {
     iExprs[aName] = aExpr;
-    if (!aExpr->RType().empty()) {
-	iExprs[aName + " " + aExpr->RType()] = aExpr;
+    for (vector<string>::const_iterator it = aExpr->Type().begin(); it != aExpr->Type().end(); it++) {
+	iExprs[aName + " " + aExpr->TypeLn(it)] = aExpr;
     }
 }
 

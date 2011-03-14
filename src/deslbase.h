@@ -56,6 +56,9 @@ class CSL_ExprBase
 	void AddData(const string& aData) { iData.push_back(aData);};
 	static TBool IsTuple(const string& aType) { return aType[0] == '[';};
 	static string TupleElemType(const string& aType) { return aType.substr(1, aType.length() - 2);};
+	string TypeLn(vector<string>::const_iterator& aTop) const;
+	string TypeLn() const { vector<string>::const_iterator top = iType.end() - 1; return TypeLn(top);};
+	TBool IsTypeOf(const string& aType) const;
     protected:
 	MCAE_LogRec *Logger() { return iEnv.Logger();};
     protected:
@@ -109,6 +112,7 @@ class CSL_EfTInt: public CSL_ExprBase
     public:
 	CSL_EfTInt(MSL_ExprEnv& aEnv): CSL_ExprBase(aEnv, "TInt") {};
 	CSL_EfTInt(MSL_ExprEnv& aEnv, const string& aData): CSL_ExprBase(aEnv, "TInt", aData) {};
+	CSL_EfTInt(MSL_ExprEnv& aEnv, TInt aData): CSL_ExprBase(aEnv, "TInt", ToStr(aData)) {};
 	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
 	static string ToStr(const TInt& aData);
 	static void FromStr(TInt& aData, const string& aStr);
@@ -172,6 +176,23 @@ class CSL_EfAddInt_1: public CSL_ExprBase
 	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
 };
 
+class CSL_EfSubInt: public CSL_ExprBase
+{
+    public:
+	CSL_EfSubInt(MSL_ExprEnv& aEnv): CSL_ExprBase(aEnv, "TInt TInt TInt") {};
+	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfSubInt(*this);};
+};
+
+class CSL_EfDivInt: public CSL_ExprBase
+{
+    public:
+	CSL_EfDivInt(MSL_ExprEnv& aEnv): CSL_ExprBase(aEnv, "TInt TInt TInt") {};
+	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfDivInt(*this);};
+};
+
+
 
 class CSL_EfFilter: public CSL_ExprBase
 {
@@ -180,6 +201,14 @@ class CSL_EfFilter: public CSL_ExprBase
 	    CSL_ExprBase(aEnv, "[" + aElemType + "] [" + aElemType + "] " + "(TBool " + aElemType + ")") {};
 	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfFilter(*this);};
+};
+
+class CSL_EfCount: public CSL_ExprBase
+{
+    public:
+	CSL_EfCount(MSL_ExprEnv& aEnv, const string& aElemType): CSL_ExprBase(aEnv, "TInt [" + aElemType + "]") {};
+	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfCount(*this);};
 };
 
 

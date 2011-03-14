@@ -2191,7 +2191,7 @@ FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
     else {
 	for (TInt i = 0; i < iCompReg.size(); i++) {
 	    CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	    if (strcmp(comp->TypeName(), aType) == 0) {
+	    if ((comp != NULL) && (comp->TypeName() != NULL) && (strcmp(comp->TypeName(), aType) == 0)) {
 		res++;
 	    }
 	}
@@ -2221,7 +2221,7 @@ FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx
     CAE_Object *res = NULL, *elem = NULL;
     for (TInt i = aCtx?*aCtx:0; i < iCompReg.size(); i++) {
 	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	if ((strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
+	if ((comp->TypeName() != NULL) && (strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
 	    res = elem;
 	    *aCtx = i+1;
 	    break;
