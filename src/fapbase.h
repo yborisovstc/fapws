@@ -447,6 +447,17 @@ public:
 	const char *iId;	// Unique identificator of Transition
 };
 
+class CSL_ExprBase;
+class CAE_StateBase;;
+// Context of transition
+class MAE_TransContext
+{
+    public:
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
+	virtual CAE_StateBase* GetState() = 0;
+};
+
+
 template <class T> class CAE_TState;
 
 // Base class for state with transition function
@@ -456,7 +467,7 @@ template <class T> class CAE_TState;
 // #2 Special state. It has the transition function with two arguments- the pointer to object and to the state
 // Special state transition function can access to object data. So it should be used in the rare cases 
 // TODO [YB] To add inputs type info (maybe checking in transf will be enough?)
-class CAE_StateBase: public CAE_EBase
+class CAE_StateBase: public CAE_EBase, public MAE_TransContext
 {
     friend class CAE_Object;
 public:
@@ -519,6 +530,8 @@ protected:
 	void LogUpdate(TInt aLogData);
 	void LogTrans(TInt aLogData);
 	inline MCAE_LogRec *Logger();
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual CAE_StateBase* GetState() {return this;};
 protected:
 	// Transition info
 	TTransInfo iTrans;
@@ -868,11 +881,13 @@ class MAE_ChroMan
 	virtual int GetAttrInt(void *aSpec, const char *aName) = 0;
 };
 
+// Transitions
+//
 // Executable agent for FAP transtions
 class MAE_TranEx
 {
     public:
-	virtual void EvalTrans(CAE_StateBase* aState, const string& aTrans) = 0;
+	virtual void EvalTrans(MAE_TransContext* aContext, const string& aTrans) = 0;
 };
 
 // Executable agent base 
@@ -919,7 +934,7 @@ class MAE_Env
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
 // TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough 
-class CAE_Object: public CAE_EBase
+class CAE_Object: public CAE_EBase, public MAE_TransContext
 {
 public:
 	// Operation under chromosome
@@ -980,6 +995,8 @@ public:
 	CAE_Object::ChromoPx* ChromoIface() { return &iChromoIface;};
 	void Mutate();
 	void DoTrans(CAE_StateBase* aState);
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual CAE_StateBase* GetState() { return NULL;};
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1014,6 +1031,7 @@ private:
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
+	map<string, CSL_ExprBase*> iTrans; // Transition module
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;

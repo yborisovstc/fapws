@@ -15,7 +15,7 @@ To transform to html:
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.07 at 10-Nov-2010</releaseinfo>
+	<releaseinfo>Ver.0.08 at 17-Mar-2011</releaseinfo>
 
 	<abstract>
 	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
@@ -36,6 +36,8 @@ To transform to html:
 		<revremark>Added <xref linkend="uc_2_creat_root"/></revremark> </revision>
 	    <revision> <revnumber>0.07</revnumber> <date>10-Nov-2010</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added <xref linkend="uc_3_ext_inp"/></revremark> </revision>
+	    <revision> <revnumber>0.08</revnumber> <date>17-Mar-2011</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added <xref linkend="sec_emb_trans"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -148,4 +150,10 @@ To transform to html:
 	</sect2>
     </sect1>
 
+    <sect1 id="sec_emb_trans"><title>Embedded interpreter of transition function</title>
+	<sect2 id="sec_emb_trans_uc_01"><title>FAP_UC_ET_01 Transition can use the accessible modules</title>
+	    <simpara>The system defines transition for some state by specifying it within the state. This transition can use the module
+	    specifying within the system or super-system. </simpara>
+	</sect2>
+    </sect1>
 </article>

@@ -14,11 +14,17 @@
     <iobject type="none" id="main_test">
 	<mut node="self">
 	    <add>
+		<out id="snail_1">
+		    <src id="coord"/> <src id="mass"/> 
+		</out>
+
 		<iobject type="none" id="snail" quiet="yes"> 
 		    <mut node="self">
 			<add>
 			    <inp id="coord_others"/>
 			    <out id="coord"/>
+			    <out id="mass"/>
+			    <out id="outp"> <src id="coord"/> <src id="mass"/> </out>
 
 			    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
@@ -61,6 +67,12 @@
 
 			    <ext id="coord_others" pair="mass.coord_others"/>
 			    <ext id="coord" pair="coord.output"/>
+			    <ext id="mass" pair="mass.output"/>
+
+			    <extc id="outp">
+				<srcext id="coord" pair="coord.output"/>
+				<srcext id="mass" pair="mass.output"/>
+			    </extc>
 			</add>
 		    </mut>
 
@@ -73,6 +85,9 @@
 		<conn id="snail_1.coord_others" pair="snail_2.coord"/><conn id="snail_1.coord_others" pair="snail_3.coord"/>
 		<conn id="snail_2.coord_others" pair="snail_1.coord"/> <conn id="snail_2.coord_others" pair="snail_3.coord"/>
 		<conn id="snail_3.coord_others" pair="snail_1.coord"/> <conn id="snail_3.coord_others" pair="snail_2.coord"/>
+
+		<extc id="snail_1"> <srcext id="coord" pair="snail_1.coord"/> <srcext id="mass" pair="snail_1.mass"/> </extc>
+		<extc id="snail_1"> <srcext id="coord" pair="snail_2.coord"/> <srcext id="mass" pair="snail_2.mass"/> </extc>
 
 	    </add>
 	</mut>

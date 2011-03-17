@@ -843,6 +843,11 @@ const string CAE_StateBase::ValStr() const
     return res;
 }
 
+CSL_ExprBase* CAE_StateBase::GetExpr(const string& aTerm, const string& aRtype) 
+{ 
+    return iMan->GetExpr(aTerm, aRtype);
+};
+
 // ******************************************************************************
 // CAE_State - state handling owned data
 // ******************************************************************************
@@ -1879,6 +1884,8 @@ void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
     }
 }
 
+// TODO [YB] There is functionality in ExtC of extending multiple connection point
+// But this functionality missed in simple extender
 void CAE_Object::AddExtc(const CAE_ChromoNode& aSpec)
 {
     string stexname = aSpec.Name();
@@ -2499,6 +2506,16 @@ void CAE_Object::DoTrans(CAE_StateBase* aState)
     CAE_ChromoNode::Iterator iconnode = ntrans.FindText();
     const string content = (*iconnode).Content();
     iEnv->Tranex()->EvalTrans(aState, content);
+}
+
+CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
+{
+    CSL_ExprBase* res = NULL;
+    res = aRtype.empty() ? iTrans[aName] : iTrans[aName + " " + aRtype];
+    if (res == NULL) {
+	iMan->GetExpr(aName, aRtype);
+    }
+    return res;
 }
 
 //*********************************************************

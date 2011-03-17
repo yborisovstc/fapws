@@ -16,9 +16,8 @@ CSL_ExprBase::CSL_ExprBase(MSL_ExprEnv& aEnv, const string& aType): iEnv(aEnv)
     SetType(aType);
 }
 
-CSL_ExprBase::CSL_ExprBase(MSL_ExprEnv& aEnv, const string& aType, const string& aData): iEnv(aEnv) 
+CSL_ExprBase::CSL_ExprBase(MSL_ExprEnv& aEnv, const string& aType, const string& aData): iEnv(aEnv), iData(aData)
 {
-    iData.push_back(aData);
     SetType(aType);
 }
 
@@ -29,27 +28,6 @@ CSL_ExprBase::CSL_ExprBase(const CSL_ExprBase& aExp): iEnv(aExp.iEnv), iType(aEx
 CSL_ExprBase::~CSL_ExprBase()
 {
 }
-
-/*
-void CSL_ExprBase::ApplyArgs(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase*& aRes)
-{
-    string scont = *(iContents.begin());
-    CSL_ExprBase* cont = iEnv.GetExpr(scont);
-    // Get first term from args and evaluate it
-    string argn = *aArgr;
-    CSL_ExprBase* arg = iEnv.GetExpr(argn);
-    CSL_ExprBase* avalres = NULL;
-    if (arg != NULL) {
-	// Known term
-	arg->ApplyArgs(aArgs, ++aArgr, avalres);
-    }
-    else {
-	// Data
-	avalres = new CSL_ExprBase(iEnv, "", argn);
-    }
-    cont->Apply(aArgs, aArgr, *avalres, aRes);
-}
-*/
 
 void CSL_ExprBase::EvalArgs(MSL_ExprEnv& aEnv, const string& aReqType, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase*& aRes)
 {
@@ -128,6 +106,11 @@ void CSL_ExprBase::AcceptArg(CSL_ExprBase& aArg)
     iType.pop_back();
 }
 
+void CSL_ExprBase::AddArg(CSL_ExprBase& aArg)
+{
+    iArgs.push_back(&aArg);
+}
+
 string CSL_ExprBase::TypeLn(vector<string>::const_iterator& aTop) const
 {
     string res;
@@ -146,19 +129,21 @@ TBool CSL_ExprBase::IsTypeOf(const string& aType) const
 
 void CSL_EfInp::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    string name = aArg.SData();
+    string name = aArg.Data();
     CAE_StateBase* state = iEnv.Context();
     if (IsTuple(RType())) {
+	string etype = TupleElemType(RType());
 	CAE_StateBase::mult_point_inp_iterator beg =  state->MpInput_begin(name.c_str());
 	CAE_StateBase::mult_point_inp_iterator end =  state->MpInput_end(name.c_str());
 	for (CAE_StateBase::mult_point_inp_iterator it = beg; it != end; it++) {
 	    CAE_State& sinp = *it;
-	    if (TupleElemType(RType()).compare(iEnv.DataType(sinp)) == 0) { 
+	    if (etype.compare(iEnv.DataType(sinp)) == 0) { 
 		if (aRes == NULL) {
 		    aRes = new CSL_ExprBase(iEnv, RType());
 		}
 		string ival = sinp.ValStr();
-		aRes->AddData(ival);
+		CSL_ExprBase* elem = new CSL_ExprBase(iEnv, etype, ival);
+		aRes->AddArg(*elem);
 	    }
 	}
     }
@@ -178,8 +163,8 @@ void CSL_EfLtInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, 
     }
     else {
 	TInt x,y;
-	CSL_EfTInt::FromStr(x,iArgs[0]->SData());
-	CSL_EfTInt::FromStr(y,aArg.SData());
+	CSL_EfTInt::FromStr(x,iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y,aArg.Data());
 	TBool res = x < y;
 	aRes = new CSL_EfTBool(iEnv, res);
     }
@@ -193,8 +178,8 @@ void CSL_EfGtInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, 
     }
     else {
 	TInt x,y;
-	CSL_EfTInt::FromStr(x,iArgs[0]->SData());
-	CSL_EfTInt::FromStr(y,aArg.SData());
+	CSL_EfTInt::FromStr(x,iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y,aArg.Data());
 	TBool res = x > y;
 	aRes = new CSL_EfTBool(iEnv, res);
     }
@@ -202,7 +187,7 @@ void CSL_EfGtInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, 
 
 void CSL_EfSet::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    string data = aArg.SData();
+    string data = aArg.Data();
     CAE_StateBase* state = iEnv.Context();
     state->SetFromStr(data);
 }
@@ -216,8 +201,8 @@ void CSL_EfAddInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
 void CSL_EfAddInt_1::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
     TInt x,y, res;
-    CSL_EfTInt::FromStr(x, iArgs[0]->SData());
-    CSL_EfTInt::FromStr(y, aArg.SData());
+    CSL_EfTInt::FromStr(x, iArgs[0]->Data());
+    CSL_EfTInt::FromStr(y, aArg.Data());
     res = x + y;
     aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
 }
@@ -229,8 +214,8 @@ void CSL_EfSubInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
     }
     else {
 	TInt x,y, res;
-	CSL_EfTInt::FromStr(x, iArgs[0]->SData());
-	CSL_EfTInt::FromStr(y, aArg.SData());
+	CSL_EfTInt::FromStr(x, iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y, aArg.Data());
 	res = x - y;
 	aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
     }
@@ -243,8 +228,8 @@ void CSL_EfDivInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
     }
     else {
 	TInt x,y, res = 0;
-	CSL_EfTInt::FromStr(x, iArgs[0]->SData());
-	CSL_EfTInt::FromStr(y, aArg.SData());
+	CSL_EfTInt::FromStr(x, iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y, aArg.Data());
 	if (y != 0)
 	    res = x / y;
 	aRes = new CSL_ExprBase(iEnv, "TInt", CSL_EfTInt::ToStr(res));
@@ -270,7 +255,7 @@ string CSL_EfTInt::ToStr(const TInt& aData)
 
 void CSL_EfTInt::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    aRes = new CSL_ExprBase(iEnv, "TInt", aArg.SData());
+    aRes = new CSL_ExprBase(iEnv, "TInt", aArg.Data());
 }
 
 void CSL_EfTBool::FromStr(TBool& aData, const string& aStr)
@@ -298,7 +283,7 @@ string CSL_EfTBool::ToStr(const TBool& aData)
 
 void CSL_EfTBool::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    aRes = new CSL_ExprBase(iEnv, "TInt", aArg.SData());
+    aRes = new CSL_ExprBase(iEnv, "TInt", aArg.Data());
 }
 
 void CSL_EfVectF::FromStr(CF_TdVectF& aData, const string& aStr)
@@ -319,20 +304,20 @@ string CSL_EfVectF::ToStr(const CF_TdVectF& aData)
 
 void CSL_EfVectF::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    aRes = new CSL_ExprBase(iEnv, "TVectF", aArg.SData());
+    aRes = new CSL_ExprBase(iEnv, "TVectF", aArg.Data());
 }
 
 void CSL_EfAddVectF::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    CSL_EfAddVectF1 f1(iEnv, aArg.SData());
+    CSL_EfAddVectF1 f1(iEnv, aArg.Data());
     f1.ApplyArgs(aArgs, aArgr, aRes);
 }
 
 void CSL_EfAddVectF1::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
     CF_TdVectF x,y, res;
-    CSL_EfVectF::FromStr(x, SData());
-    CSL_EfVectF::FromStr(y, aArg.SData());
+    CSL_EfVectF::FromStr(x, Data());
+    CSL_EfVectF::FromStr(y, aArg.Data());
     res = x + y;
     string sres = CSL_EfVectF::ToStr(res);
     aRes = new CSL_ExprBase(iEnv, "TVectF", sres);
@@ -345,7 +330,7 @@ void CSL_EfIf::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL
     }
     else {
 	TBool cond;
-	CSL_EfTBool::FromStr(cond, iArgs[0]->SData());
+	CSL_EfTBool::FromStr(cond, iArgs[0]->Data());
 	aRes = cond ? iArgs[1]: &aArg;
     }
 }
@@ -360,16 +345,16 @@ void CSL_EfFilter::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
 	string elemtype = TupleElemType(RType());
 	CSL_ExprBase* filter = iArgs[0];
 	aRes = new CSL_ExprBase(iEnv, RType());
-	for (vector<string>::const_iterator eit = aArg.Data().begin(); eit != aArg.Data().end(); eit++) {
-	    CSL_ExprBase elem(iEnv, elemtype, *eit); 
+	for (vector<CSL_ExprBase*>::const_iterator eit = aArg.Args().begin(); eit != aArg.Args().end(); eit++) {
+	    CSL_ExprBase* elem = *eit; 
 	    vector<string> args;
 	    vector<string>::iterator argr = args.end();
 	    CSL_ExprBase* fres;
-	    filter->Apply(args, argr, elem, fres);
+	    filter->Apply(args, argr, *elem, fres);
 	    TBool passed;
-	    CSL_EfTBool::FromStr(passed, fres->SData());
+	    CSL_EfTBool::FromStr(passed, fres->Data());
 	    if (passed) {
-		aRes->AddData(*eit);
+		aRes->AddArg(*(elem->Clone()));
 	    }
 	}
     }
@@ -377,7 +362,7 @@ void CSL_EfFilter::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr,
 
 void CSL_EfCount::Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes)
 {
-    TInt count = aArg.Data().size();
+    TInt count = aArg.Args().size();
     aRes = new CSL_EfTInt(iEnv, count);
 }
 
@@ -414,15 +399,15 @@ CSL_Interpr::~CSL_Interpr()
     delete iRootExpr;
 }
 
-void CSL_Interpr::Interpret(const string& aProg, CAE_StateBase* aState)
+void CSL_Interpr::EvalTrans(MAE_TransContext* aContext, const string& aTrans)
 {
-   iState = aState;
+   iState = aContext->GetState();
    size_t pb = 0, pe = 0;
    do {
-       pb = aProg.find_first_not_of("\n\t ", pe);
-       pe = aProg.find('\n', pb);
+       pb = aTrans.find_first_not_of("\n\t ", pe);
+       pe = aTrans.find('\n', pb);
        if (pe == string::npos) break;
-       string line = aProg.substr(pb, pe - pb);
+       string line = aTrans.substr(pb, pe - pb);
        // Select keyword
        size_t kwpe = line.find(' ');
        string kw = line.substr(0, kwpe);
@@ -496,12 +481,6 @@ void CSL_Interpr::Interpret(const string& aProg, CAE_StateBase* aState)
        }
        const char* skw = kw.c_str();
    } while (pe != string::npos);
-}
-
-CSL_ExprBase* CSL_Interpr::GetExpr(const string& aName) 
-{
-    CSL_ExprBase* res = iExprs[aName];
-    return res;
 }
 
 CSL_ExprBase* CSL_Interpr::GetExpr(const string& aName, const string& aRtype)

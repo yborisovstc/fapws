@@ -57,6 +57,22 @@ void UT_FAP_Emtran::test_Emtran_main()
     {
         iEnv->Step();
     }
+
+    CAE_ConnPointBase* c_snail_1 = iEnv->Root()->GetOutpN("snail_1");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1] output", c_snail_1 != 0);
+    CAE_StateBase* sb_snail_1_coord = c_snail_1->GetSrcPin("coord")->GetFbObj(sb_snail_1_coord);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1.coord] src pin state", sb_snail_1_coord != 0);
+    CAE_TState<TInt>& s_snail_1_coord = *sb_snail_1_coord;
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [snail_1.coord] value", ~s_snail_1_coord == 504);
+
+    CAE_ConnPointExtC* ext = c_snail_1->GetFbObj(ext);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [snail] extender", ext != 0);
+    for (vector<CAE_ConnPointExtC::Slot>::iterator it = ext->Slots().begin(); it != ext->Slots().end(); it++) {
+	CAE_ConnPointBase* cp = it->Srcs()["coord"].first;
+	CPPUNIT_ASSERT_MESSAGE("Fail to get [coord] conn point in [snail]extender", cp != 0);
+	CAE_StateBase* sb_snail_coord = cp->GetSrcPin("_1")->GetFbObj(sb_snail_coord);
+	CPPUNIT_ASSERT_MESSAGE("Fail to get [coord] src pin state in [snail] extender", sb_snail_coord != 0);
+    };
 }
 
 

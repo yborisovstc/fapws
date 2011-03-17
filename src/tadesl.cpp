@@ -12,10 +12,10 @@ CAE_TaDesl::~CAE_TaDesl()
 {
 }
 
-void CAE_TaDesl::EvalTrans(CAE_StateBase* aState, const string& aTrans)
+void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, const string& aTrans)
 {
     CSL_Interpr *interpr = new CSL_Interpr(iLogger);
-    interpr->Interpret(aTrans, aState);
+    interpr->EvalTrans(aContext, aTrans);
     delete interpr;
 }
 

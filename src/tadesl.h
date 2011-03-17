@@ -12,7 +12,7 @@ class CAE_TaDesl: public CAE_TranExBase
 	CAE_TaDesl(MCAE_LogRec* aLogger);
 	virtual ~CAE_TaDesl();
 	// From MAE_TranEx
-	virtual void EvalTrans(CAE_StateBase* aState, const string& aTrans);
+	virtual void EvalTrans(MAE_TransContext* aContext, const string& aTrans);
 	static const char *Type() {return "TaDesl";}; 
     private:
 	virtual void *DoGetFbObj(const char *aName);

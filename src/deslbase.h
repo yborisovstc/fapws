@@ -25,7 +25,6 @@ class CAE_StateBase;
 class MSL_ExprEnv
 {
     public:
-	virtual CSL_ExprBase* GetExpr(const string& aTerm) = 0;
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) = 0;
 	virtual CAE_StateBase* Context() = 0;
@@ -48,23 +47,24 @@ class CSL_ExprBase
 	virtual CSL_ExprBase* Clone() { return NULL;};
 	void SetType(const string& aType);
 	void AcceptArg(CSL_ExprBase& aArg);
-	const vector<string>& Data() {return iData;};
-	const string& SData() {return iData.at(0);};
+	void AddArg(CSL_ExprBase& aArg);
+	const string& Data() {return iData;};
 	const vector<string>& Type() {return iType;};
 	const string& RType() {return iType.at(0);};
 	const string& AType() {return *(iType.rbegin());};
-	void AddData(const string& aData) { iData.push_back(aData);};
+	void SetData(const string& aData) { iData = aData;};
 	static TBool IsTuple(const string& aType) { return aType[0] == '[';};
 	static string TupleElemType(const string& aType) { return aType.substr(1, aType.length() - 2);};
 	string TypeLn(vector<string>::const_iterator& aTop) const;
 	string TypeLn() const { vector<string>::const_iterator top = iType.end() - 1; return TypeLn(top);};
 	TBool IsTypeOf(const string& aType) const;
+	const vector<CSL_ExprBase*>& Args() { return iArgs;};
     protected:
 	MCAE_LogRec *Logger() { return iEnv.Logger();};
     protected:
 	MSL_ExprEnv& iEnv;
 	vector<string> iType;
-	vector<string> iData;
+	string iData;
 	vector<CSL_ExprBase*> iArgs;
 };
 
@@ -123,7 +123,7 @@ class CSL_EfTBool: public CSL_ExprBase
     public:
 	CSL_EfTBool(MSL_ExprEnv& aEnv): CSL_ExprBase(aEnv, "TBool") {};
 	CSL_EfTBool(MSL_ExprEnv& aEnv, const string& aData): CSL_ExprBase(aEnv, "TBool", aData) {};
-	CSL_EfTBool(MSL_ExprEnv& aEnv, TBool& aData): CSL_ExprBase(aEnv, "TBool") { iData.push_back(ToStr(aData));};
+	CSL_EfTBool(MSL_ExprEnv& aEnv, TBool& aData): CSL_ExprBase(aEnv, "TBool", ToStr(aData)) {};
 	virtual void Apply(vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes);
 	static string ToStr(const TBool& aData);
 	static void FromStr(TBool& aData, const string& aStr);
@@ -218,8 +218,8 @@ class CSL_Interpr: public MSL_ExprEnv
     public: 
 	CSL_Interpr(MCAE_LogRec* aLogger);
 	virtual ~CSL_Interpr();
+	void EvalTrans(MAE_TransContext* aContext, const string& aTrans);
 	void Interpret(const string& aProg, CAE_StateBase* aState);
-	virtual CSL_ExprBase* GetExpr(const string& aTerm);
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr);
 	virtual CAE_StateBase* Context();
