@@ -54,13 +54,6 @@ void update_mass(CAE_Object* aObject, CAE_StateBase* aState)
     const TUint32& coord_s = self.Inp("coord_self");
 
     TInt feed = KMaxFeed;
-/*
-    for (TInt i = 1; self.Input("coord_others", i) != NULL; i++) {
-	const TUint32& coord_o = self.Inp("coord_others", i);
-	if (coord_o > coord_s && feed > 0)
-	    feed--;
-    }
-    */
     for (CAE_State::mult_point_inp_iterator i = self.MpInput_begin("coord_others"); i != self.MpInput_end("coord_others"); i++)
     {
 	const TUint32& coord_o = *i;

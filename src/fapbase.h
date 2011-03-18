@@ -454,7 +454,6 @@ class MAE_TransContext
 {
     public:
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
-	virtual CAE_StateBase* GetState() = 0;
 };
 
 
@@ -531,7 +530,6 @@ protected:
 	void LogTrans(TInt aLogData);
 	inline MCAE_LogRec *Logger();
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
-	virtual CAE_StateBase* GetState() {return this;};
 protected:
 	// Transition info
 	TTransInfo iTrans;
@@ -817,6 +815,7 @@ class CAE_ChromoNode
 	Iterator Find(NodeType aNodeType) { return Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
 	Const_Iterator Find(NodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
 	Iterator FindText() { return Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
+	Const_Iterator FindText() const { return Const_Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
     public:
 	NodeType Type() { return iMdl.GetType(iHandle); };
 	NodeType Type() const { return iMdl.GetType(iHandle); };
@@ -887,7 +886,8 @@ class MAE_ChroMan
 class MAE_TranEx
 {
     public:
-	virtual void EvalTrans(MAE_TransContext* aContext, const string& aTrans) = 0;
+	virtual void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans) = 0;
+	virtual const map<string, CSL_ExprBase*>& Exprs() = 0;
 };
 
 // Executable agent base 
@@ -996,7 +996,6 @@ public:
 	void Mutate();
 	void DoTrans(CAE_StateBase* aState);
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
-	virtual CAE_StateBase* GetState() { return NULL;};
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1022,6 +1021,7 @@ private:
 	void AddConn(const CAE_ChromoNode& aSpec);
 	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
+	void AddTrans(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 private:

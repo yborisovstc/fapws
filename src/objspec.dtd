@@ -22,7 +22,7 @@
 <!-- 
      Mutation - addition
 -->
-<!ELEMENT add (inp*, out*, logspec*, iobject* , state*, state_mut*, conn*, ext*, extc*)>
+<!ELEMENT add (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*)>
 
 <!-- 
      Mutation - removal
@@ -63,7 +63,7 @@
      note: inputs and outputs are just leaing-out of internal states and subsystems
      so "connection" between input and internal state input is leading out state input
      -->
-<!ELEMENT object (inp*, out*, logspec*, object* , state*, state_mut*, conn*, ext*, extc*)>
+<!ELEMENT object (inp*, out*, logspec*, trans*, object* , state*, state_mut*, conn*, ext*, extc*)>
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >

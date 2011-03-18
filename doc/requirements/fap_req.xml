@@ -155,5 +155,14 @@ To transform to html:
 	    <simpara>The system defines transition for some state by specifying it within the state. This transition can use the module
 	    specifying within the system or super-system. </simpara>
 	</sect2>
+	<sect2 id="sec_emb_trans_uc_02"><title>FAP_UC_ET_02 User can define functions</title>
+	    <simpara>User defines function and then uses it within transition.</simpara>
+	</sect2>
+	<sect2 id="sec_emb_trans_uc_03"><title>FAP_UC_ET_03 User can define custom data type</title>
+	    <simpara>User defines custom data type, and operation for this data type</simpara>
+	</sect2>
+	<sect2 id="sec_emb_trans_uc_04"><title>FAP_UC_ET_04 User can specify state of custom data type</title>
+	    <simpara>User specifies the state of custom data type, ref <xref linkend="sec_emb_trans_uc_03"/></simpara>
+	</sect2>
     </sect1>
 </article>

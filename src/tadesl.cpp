@@ -4,19 +4,25 @@
 #include "tadesl.h"
 #include "deslbase.h"
 
-CAE_TaDesl::CAE_TaDesl(MCAE_LogRec* aLogger): CAE_TranExBase(aLogger)
+CAE_TaDesl::CAE_TaDesl(MCAE_LogRec* aLogger): CAE_TranExBase(aLogger), iInterpr(NULL)
 {
+    iInterpr = new CSL_Interpr(iLogger);
 }
 
 CAE_TaDesl::~CAE_TaDesl()
 {
+    if (iInterpr != NULL)
+	delete iInterpr;
 }
 
-void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, const string& aTrans)
+void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans)
 {
-    CSL_Interpr *interpr = new CSL_Interpr(iLogger);
-    interpr->EvalTrans(aContext, aTrans);
-    delete interpr;
+    iInterpr->EvalTrans(aContext, aState, aTrans);
+}
+
+const map<string, CSL_ExprBase*>& CAE_TaDesl::Exprs()
+{
+    return iInterpr->Exprs();
 }
 
 void* CAE_TaDesl::DoGetFbObj(const char *aName)

@@ -1860,6 +1860,14 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpec)
     }
 }
 
+void CAE_Object::AddTrans(const CAE_ChromoNode& aSpec)
+{
+    CAE_ChromoNode::Const_Iterator iconnode = aSpec.FindText();
+    const string content = (*iconnode).Content();
+    iEnv->Tranex()->EvalTrans(this, NULL, content);
+    iTrans = iEnv->Tranex()->Exprs();
+}
+
 // TODO [YB] For now it is not possible to have "multipoint" output that extends multiple output conn points. To implement.
 void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
 {
@@ -2094,6 +2102,9 @@ void CAE_Object::DoMutation()
 		    }
 		    else if (mano.Type() == ENt_Cextc) {
 			AddExtc(mano);
+		    }
+		    else if (mano.Type() == ENt_Trans) {
+			AddTrans(mano);
 		    }
 		    else if (mano.Type() == ENt_Logspec) {
 			// TODO [YB] To implement
@@ -2505,7 +2516,7 @@ void CAE_Object::DoTrans(CAE_StateBase* aState)
     CAE_ChromoNode ntrans(chroot.Mdl(), handle);
     CAE_ChromoNode::Iterator iconnode = ntrans.FindText();
     const string content = (*iconnode).Content();
-    iEnv->Tranex()->EvalTrans(aState, content);
+    iEnv->Tranex()->EvalTrans(this, aState, content);
 }
 
 CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
