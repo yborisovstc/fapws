@@ -143,6 +143,7 @@ fap-snails=/home/yborisov/projects/fap/git/fap-snails CD=. filter="*" {
  snails.cpp
  snails.h
  snails.pro
+ ut_emtran_spec_2.xml
  ut_spec_ext_mut.xml
  moc_snails.o
  snails.o

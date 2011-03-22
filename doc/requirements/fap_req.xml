@@ -164,5 +164,8 @@ To transform to html:
 	<sect2 id="sec_emb_trans_uc_04"><title>FAP_UC_ET_04 User can specify state of custom data type</title>
 	    <simpara>User specifies the state of custom data type, ref <xref linkend="sec_emb_trans_uc_03"/></simpara>
 	</sect2>
+	<sect2 id="sec_emb_trans_uc_05"><title>FAP_UC_ET_05 User can specify new type</title>
+	    <simpara>User specifies the new type by specifying the constructor that results in required type.</simpara>
+	</sect2>
     </sect1>
 </article>

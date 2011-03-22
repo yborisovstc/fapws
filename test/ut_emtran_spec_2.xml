@@ -19,6 +19,11 @@
 		</out>
 
 		<trans> 
+		    let Complex x y :: Complex Float Float := Struct (R::Float I::Float) x y
+		    let cc1 :: Complex := Complex 4.0 6.0
+		    let cc2 :: Complex := 5.0 7.0
+		    let ff1 :: Float := Fld cc1 R
+		    let add x y :: Complex Complex Complex := Complex add fld x R fld y R add fld x I fld y I
 		    let dec x :: TInt TInt := sub x 1
 		    let restrbot x lim :: TInt TInt TInt := if lt x lim lim x
 		    let restrtop x lim :: TInt TInt TInt := if gt x lim lim x
