@@ -2,14 +2,22 @@ window_sizes 1272 946 263 1003 867 0
 diagrams
   classdiagram_ref 134530 // fap~clsdgm
     974 870 100 4 0 0
-  active  classdiagram_ref 141058 // fap1~clsdgm
+  classdiagram_ref 141058 // fap1~clsdgm
     1003 867 100 4 0 0
+  active  activitydiagram_ref 147714 // fap1.dest.nameresol~actdgm
+    1003 867 100 4 240 0
 end
 show_stereotypes
-selected operation_ref 163714 // End
+selected flow_ref 139266 // not found
 open
   class_ref 162562 // CAE_ChromoXml
   class_ref 162690 // Iterator
   class_ref 169346 // CAE_ChromoNode
+  activitynode_ref 128130 // decision
+  activitynode_ref 128258 // join
+  activitynode_ref 128386 // decision
+  activitynode_ref 128514 // decision
+  activitynode_ref 136194 // decision
+  activitynode_ref 136450 // join
 end
 end

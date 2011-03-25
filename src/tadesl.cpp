@@ -20,7 +20,7 @@ void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, co
     iInterpr->EvalTrans(aContext, aState, aTrans);
 }
 
-const map<string, CSL_ExprBase*>& CAE_TaDesl::Exprs()
+const multimap<string, CSL_ExprBase*>& CAE_TaDesl::Exprs()
 {
     return iInterpr->Exprs();
 }

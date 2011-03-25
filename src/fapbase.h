@@ -887,7 +887,7 @@ class MAE_TranEx
 {
     public:
 	virtual void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans) = 0;
-	virtual const map<string, CSL_ExprBase*>& Exprs() = 0;
+	virtual const multimap<string, CSL_ExprBase*>& Exprs() = 0;
 };
 
 // Executable agent base 
@@ -1031,7 +1031,7 @@ private:
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
-	map<string, CSL_ExprBase*> iTrans; // Transition module
+	multimap<string, CSL_ExprBase*> iTrans; // Transition module
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;

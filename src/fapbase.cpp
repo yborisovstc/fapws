@@ -2522,12 +2522,14 @@ void CAE_Object::DoTrans(CAE_StateBase* aState)
 CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
 {
     CSL_ExprBase* res = NULL;
-    res = aRtype.empty() ? iTrans[aName] : iTrans[aName + " " + aRtype];
-    if (res == NULL) {
-	iMan->GetExpr(aName, aRtype);
+    string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
+    multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
+    if (it != iTrans.end()) {
+	res = it->second;
     }
-    return res;
+    return (res != NULL) ? res : (iMan != NULL ? iMan->GetExpr(aName, aRtype) : NULL);
 }
+
 
 //*********************************************************
 // CAE_ObjectBa - bit automata

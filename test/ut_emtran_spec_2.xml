@@ -19,7 +19,7 @@
 		</out>
 
 		<trans> 
-		    let Complex x y :: Complex Float Float := Struct (R::Float I::Float) x y
+		    let Complex x y :: Struct Float Float := Struct (R::Float I::Float) x y
 		    let cc1 :: Complex := Complex 4.0 6.0
 		    let cc2 :: Complex := 5.0 7.0
 		    let ff1 :: Float := Fld cc1 R

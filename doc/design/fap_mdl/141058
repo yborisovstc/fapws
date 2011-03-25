@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 4
+  revision 6
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -360,6 +360,284 @@ format 70
 	
 	
 	
+      end
+    end
+
+    class 175874 "CSL_ExprBase"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    activity 128002 "fap1.dest~act"
+      activitydiagram 147714 "fap1.dest.nameresol~actdgm"
+	package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations no shadow default
+	show_infonote default drawing_language default show_stereotype_properties default
+	size A4
+      end
+
+      activityaction 128002 "Get term by name"
+	opaque_action
+	flow 128386 "<flow>"
+	  on activitynode_ref 128258 // join
+	end
+
+	flow 128770 "<flow>"
+	  on activitynode_ref 128258 // join
+	end
+
+	flow 129282 "<flow>"
+	  on activitynode_ref 128642 // join
+	end
+      end
+
+      activitynode 128130 decision ""
+	flow 128130 "name = req_type"
+	  on activityaction_ref 128002 // activity action Get term by name
+	end
+
+	flow 128258 "name != req_type"
+	  on activityaction_ref 128130 // activity action Get term by name and type
+	end
+      end
+
+      activityaction 128130 "Get term by name and type"
+	opaque_action
+	flow 128514 "<flow>"
+	  on activitynode_ref 128258 // join
+	end
+
+	flow 128898 "<flow>"
+	  on activitynode_ref 128258 // join
+	end
+
+	flow 129410 "<flow>"
+	  on activitynode_ref 128642 // join
+	end
+      end
+
+      activitynode 128258 join "dd"
+	flow 128642 "<flow>"
+	  on activitynode_ref 128386 // decision
+	end
+      end
+
+      activitynode 128386 decision ""
+	flow 129026 "<flow>"
+	  on activitynode_ref 128258 // join
+	end
+      end
+
+      activitynode 128514 decision ""
+	flow 129922 "<flow>"
+	  on activityaction_ref 128514 // activity action to new argument
+	end
+
+	flow 130050 "term found"
+	  on activityaction_ref 128514 // activity action to new argument
+	end
+
+	flow 130306 "term not found"
+	  on activityaction_ref 128642 // activity action Get term by name only
+	end
+      end
+
+      activitynode 128642 join ""
+	flow 129154 "<flow>"
+	  on activitynode_ref 128514 // decision
+	end
+      end
+
+      activitynode 128770 decision ""
+	flow 129666 "need to apply more args"
+	  on activityaction_ref 128258 // activity action Apply arguments to term
+	end
+
+	flow 129794 "no need to apply more args"
+	  on activityaction_ref 128386 // activity action the term is the result
+	end
+      end
+
+      activityaction 128258 "Apply arguments to term"
+	opaque_action
+	flow 137474 "<flow>"
+	  on activitynode_ref 135682 // join
+	end
+      end
+
+      activityaction 128386 "the term is the result"
+	opaque_action
+	flow 137602 "<flow>"
+	  on activitynode_ref 135682 // join
+	end
+      end
+
+      activityaction 128514 "to new argument"
+	opaque_action
+	flow 130178 "<flow>"
+	  on activitynode_ref 128770 // decision
+	end
+      end
+
+      activityaction 128642 "Get term by name only"
+	opaque_action
+	flow 136834 "<flow>"
+	  on activitynode_ref 135298 // decision
+	end
+      end
+
+      activitynode 135298 decision ""
+	flow 136962 "term found by name"
+	  on activityaction_ref 135170 // activity action Apply argument to term that is of not required type
+	end
+
+	flow 137090 "term not found by name"
+	  on activityaction_ref 135298 // activity action Create expr as "raw" term
+	end
+      end
+
+      activityaction 135170 "Apply argument to term that is of not required type"
+	opaque_action
+	flow 137218 "<flow>"
+	  on activitynode_ref 135554 // join
+	end
+      end
+
+      activityaction 135298 "Create expr as \"raw\" term"
+	opaque_action
+	flow 137346 "<flow>"
+	  on activitynode_ref 135554 // join
+	end
+      end
+
+      activitynode 135426 join ""
+      end
+
+      activitynode 135554 join ""
+	flow 137730 "<flow>"
+	  on activitynode_ref 135810 // decision
+	end
+      end
+
+      activitynode 135682 join ""
+	flow 140162 "<flow>"
+	  on activitynode_ref 135938 // join
+	end
+      end
+
+      activitynode 135810 decision ""
+	flow 137858 "expr doesn't meet req type"
+	  on activityaction_ref 135426 // activity action Get constructor of required type passing arg with the type of expr
+	end
+
+	flow 137986 "<flow>"
+	  on activitynode_ref 135938 // join
+	end
+
+	flow 138114 "expr meets req type"
+	  on activityaction_ref 135554 // activity action the expr is the result
+	end
+      end
+
+      activityaction 135426 "Get constructor of required type passing arg with the type of expr"
+	opaque_action
+	flow 138370 "<flow>"
+	  on activitynode_ref 136066 // decision
+	end
+      end
+
+      activitynode 135938 join ""
+      end
+
+      activityaction 135554 "the expr is the result"
+	opaque_action
+	flow 138242 "<flow>"
+	  on activitynode_ref 135938 // join
+	end
+      end
+
+      activitynode 136066 decision ""
+	flow 138498 "constr not found"
+	  on activityaction_ref 135682 // activity action Get any constr just for req type
+	end
+
+	flow 138626 "constr found"
+	  on activityaction_ref 135810 // activity action Apply constr to expr
+	end
+      end
+
+      activityaction 135682 "Get any constr just for req type"
+	opaque_action
+	flow 138882 "<flow>"
+	  on activitynode_ref 136194 // decision
+	end
+      end
+
+      activityaction 135810 "Apply constr to expr"
+	opaque_action
+	flow 138754 "<flow>"
+	  on activitynode_ref 135938 // join
+	end
+
+	flow 139650 "<flow>"
+	  on activitynode_ref 136450 // join
+	end
+      end
+
+      activitynode 136194 decision ""
+	flow 139010 "found"
+	  on activityaction_ref 135938 // activity action Return to the previous arg. Apply constr to args
+	end
+
+	flow 139266 "not found"
+	  on activityaction_ref 136194 // activity action ERROR - cannot find constructor
+	end
+
+	flow 140418 "<flow>"
+	  on activityaction_ref 136194 // activity action ERROR - cannot find constructor
+	end
+      end
+
+      activityaction 135938 "Return to the previous arg. Apply constr to args"
+	opaque_action
+	flow 139138 "<flow>"
+	  on activityaction_ref 136066 // activity action Apply constr to args
+	end
+
+	flow 140290 "<flow>"
+	  on activitynode_ref 136322 // join
+	end
+      end
+
+      activityaction 136066 "Apply constr to args"
+	opaque_action
+	flow 139394 "<flow>"
+	  on activitynode_ref 136322 // join
+	end
+      end
+
+      activityaction 136194 "ERROR - cannot find constructor"
+	opaque_action
+	flow 139522 "<flow>"
+	  on activitynode_ref 136322 // join
+	end
+      end
+
+      activitynode 136322 join ""
+	flow 139778 "<flow>"
+	  on activitynode_ref 136450 // join
+	end
+      end
+
+      activitynode 136450 join ""
+	flow 140034 "<flow>"
+	  on activitynode_ref 135938 // join
+	end
       end
     end
   end

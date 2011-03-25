@@ -41,6 +41,7 @@ class CSL_ExprBase
 	void SetType(const string& aType);
 	void SetName(const string& aName) { iName = aName;};
 	void AcceptArg(CSL_ExprBase& aArg);
+	void AcceptArg() { iType.pop_back();};
 	void AddArg(CSL_ExprBase& aArg);
 	const string& Data() {return iData;};
 	const string& Name() {return iName;};
@@ -161,19 +162,19 @@ class CSL_EfAddVectF: public CSL_ExprBase
 class CSL_EfTInt: public CSL_ExprBase
 {
     public:
-	CSL_EfTInt(): CSL_ExprBase("TInt") {};
-	CSL_EfTInt(const string& aData): CSL_ExprBase("TInt", aData) {};
+	CSL_EfTInt(): CSL_ExprBase("TInt -") {};
 	CSL_EfTInt(TInt aData): CSL_ExprBase("TInt", ToStr(aData)) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	static string ToStr(const TInt& aData);
 	static void FromStr(TInt& aData, const string& aStr);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfTInt(*this);};
 };
 
 class CSL_EfFloat: public CSL_ExprBase
 {
     public:
-	CSL_EfFloat(): CSL_ExprBase("Float") {};
-	CSL_EfFloat(const string& aData): CSL_ExprBase("Float", aData) {};
+	CSL_EfFloat(): CSL_ExprBase("Float -") {};
 	CSL_EfFloat(float aData): CSL_ExprBase("Float", ToStr(aData)) {};
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);
@@ -301,12 +302,17 @@ class CAE_StateBase;
 class CSL_Interpr: public MSL_ExprEnv
 {
     public: 
+	typedef pair<string, CSL_ExprBase*> exprsmapelem;
+    public: 
 	CSL_Interpr(MCAE_LogRec* aLogger);
 	virtual ~CSL_Interpr();
 	void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans);
-	const map<string, CSL_ExprBase*>& Exprs() { return iExprs;};
+	const multimap<string, CSL_ExprBase*>& Exprs() { return iExprs;};
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
-	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr);
+	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr, multimap<string, CSL_ExprBase*>& aExprs);
+	virtual void SetExprEmb(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprsEmb);};
+	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprs);};
+	virtual void SetExprEmb(const string& aName, const string& aType, CSL_ExprBase* aExpr);
 	virtual CAE_StateBase* Context();
 	virtual string ContextType();
 	virtual string DataType(const CAE_StateBase& aState);
@@ -314,10 +320,12 @@ class CSL_Interpr: public MSL_ExprEnv
     private:
 	static string GetStateDataType(const string& aStateType);
     private:
-	map<string, CSL_ExprBase*> iExprs;
+	multimap<string, CSL_ExprBase*> iExprsEmb; // Embedded terms
+	multimap<string, CSL_ExprBase*> iExprs;
 	CSL_ExprBase* iRootExpr;
 	CAE_StateBase* iState;
 	MCAE_LogRec* iLogger;
+	MAE_TransContext* iContext;
 };
 
 #endif // __FAP_DESLBASE_H
