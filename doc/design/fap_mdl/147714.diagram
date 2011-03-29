@@ -1,0 +1,322 @@
+format 70
+
+activityactioncanvas 128130 activityaction_ref 128002 // activity action Get term by name
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 156 80 2000 133 41
+end
+activitynodecanvas 128386 activitynode_ref 128130 // decision
+  xyz 322 21 2000
+end
+activityactioncanvas 128642 activityaction_ref 128130 // activity action Get term by name and type
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 375 83 2000 187 43
+end
+activitynodecanvas 130434 activitynode_ref 128514 // decision
+  xyz 326 175 2000
+end
+activitynodecanvas 130562 activitynode_ref 128642 // join
+  horizontal  xyzwh 307 144 2000 59 15
+end
+activitynodecanvas 131330 activitynode_ref 128770 // decision
+  xyz 155 305 2000
+end
+activityactioncanvas 131586 activityaction_ref 128258 // activity action Apply arguments to term
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 24 369 2000 117 51
+end
+activityactioncanvas 131842 activityaction_ref 128386 // activity action the term is the result
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 205 368 2000 115 49
+end
+activityactioncanvas 132098 activityaction_ref 128514 // activity action to new argument
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 98 244 3005 141 41
+end
+activityactioncanvas 132994 activityaction_ref 128642 // activity action Get term by name only
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 473 239 2000 145 41
+end
+activitynodecanvas 133250 activitynode_ref 135298 // decision
+  xyz 531 295 2000
+end
+note 133506 "Type of result is met"
+  xyzwh 83 165 2000 141 39
+note 133762 "Type of result is not met, try to use constructor for casitg to required type"
+  xyzwh 430.5 144.5 2000 221 53
+note 134018 "If name equals to required type then the term is constructor"
+  xyzwh 15 20 2000 191 53
+activityactioncanvas 134274 activityaction_ref 135170 // activity action Apply argument to term that is of not required type
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 353 353 2000 173 55
+end
+note 134402 "Checking if the term type is already type of result. If so then no need to to apply more args"
+  xyzwh 261 238 2000 193 75
+activityactioncanvas 135426 activityaction_ref 135298 // activity action Create expr as "raw" term
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 575 351 2000 115 47
+end
+activitynodecanvas 136322 activitynode_ref 135554 // join
+  horizontal  xyzwh 523 436 2000 53 15
+end
+activitynodecanvas 136706 activitynode_ref 135682 // join
+  horizontal  xyzwh 142 459 2000 51 15
+end
+activitynodecanvas 137218 activitynode_ref 135810 // decision
+  xyz 537 468 2000
+end
+note 137346 "Check if the resulted expr meets the required type"
+  xyzwh 325 433 2000 165 49
+activityactioncanvas 137730 activityaction_ref 135426 // activity action Get constructor of required type passing arg with the type of expr
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 301 526 2000 204 55
+end
+activitynodecanvas 138114 activitynode_ref 135938 // join
+  horizontal  xyzwh 616 926 2000 47 15
+end
+activityactioncanvas 138370 activityaction_ref 135554 // activity action the expr is the result
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 565 536 2000 152 42
+end
+activitynodecanvas 138882 activitynode_ref 136066 // decision
+  xyz 391 597 2000
+end
+activityactioncanvas 139138 activityaction_ref 135682 // activity action Get any constr just for req type
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 218 646 2000 197 40
+end
+activityactioncanvas 139394 activityaction_ref 135810 // activity action Apply constr to expr
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 465 644 2000 143 40
+end
+activitynodecanvas 139906 activitynode_ref 136194 // decision
+  xyz 305 702 2000
+end
+activityactioncanvas 140162 activityaction_ref 135938 // activity action Return to the previous arg. Apply constr to args
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 183 759 2000 164 52
+end
+activityactioncanvas 140674 activityaction_ref 136194 // activity action ERROR - cannot find constructor
+  show_infonote default drawing_language default show_stereotype_properties default
+  show_opaque_action_definition default
+  color verylightorange
+  xyzwh 375 760 2000 122 51
+end
+activitynodecanvas 140930 activitynode_ref 136322 // join
+  horizontal  xyzwh 410 839 2000 51 15
+end
+activitynodecanvas 141314 activitynode_ref 136450 // join
+  horizontal  xyzwh 507 874 2000 47 15
+end
+flowcanvas 128514 flow_ref 128130 // name = req_type
+  
+  from ref 128386 z 2001 label "name = req_type" xyz 224.5 34 2001 to ref 128130
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 128770 flow_ref 128258 // name != req_type
+  
+  from ref 128386 z 2001 label "name != req_type" xyz 358.5 36.5 2001 to ref 128642
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 130690 flow_ref 129154 // <flow>
+  decenter_begin 527
+  
+  from ref 130562 z 2001 to ref 130434
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131074 flow_ref 129282 // <flow>
+  
+  from ref 128130 z 2001 to ref 130562
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131202 flow_ref 129410 // <flow>
+  decenter_end 694
+  
+  from ref 128642 z 2001 to ref 130562
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131714 flow_ref 129666 // need to apply more args
+  
+  from ref 131330 z 2001 label "need to apply more args" xyz 37 333 2001 to ref 131586
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 131970 flow_ref 129794 // no need to apply more args
+  
+  from ref 131330 z 2001 label "no need to apply more args" xyz 171.5 346.5 2001 to ref 131842
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132738 flow_ref 130050 // term found
+  
+  from ref 130434 z 3006 label "term found" xyz 237 212 3006 to ref 132098
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 132866 flow_ref 130178 // <flow>
+  
+  from ref 132098 z 3006 to ref 131330
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133122 flow_ref 130306 // term not found
+  
+  from ref 130434 z 2001 label "term not found" xyz 377.5 210 3000 to ref 132994
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 133378 flow_ref 136834 // <flow>
+  decenter_begin 474
+  
+  from ref 132994 z 2001 to ref 133250
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 135298 flow_ref 136962 // term found by name
+  
+  from ref 133250 z 2001 label "term found by name" xyz 433 321 3000 to ref 134274
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 135554 flow_ref 137090 // term not found by name
+  decenter_begin 513
+  
+  from ref 133250 z 2001 label "term not found by name" xyz 564 317.5 3000 to ref 135426
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136450 flow_ref 137218 // <flow>
+  
+  from ref 134274 z 2001 to ref 136322
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136578 flow_ref 137346 // <flow>
+  
+  from ref 135426 z 2001 to ref 136322
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136834 flow_ref 137474 // <flow>
+  
+  from ref 131586 z 2001 to ref 136706
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 136962 flow_ref 137602 // <flow>
+  
+  from ref 131842 z 2001 to ref 136706
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 137602 flow_ref 137730 // <flow>
+  
+  from ref 136322 z 2001 to ref 137218
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 137858 flow_ref 137858 // expr doesn't meet req type
+  
+  from ref 137218 z 2001 label "expr doesn't meet req type" xyz 390 500 3000 to ref 137730
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 138498 flow_ref 138114 // expr meets req type
+  
+  from ref 137218 z 2001 label "expr meets req type" xyz 561 501.5 3000 to ref 138370
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 138626 flow_ref 138242 // <flow>
+  
+  from ref 138370 z 2001 to ref 138114
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 139010 flow_ref 138370 // <flow>
+  
+  from ref 137730 z 2001 to ref 138882
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 139266 flow_ref 138498 // constr not found
+  
+  from ref 138882 z 2001 label "constr not found" xyz 282.5 612.5 3000 to ref 139138
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 139522 flow_ref 138626 // constr found
+  
+  from ref 138882 z 2001 label "constr found" xyz 449 611 3000 to ref 139394
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 140034 flow_ref 138882 // <flow>
+  
+  from ref 139138 z 2001 to ref 139906
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 140290 flow_ref 139010 // found
+  
+  from ref 139906 z 2001 label "found" xyz 276.5 737 3000 to ref 140162
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 141186 flow_ref 139522 // <flow>
+  
+  from ref 140674 z 2001 to ref 140930
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 141442 flow_ref 139650 // <flow>
+  decenter_end 638
+  
+  from ref 139394 z 2001 to ref 141314
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 141570 flow_ref 139778 // <flow>
+  
+  from ref 140930 z 2001 to ref 141314
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 142722 flow_ref 140034 // <flow>
+  
+  from ref 141314 z 2001 to ref 138114
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 143618 flow_ref 140162 // <flow>
+  
+  from ref 136706 z 2001 to point 165 869
+  line 143746 z 2001 to ref 138114
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 144130 flow_ref 140290 // <flow>
+  
+  from ref 140162 z 2001 to ref 140930
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 144386 flow_ref 140418 // <flow>
+  
+  from ref 139906 z 2001 to ref 140674
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+flowcanvas 144642 flow_ref 139266 // not found
+  
+  from ref 139906 z 2001 label "not found" xyz 332 734.5 3000 to ref 140674
+  show_infonote default drawing_language default show_stereotype_properties default write_horizontally default
+end
+line 134146 -_-_
+  from ref 134018 z 2002 to ref 128514
+line 134786 -_-_
+  from ref 133506 z 3007 to ref 132738
+line 135042 -_-_
+  from ref 133762 z 2002 to ref 133122
+line 135170 -_-_
+  from ref 134402 z 2001 to ref 131330
+line 137474 -_-_
+  from ref 137346 z 2001 to ref 137218
+end

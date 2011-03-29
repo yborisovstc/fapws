@@ -652,7 +652,11 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
 {
     if (Logger() == NULL) return;
     char *buf_cur = DataToStr(ETrue);
+    if (buf_cur == NULL)
+	buf_cur = strdup("undefined");
     char *buf_new = DataToStr(EFalse);
+    if (buf_new == NULL)
+	buf_new = strdup("undefined");
     if (aLogData & KBaseDa_New && aLogData & KBaseDa_Curr)
 	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <= %s", MansName(1), MansName(0), InstName(), buf_new, buf_cur);
     else if (aLogData & KBaseDa_New)
@@ -678,6 +682,7 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
     free (buf_new);
 }
 
+// TODO [YB] This logging doesn't make sense - to remove
 void CAE_StateBase::LogTrans(TInt aLogData)
 {
     if (Logger() == NULL) return;
@@ -1667,6 +1672,7 @@ TInt CAE_Object::LsDataFromStr(const char *aStr)
     if (strcmp(aStr, "cur") == 0) return KBaseDa_Curr;
     else if (strcmp(aStr, "new") == 0) return KBaseDa_New;
     else if (strcmp(aStr, "dep") == 0) return KBaseDa_Dep;
+    else if (strcmp(aStr, "trex") == 0) return KBaseDa_Trex;
     else return KBaseDa_None;
 }
 
@@ -1864,7 +1870,7 @@ void CAE_Object::AddTrans(const CAE_ChromoNode& aSpec)
 {
     CAE_ChromoNode::Const_Iterator iconnode = aSpec.FindText();
     const string content = (*iconnode).Content();
-    iEnv->Tranex()->EvalTrans(this, NULL, content);
+    iEnv->Tranex()->EvalTrans(this, this, content);
     iTrans = iEnv->Tranex()->Exprs();
 }
 
@@ -2062,6 +2068,32 @@ void CAE_Object::Mutate()
     }
 }
 
+void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
+{
+    // Set logspec 
+    string aevnet = aSpec.Attr(ENa_Logevent);
+    const char *sevent = aevnet.c_str();
+    TInt event = LsEventFromStr(sevent);
+    // Get logging data
+    TInt ldata = 0;
+    for (CAE_ChromoNode::Const_Iterator lselemit = aSpec.Begin(); lselemit != aSpec.End(); lselemit++)
+    {
+	CAE_ChromoNode lselem = *lselemit;
+	if (lselem.Type() == ENt_Logdata)
+	{
+	    string adata = lselem.Name();
+	    TInt data = LsDataFromStr(adata.c_str());
+	    ldata |= data;
+	}
+	else
+	{
+	    string aname = lselem.Name();
+	    Logger()->WriteFormat("ERROR: Unknown type [%s]", aname.c_str());
+	}
+    }
+    AddLogSpec(event, ldata);
+}
+
 // TODO [YB] To carefully consider the concept:
 // 1. We use FindByName - not sure it should have an access to all nodes
 void CAE_Object::DoMutation()
@@ -2107,7 +2139,7 @@ void CAE_Object::DoMutation()
 			AddTrans(mano);
 		    }
 		    else if (mano.Type() == ENt_Logspec) {
-			// TODO [YB] To implement
+			AddLogspec(mano);
 		    }
 		    else {
 			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
@@ -2519,17 +2551,30 @@ void CAE_Object::DoTrans(CAE_StateBase* aState)
     iEnv->Tranex()->EvalTrans(this, aState, content);
 }
 
+// TODO [YB] This method is used for state init. Actually init is trans that performs on creation phase.
+// Why do not use the same spec notation as for trans?
+void CAE_Object::DoTrans(CAE_StateBase* aState, const string& aInit)
+{
+    iEnv->Tranex()->EvalTrans(this, aState, aInit);
+}
+
 CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
 {
     CSL_ExprBase* res = NULL;
-    string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
-    multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
-    if (it != iTrans.end()) {
-	res = it->second;
+    if (res == NULL) {
+	string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
+	multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
+	if (it != iTrans.end()) {
+	    res = it->second;
+	}
     }
     return (res != NULL) ? res : (iMan != NULL ? iMan->GetExpr(aName, aRtype) : NULL);
 }
 
+CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)
+{
+    return iEnv->Tranex()->GetExpr(aType, "");
+}
 
 //*********************************************************
 // CAE_ObjectBa - bit automata
@@ -2537,8 +2582,8 @@ CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
 
 
 FAPWS_API CAE_ObjectBa::CAE_ObjectBa(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo):
-			CAE_Object(aInstName, aMan), iLen(aLen), iTrans(NULL), iNew(NULL), iCurr(NULL), 
-				iInpInfo(aInpInfo), iOutInfo(aOutInfo)
+    CAE_Object(aInstName, aMan), iLen(aLen), iTrans(NULL), iNew(NULL), iCurr(NULL), 
+    iInpInfo(aInpInfo), iOutInfo(aOutInfo)
 {
 }
 

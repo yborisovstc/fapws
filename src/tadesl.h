@@ -13,8 +13,9 @@ class CAE_TaDesl: public CAE_TranExBase
 	CAE_TaDesl(MCAE_LogRec* aLogger);
 	virtual ~CAE_TaDesl();
 	// From MAE_TranEx
-	virtual void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans);
+	virtual void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans);
 	virtual const multimap<string, CSL_ExprBase*>& Exprs();
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
 	static const char *Type() {return "TaDesl";}; 
     private:
 	virtual void *DoGetFbObj(const char *aName);

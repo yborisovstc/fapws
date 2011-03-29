@@ -94,5 +94,28 @@ struct CF_Rect
     CF_TdPoint iRightLower;
 };
 
+// User defined state, based on DEST expression
+class CAE_StateEx : public CAE_StateBase
+{
+    public:
+	CAE_StateEx(const string& aType, const string& aInstName, CAE_Object* aMan);
+	virtual ~CAE_StateEx();
+	static inline const char *Type(); 
+	// TODO [YB] Migrate to const version
+	CSL_ExprBase& Value() { return *iCurr;};
+    protected:
+	virtual void Confirm();
+	virtual char* DataToStr(TBool aCurr) const;
+	virtual void DataFromStr(const char* aStr, void *aData) const;
+	virtual void DoSet(void* aData);
+	virtual void DoSetFromStr(const char *aStr);
+	virtual void *DoGetFbObj(const char *aName);
+    private:
+	CSL_ExprBase* iCurr;
+	CSL_ExprBase* iNew;
+
+};
+
+inline const char *CAE_StateEx::Type() { return "StateEx";} 
 
 #endif // __FAP_STEXT_H

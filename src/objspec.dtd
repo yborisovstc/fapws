@@ -109,8 +109,8 @@
 <!-- Logging event: tran - transitioning, upd - updated, cre - created, any - all events -->
 <!ATTLIST logspec event (tran | upd | cre | any) #REQUIRED>
 
-<!-- Logging data: cur - current value, new - new value, dep - pependencies -->
-<!ATTLIST logdata id (cur | new | dep) #REQUIRED>
+<!-- Logging data: tran - transition expressions, cur - current value, new - new value, dep - pependencies -->
+<!ATTLIST logdata id (trex | cur | new | dep) #REQUIRED>
 
 <!-- Object  attributes:
      id - instance name,

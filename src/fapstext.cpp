@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "panics.h"
 #include "fapstext.h"
+#include "deslbase.h"
 
 template<>const char *CAE_TState<TUint8>::Type() {return "StUint8"; }
 
@@ -314,3 +315,80 @@ _TEMPLATE_ void CAE_TState<CF_TdVectF>::DoOperation()
 }
 
 
+// User defined state, based on DEST expression
+//
+CAE_StateEx::CAE_StateEx(const string& aType, const string& aInstName, CAE_Object* aMan):
+    CAE_StateBase(aInstName.c_str(), aMan, TTransInfo()), iCurr(NULL), iNew(NULL)
+{
+    iTypeName = strdup(aType.c_str());
+    CAE_StateBase::ConstructL();
+    CSL_ExprBase* expr = iMan->CreateDataExpr(aType);
+    if (expr != NULL) {
+	iCurr = expr->Clone();
+	iNew = expr->Clone();
+    }
+    else {
+	Logger()->WriteFormat("Creating state [%s] of type [%s]: type constr not found", InstName(), TypeName());
+    }
+}
+
+CAE_StateEx::~CAE_StateEx()
+{
+    if (iCurr != NULL) {
+	delete iCurr; iCurr = NULL;
+    }
+    if (iNew != NULL) {
+	delete iNew; iNew = NULL;
+    }
+}
+
+char* CAE_StateEx::DataToStr(TBool aCurr) const
+{
+    return strdup((aCurr ? iCurr : iNew)->ToString().c_str());
+}
+
+void CAE_StateEx::DataFromStr(const char* aStr, void *aData) const
+{
+    _FAP_ASSERT(EFalse); // Not supported
+}
+
+void CAE_StateEx::DoSet(void* aData)
+{
+    CAE_EBase* data = (CAE_EBase*) aData;
+    CSL_ExprBase* expr = data->GetFbObj(expr);
+    _FAP_ASSERT(expr != NULL);
+    delete iNew;
+    iNew = expr->Clone();
+    TInt logdata = GetLogSpecData(KBaseLe_Updated);
+    if (logdata != KBaseDa_None)
+	LogUpdate(logdata);
+}
+
+void CAE_StateEx::DoSetFromStr(const char *aStr)
+{
+    iMan->DoTrans(this, aStr);
+}
+
+void CAE_StateEx::Confirm()
+{
+    if (!(*iCurr == *iNew)) {
+	CAE_ConnPoint *outp = iOutput->GetFbObj(outp);
+	_FAP_ASSERT(outp != NULL);
+	for (TInt i = 0; i < outp->Dests().size(); i++) {
+	    CAE_StateBase* sout =  outp->Slot(i)->Pin("_1")->GetFbObj(sout);
+	    _FAP_ASSERT(sout != NULL);
+	    sout->SetActive();
+	}
+    }
+    delete iCurr;
+    iCurr = iNew->Clone();
+}
+
+// From CAE_Base
+void *CAE_StateEx::DoGetFbObj(const char *aName)
+{
+    if (strcmp(aName, Type()) == 0)
+	return this;
+    else
+	return CAE_StateBase::DoGetFbObj(aName);
+}

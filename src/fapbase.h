@@ -185,6 +185,7 @@ enum TLdBase
     KBaseDa_New = 2,	// New value of state
     KBaseDa_Curr = 4,	// Current value of state
     KBaseDa_Dep = 8,	// Dependencies of state (current value)
+    KBaseDa_Trex = 16,	// Transition expressions
 };
 
 // Logging spec
@@ -236,10 +237,11 @@ public:
 	void AddLogSpec(TInt aEvent, TInt aData);
 	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
 	static inline const char *Type(); 
+	inline MCAE_LogRec* Logger();
+	TInt GetLogSpecData(TInt aEvent) const;
 protected:
 	// From CAE_Base
 	virtual void *DoGetFbObj(const char *aName);
-	TInt GetLogSpecData(TInt aEvent) const;
 protected:
 	char* iInstName;
 	/* Name of ancestor */
@@ -252,6 +254,7 @@ protected:
 };
 
 inline const char *CAE_EBase::Type() { return "EBase";} 
+
 
 // TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
@@ -886,8 +889,9 @@ class MAE_ChroMan
 class MAE_TranEx
 {
     public:
-	virtual void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans) = 0;
+	virtual void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans) = 0;
 	virtual const multimap<string, CSL_ExprBase*>& Exprs() = 0;
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
 };
 
 // Executable agent base 
@@ -904,8 +908,7 @@ class CAE_TranExBase: public CAE_Base, public MAE_TranEx
 class MAE_Provider
 {
     public:
-	virtual CAE_State* CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
-	virtual CAE_State* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
+	virtual CAE_StateBase* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
 	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const  = 0;
 	virtual CAE_EBase* CreateObjectL(const char *aName) const  = 0;
 	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
@@ -995,7 +998,9 @@ public:
 	CAE_Object::ChromoPx* ChromoIface() { return &iChromoIface;};
 	void Mutate();
 	void DoTrans(CAE_StateBase* aState);
+	void DoTrans(CAE_StateBase* aState, const string& aInit);
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	CSL_ExprBase* CreateDataExpr(const string& aType);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1022,6 +1027,7 @@ private:
 	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
+	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 private:
@@ -1182,6 +1188,8 @@ private:
 	CAE_ObjectAs* iObs;
 };
 
+
+inline MCAE_LogRec *CAE_EBase::Logger() { return iMan ? iMan->Logger(): NULL;}
 
 inline MCAE_LogRec *CAE_StateBase::Logger() { return iMan ? iMan->Logger(): NULL;}
 

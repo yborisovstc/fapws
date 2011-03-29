@@ -15,9 +15,9 @@ CAE_TaDesl::~CAE_TaDesl()
 	delete iInterpr;
 }
 
-void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans)
+void CAE_TaDesl::EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans)
 {
-    iInterpr->EvalTrans(aContext, aState, aTrans);
+    iInterpr->EvalTrans(aContext, aExpContext, aTrans);
 }
 
 const multimap<string, CSL_ExprBase*>& CAE_TaDesl::Exprs()
@@ -28,4 +28,9 @@ const multimap<string, CSL_ExprBase*>& CAE_TaDesl::Exprs()
 void* CAE_TaDesl::DoGetFbObj(const char *aName)
 {
     return (strcmp(aName, Type()) == 0) ? this: NULL;
+}
+
+CSL_ExprBase* CAE_TaDesl::GetExpr(const string& aTerm, const string& aRtype)
+{
+    return iInterpr->GetExpr(aTerm, aRtype);
 }

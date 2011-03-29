@@ -39,19 +39,20 @@ CPPUNIT_TEST_SUITE_REGISTRATION( UT_FAP_Emtran );
 
 void UT_FAP_Emtran::setUp()
 {
-    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
-    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 }
 
 void UT_FAP_Emtran::tearDown()
 {
-    delete iEnv;
+//    delete iEnv;
     CPPUNIT_ASSERT_EQUAL_MESSAGE("tearDown", 0, 0);
 }
 
 void UT_FAP_Emtran::test_Emtran_main()
 {
-    printf("\n === Test of embedded trans\n");
+    printf("\n === Test of embedded trans - Snails\n");
+
+    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 
     for (TInt i=0; i<40; i++)
     {
@@ -73,6 +74,18 @@ void UT_FAP_Emtran::test_Emtran_main()
 	CAE_StateBase* sb_snail_coord = cp->GetSrcPin("_1")->GetFbObj(sb_snail_coord);
 	CPPUNIT_ASSERT_MESSAGE("Fail to get [coord] src pin state in [snail] extender", sb_snail_coord != 0);
     };
+
+    printf("\n === Test of embedded trans - Throw\n");
+
+    iEnv = CAE_Env::NewL(NULL, tinfos, "ut_emtran_spec_3.xml", 1, NULL, "ut_emtran_log_3.txt");
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+
+    for (TInt i=0; i<40; i++)
+    {
+        iEnv->Step();
+    }
+
+    delete iEnv;
 }
 
 

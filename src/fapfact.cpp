@@ -509,23 +509,22 @@ FAPWS_API CAE_ProviderGen::~CAE_ProviderGen()
 
 }
 
-FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const
+CAE_StateBase* CAE_ProviderGen::CreateStateL(const char *aType, const char* aInstName, CAE_Object* aMan) const
 {
-    CAE_State* res = NULL;
-    return res;
-}
-
-FAPWS_API CAE_State* CAE_ProviderGen::CreateStateL(const char *aType, const char* aInstName, CAE_Object* aMan) const
-{
-    CAE_State* res = NULL;
+    CAE_StateBase* res = NULL;
     const TStateInfo *info = GetStateInfo(aType);
-    if (info != NULL) 
+    if (info != NULL) {
 	res = info->iFactFun(aInstName, aMan, TTransInfo());
+    }
+    else {
+	res = new CAE_StateEx(aType, aInstName, aMan);
+
+    }
     return res;
 
 }
 
-FAPWS_API CAE_EBase* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
+CAE_EBase* CAE_ProviderGen::CreateObjectL(TUint32 aTypeUid) const
 {
     CAE_EBase* res = NULL;
     return res;
@@ -905,26 +904,9 @@ FAPWS_API void CAE_Fact::AddProviderL(CAE_ProviderBase* aProv)
 
 }
 
-
-CAE_State* CAE_Fact::CreateStateL(TUint32 aTypeUid, const char* aInstName, CAE_Object* aMan) const
+CAE_StateBase* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const
 {
-    CAE_State* res = NULL;
-    TInt count = iProviders->size();
-    for (TInt i = 0; i < count; i++)
-    {
-	CAE_ProviderBase* prov = GetProviderAt(i);
-	_FAP_ASSERT(prov != NULL);
-	res = prov->CreateStateL(aTypeUid, aInstName, aMan);
-	if (res != NULL)
-	    break;
-    }
-    return res;
-}
-
-
-CAE_State* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const
-{
-    CAE_State* res = NULL;
+    CAE_StateBase* res = NULL;
 
     TInt count = iProviders->size();
     for (TInt i = 0; i < count; i++)

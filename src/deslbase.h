@@ -19,13 +19,13 @@ class MSL_ExprEnv
     public:
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) = 0;
-	virtual CAE_StateBase* Context() = 0;
+	virtual CAE_EBase* Context() = 0;
 	virtual string ContextType() = 0;
-	virtual string DataType(const CAE_StateBase& aState) = 0;
+	virtual string DataType(CAE_StateBase& aState) = 0;
 	virtual MCAE_LogRec *Logger() = 0;
 };
 
-class CSL_ExprBase
+class CSL_ExprBase: public CAE_Base
 {
     public:
 	CSL_ExprBase();
@@ -38,6 +38,8 @@ class CSL_ExprBase
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return NULL;};
+	virtual string ToString() { return iData; };
+	TBool operator ==(const CSL_ExprBase& aExpr);
 	void SetType(const string& aType);
 	void SetName(const string& aName) { iName = aName;};
 	void AcceptArg(CSL_ExprBase& aArg);
@@ -45,7 +47,7 @@ class CSL_ExprBase
 	void AddArg(CSL_ExprBase& aArg);
 	const string& Data() {return iData;};
 	const string& Name() {return iName;};
-	const vector<string>& Type() {return iType;};
+	const vector<string>& EType() {return iType;};
 	const string& RType() {return iType.at(0);};
 	const string AType();
 	void SetData(const string& aData) { iData = aData;};
@@ -59,12 +61,17 @@ class CSL_ExprBase
 	static TBool ParseTerms(const string& aData, vector<string>& aRes);
 	static TBool ParseTerms(const string& aData, size_t& aPos, vector<string>& aRes);
 	static TBool ParseTerm(const string& aData, size_t& aPos, vector<string>& aRes);
+	static inline const char *Type(); 
+	// From CAE_Base
+	virtual void *DoGetFbObj(const char *aName);
     protected:
 	string iName;
 	vector<string> iType;
 	string iData;
 	vector<CSL_ExprBase*> iArgs;
 };
+
+inline const char *CSL_ExprBase::Type() { return "ExprBase";} 
 
 class CSL_FunBase: public CSL_ExprBase
 {
@@ -76,9 +83,9 @@ class CSL_FunBase: public CSL_ExprBase
 	public:
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) { iEnv.SetExpr(aName, aExpr); };
-	virtual CAE_StateBase* Context() { return iEnv.Context();};
+	virtual CAE_EBase* Context() { return iEnv.Context();};
 	virtual string ContextType() { return iEnv.ContextType();};
-	virtual string DataType(const CAE_StateBase& aState) { return iEnv.DataType(aState);};
+	virtual string DataType(CAE_StateBase& aState) { return iEnv.DataType(aState);};
 	virtual MCAE_LogRec *Logger() { return iEnv.Logger();};
 	private: 
 	MSL_ExprEnv& iEnv;
@@ -105,6 +112,7 @@ class CSL_EfStruct: public CSL_ExprBase
 		CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfStruct(*this);};
 	CSL_ExprBase* GetField(const string& aName) { return iArgs[iFields[aName].second]; };
+	virtual string ToString();
     protected:
 	map<string, felem> iFields;
 };
@@ -135,6 +143,15 @@ class CSL_EfGtInt: public CSL_ExprBase
 	virtual CSL_ExprBase* Clone() { return new CSL_EfGtInt(*this);};
 };
 
+
+class CSL_EfLtFloat: public CSL_ExprBase
+{
+    public:
+	CSL_EfLtFloat(): CSL_ExprBase("TBool Float Float") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfLtFloat(*this);};
+};
 
 
 class CSL_EfInp: public CSL_ExprBase
@@ -303,29 +320,44 @@ class CSL_Interpr: public MSL_ExprEnv
 {
     public: 
 	typedef pair<string, CSL_ExprBase*> exprsmapelem;
+
+	class Logger: public MCAE_LogRec 
+    {
+	public:
+	    Logger(CSL_Interpr& aMain): iMain(aMain) {};
+	public:
+	    virtual void WriteRecord(const char* aText) { iMain.iLogger->WriteRecord(aText);};
+	    virtual void WriteFormat(const char* aFmt,...);
+	    virtual void Flush() { iMain.iLogger->Flush();};
+	private:
+	    CSL_Interpr& iMain;
+    };
+	Logger iELogger;
+    friend class Logger;
     public: 
 	CSL_Interpr(MCAE_LogRec* aLogger);
 	virtual ~CSL_Interpr();
-	void EvalTrans(MAE_TransContext* aContext, CAE_StateBase* aState, const string& aTrans);
+	void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans);
 	const multimap<string, CSL_ExprBase*>& Exprs() { return iExprs;};
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr, multimap<string, CSL_ExprBase*>& aExprs);
 	virtual void SetExprEmb(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprsEmb);};
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprs);};
 	virtual void SetExprEmb(const string& aName, const string& aType, CSL_ExprBase* aExpr);
-	virtual CAE_StateBase* Context();
+	virtual CAE_EBase* Context();
 	virtual string ContextType();
-	virtual string DataType(const CAE_StateBase& aState);
-	virtual MCAE_LogRec *Logger() { return iLogger;};
+	virtual string DataType(CAE_StateBase& aState);
+	virtual MCAE_LogRec *Logger() { return &iELogger;};
     private:
 	static string GetStateDataType(const string& aStateType);
     private:
 	multimap<string, CSL_ExprBase*> iExprsEmb; // Embedded terms
 	multimap<string, CSL_ExprBase*> iExprs;
 	CSL_ExprBase* iRootExpr;
-	CAE_StateBase* iState;
+	CAE_EBase* iExpContext;
 	MCAE_LogRec* iLogger;
 	MAE_TransContext* iContext;
+	int iLine;
 };
 
 #endif // __FAP_DESLBASE_H

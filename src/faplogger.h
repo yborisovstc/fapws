@@ -14,6 +14,7 @@
 // File logger record
 class CAE_LogRec: public MCAE_LogRec
 {
+    public:
 	enum
 	{
 		KLogRecBufSize = 400
