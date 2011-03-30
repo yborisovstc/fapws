@@ -853,6 +853,18 @@ CSL_ExprBase* CAE_StateBase::GetExpr(const string& aTerm, const string& aRtype)
     return iMan->GetExpr(aTerm, aRtype);
 };
 
+multimap<string, CSL_ExprBase*>::iterator CAE_StateBase::GetExprs(const string& aName, const string& aRtype, multimap<string,
+       	CSL_ExprBase*>::iterator& aEnd)
+{
+    multimap<string, CSL_ExprBase*>::iterator res;
+    if (iMan != NULL)
+	res = iMan->GetExprs(aName, aRtype, aEnd);
+    else {
+	_FAP_ASSERT(EFalse);
+    }
+    return res;
+}
+
 // ******************************************************************************
 // CAE_State - state handling owned data
 // ******************************************************************************
@@ -2569,6 +2581,31 @@ CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
 	}
     }
     return (res != NULL) ? res : (iMan != NULL ? iMan->GetExpr(aName, aRtype) : NULL);
+}
+
+multimap<string, CSL_ExprBase*>::iterator CAE_Object::GetExprs(const string& aName, const string& aRtype,
+	multimap<string, CSL_ExprBase*>::iterator& aEnd)
+{
+    multimap<string, CSL_ExprBase*>::iterator res;
+    // Look at emb terms first then for current
+    string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
+    multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
+    if (it != iTrans.end()) {
+	res = it; aEnd = iTrans.end();
+    }
+    else if (iMan != NULL) {
+	multimap<string, CSL_ExprBase*>::iterator it = iMan->GetExprs(aName, aRtype, aEnd);
+	if (it != aEnd) {
+	    res = it;
+	}
+	else {
+	    aEnd = iTrans.end(); res = aEnd;
+	}
+    }
+    else {
+	aEnd = iTrans.end(); res = aEnd;
+    }
+    return res;
 }
 
 CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)

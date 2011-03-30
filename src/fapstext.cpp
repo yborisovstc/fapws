@@ -379,9 +379,9 @@ void CAE_StateEx::Confirm()
 	    _FAP_ASSERT(sout != NULL);
 	    sout->SetActive();
 	}
+	delete iCurr;
+	iCurr = iNew->Clone();
     }
-    delete iCurr;
-    iCurr = iNew->Clone();
 }
 
 // From CAE_Base

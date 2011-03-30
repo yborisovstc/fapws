@@ -457,6 +457,8 @@ class MAE_TransContext
 {
     public:
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
+	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype,
+		multimap<string, CSL_ExprBase*>::iterator& aEnd) = 0;
 };
 
 
@@ -533,6 +535,8 @@ protected:
 	void LogTrans(TInt aLogData);
 	inline MCAE_LogRec *Logger();
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
+		multimap<string, CSL_ExprBase*>::iterator& aEnd);
 protected:
 	// Transition info
 	TTransInfo iTrans;
@@ -1000,6 +1004,8 @@ public:
 	void DoTrans(CAE_StateBase* aState);
 	void DoTrans(CAE_StateBase* aState, const string& aInit);
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, multimap<string,
+	       	CSL_ExprBase*>::iterator& aEnd);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
 protected:
 	virtual void *DoGetFbObj(const char *aName);

@@ -18,6 +18,8 @@ class MSL_ExprEnv
 {
     public:
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
+	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
+		multimap<string, CSL_ExprBase*>::iterator& aEnd) = 0;
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) = 0;
 	virtual CAE_EBase* Context() = 0;
 	virtual string ContextType() = 0;
@@ -37,7 +39,7 @@ class CSL_ExprBase: public CAE_Base
 	void ApplyArgs(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase*& aRes, const string& aReqType);
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);
-	virtual CSL_ExprBase* Clone() { return NULL;};
+	virtual CSL_ExprBase* Clone() { return new CSL_ExprBase(*this);};
 	virtual string ToString() { return iData; };
 	TBool operator ==(const CSL_ExprBase& aExpr);
 	void SetType(const string& aType);
@@ -82,6 +84,8 @@ class CSL_FunBase: public CSL_ExprBase
 	    Env(CSL_FunBase& aFun, MSL_ExprEnv& aEnv): iFun(aFun), iEnv(aEnv) {};
 	public:
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
+	virtual	multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
+		multimap<string, CSL_ExprBase*>::iterator& aEnd);
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) { iEnv.SetExpr(aName, aExpr); };
 	virtual CAE_EBase* Context() { return iEnv.Context();};
 	virtual string ContextType() { return iEnv.ContextType();};
@@ -108,6 +112,7 @@ class CSL_EfStruct: public CSL_ExprBase
 	typedef pair<string, int> felem;
     public:
 	CSL_EfStruct(): CSL_ExprBase("Struct String") {};
+	CSL_EfStruct(const CSL_EfStruct& aExpr): CSL_ExprBase(aExpr), iFields(aExpr.iFields) {};
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, 
 		CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfStruct(*this);};
@@ -131,7 +136,8 @@ class CSL_EfLtInt: public CSL_ExprBase
 {
     public:
 	CSL_EfLtInt(): CSL_ExprBase("TBool TInt TInt") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfLtInt(*this);};
 };
 
@@ -153,12 +159,23 @@ class CSL_EfLtFloat: public CSL_ExprBase
 	virtual CSL_ExprBase* Clone() { return new CSL_EfLtFloat(*this);};
 };
 
+class CSL_EfLeFloat: public CSL_ExprBase
+{
+    public:
+	CSL_EfLeFloat(): CSL_ExprBase("TBool Float Float") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfLeFloat(*this);};
+};
+
 
 class CSL_EfInp: public CSL_ExprBase
 {
     public:
 	CSL_EfInp(const string& aType): CSL_ExprBase(aType) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfInp(*this);};
 };
 
 
@@ -166,14 +183,18 @@ class CSL_EfSet: public CSL_ExprBase
 {
     public:
 	CSL_EfSet(const string& aType): CSL_ExprBase(aType) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfSet(*this);};
 };
 
 class CSL_EfAddVectF: public CSL_ExprBase
 {
     public:
 	CSL_EfAddVectF(): CSL_ExprBase("TVectF TVectF TVectF") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAddVectF(*this);};
 };
 
 class CSL_EfTInt: public CSL_ExprBase
@@ -216,9 +237,11 @@ class CSL_EfTBool: public CSL_ExprBase
 	CSL_EfTBool(): CSL_ExprBase("TBool") {};
 	CSL_EfTBool(const string& aData): CSL_ExprBase("TBool", aData) {};
 	CSL_EfTBool(TBool& aData): CSL_ExprBase("TBool", ToStr(aData)) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	static string ToStr(const TBool& aData);
 	static void FromStr(TBool& aData, const string& aStr);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfTBool(*this);};
 };
 
 
@@ -229,9 +252,11 @@ class CSL_EfVectF: public CSL_ExprBase
     public:
 	CSL_EfVectF(): CSL_ExprBase("TVectF") {};
 	CSL_EfVectF(const string& aData): CSL_ExprBase("TVectF", aData) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	static string ToStr(const CF_TdVectF& aData);
 	static void FromStr(CF_TdVectF& aData, const string& aStr);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfVectF(*this);};
 };
 
 
@@ -239,7 +264,9 @@ class CSL_EfAddVectF1: public CSL_ExprBase
 {
     public:
 	CSL_EfAddVectF1(const string& aData): CSL_ExprBase("TVectF TVectF", aData) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAddVectF1(*this);};
 };
 
 class CSL_EfIf: public CSL_ExprBase
@@ -247,17 +274,19 @@ class CSL_EfIf: public CSL_ExprBase
     public:
 	CSL_EfIf(): CSL_ExprBase() {};
 	CSL_EfIf(const string& aType): CSL_ExprBase(aType) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfIf(*this);};
 };
-
 
 
 class CSL_EfAddInt: public CSL_ExprBase
 {
     public:
 	CSL_EfAddInt(): CSL_ExprBase("TInt TInt TInt") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAddInt(*this);};
 };
 
 
@@ -265,7 +294,9 @@ class CSL_EfAddInt_1: public CSL_ExprBase
 {
     public:
 	CSL_EfAddInt_1(CSL_ExprBase& aArg): CSL_ExprBase("TInt TInt") { iArgs.push_back(&aArg);};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAddInt_1(*this);};
 };
 
 class CSL_EfSubInt: public CSL_ExprBase
@@ -281,7 +312,8 @@ class CSL_EfDivInt: public CSL_ExprBase
 {
     public:
 	CSL_EfDivInt(): CSL_ExprBase("TInt TInt TInt") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfDivInt(*this);};
 };
 
@@ -302,7 +334,8 @@ class CSL_EfFilter: public CSL_ExprBase
     public:
 	CSL_EfFilter(const string& aElemType): 
 	    CSL_ExprBase("[" + aElemType + "] [" + aElemType + "] " + "(TBool " + aElemType + ")") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfFilter(*this);};
 };
 
@@ -310,7 +343,8 @@ class CSL_EfCount: public CSL_ExprBase
 {
     public:
 	CSL_EfCount(const string& aElemType): CSL_ExprBase("TInt [" + aElemType + "]") {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfCount(*this);};
 };
 
@@ -340,6 +374,8 @@ class CSL_Interpr: public MSL_ExprEnv
 	void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans);
 	const multimap<string, CSL_ExprBase*>& Exprs() { return iExprs;};
 	virtual CSL_ExprBase* GetExpr(const string& aName, const string& aRtype);
+	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
+		multimap<string, CSL_ExprBase*>::iterator& aEnd);
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr, multimap<string, CSL_ExprBase*>& aExprs);
 	virtual void SetExprEmb(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprsEmb);};
 	virtual void SetExpr(const string& aName, CSL_ExprBase* aExpr) {SetExpr(aName, aExpr, iExprs);};

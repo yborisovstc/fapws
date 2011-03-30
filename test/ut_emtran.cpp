@@ -2,6 +2,7 @@
 #include <fapplat.h>
 #include <fapbase.h>
 #include <fapstext.h>
+#include <deslbase.h>
 #include <stdlib.h>
 
 #include <cppunit/extensions/HelperMacros.h>
@@ -80,10 +81,24 @@ void UT_FAP_Emtran::test_Emtran_main()
     iEnv = CAE_Env::NewL(NULL, tinfos, "ut_emtran_spec_3.xml", 1, NULL, "ut_emtran_log_3.txt");
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 
-    for (TInt i=0; i<40; i++)
+    for (TInt i=0; i<18; i++)
     {
         iEnv->Step();
     }
+
+    CAE_ConnPointBase* c_rock = iEnv->Root()->GetOutpN("rock");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [rock] output", c_rock != 0);
+    CAE_StateBase* sb_rock_coord = c_rock->GetSrcPin("coord")->GetFbObj(sb_rock_coord);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [rock.coord] src pin state", sb_rock_coord != NULL);
+    CAE_StateEx* s_rock_coord = sb_rock_coord->GetFbObj(s_rock_coord);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [rock.coord] ext state", s_rock_coord != NULL);
+    CSL_ExprBase& e_rock_coord = s_rock_coord->Value();
+    string coord_xs = e_rock_coord.Args()[0]->Data();
+    string coord_ys = e_rock_coord.Args()[1]->Data();
+    float coord_x, coord_y;
+    sscanf(coord_xs.c_str(), "%f", &coord_x);
+    sscanf(coord_ys.c_str(), "%f", &coord_y);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [rock.coord] value", coord_x == 1440.0 && coord_y > 79.2999191 && coord_y < 79.2999192);
 
     delete iEnv;
 }

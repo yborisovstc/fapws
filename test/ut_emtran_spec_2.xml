@@ -18,8 +18,11 @@
 		    <src id="coord"/> <src id="mass"/> 
 		</out>
 
+		<logspec event="tran"> <logdata id="trex"/></logspec> 
+
 		<trans> 
 		    let Complex x y :: Struct Float Float := Struct (R::Float I::Float) x y
+		    let Complex x y :: Struct - - := Struct (R::Float I::Float) Float x Float y
 		    let cc1 :: Complex := Complex 4.0 6.0
 		    let cc2 :: Complex := 5.0 7.0
 		    let ff1 :: Float := Fld cc1 R
@@ -28,6 +31,7 @@
 		    let restrbot x lim :: TInt TInt TInt := if lt x lim lim x
 		    let restrtop x lim :: TInt TInt TInt := if gt x lim lim x
 		    let restr x y z :: TInt TInt TInt TInt := restrbot restrtop x z y
+		    let rres :: TInt := restr 20 6 8 
 		</trans>
 
 		<iobject type="none" id="snail" quiet="yes"> 

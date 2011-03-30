@@ -51,7 +51,7 @@ TBool CSL_ExprBase::operator ==(const CSL_ExprBase& aExpr)
 	}
 	else {
 	    for (TInt ct = 0; ct != iArgs.size(); ct++) {
-		if (!(iArgs[ct] == aExpr.iArgs[ct])) {
+		if (!(*iArgs[ct] == *aExpr.iArgs[ct])) {
 		    res = EFalse; break;
 		}
 	    }
@@ -64,54 +64,71 @@ void CSL_ExprBase::EvalArgs(MSL_ExprEnv& aEnv, const string& aReqType, vector<st
 {
     if (aArgr != aArgs.end()) {
 	string argn = *aArgr;
-	// If name equals to result type then it is constructor - resolve by name only
-	string type = (argn.compare(aReqType) == 0) ? "" : aReqType;
-	CSL_ExprBase* expr = aEnv.GetExpr(argn, type);
-	vector<string>::iterator argrsaved = aArgr;
 	aArgr++;
-	if (expr != NULL) {
-	    // Known term
+	// If name equals to result type then it is constructor - resolve by name only
+	string type = (argn.compare(aReqType) == 0) || (aReqType.compare("*") == 0) ? "" : aReqType;
+	vector<string>::iterator argrsaved = aArgr;
+	multimap<string, CSL_ExprBase*>::iterator expsend, expi = aEnv.GetExprs(argn, type, expsend);
+	string expkey = (expi != expsend) ? expi->first : "";
+	// Try all appropriate expressions
+	for (; expi != expsend && (expi->first.compare(expkey) == 0) && (aRes == NULL); expi++) {
+	    CSL_ExprBase* expr = expi->second;
 	    if (!expr->IsTypeOf(aReqType)) {
+		aArgr = argrsaved;
 		expr->ApplyArgs(aEnv, aArgs, aArgr, aRes, aReqType);
 	    }
 	    else {
-		aRes = expr;
+		aRes = expr->Clone();
 	    }
 	}
-	else {
-	    // Try to use constructor
-	    expr = aEnv.GetExpr(argn, "*");
+	if (aRes == NULL) {
 	    CSL_ExprBase* evalres = NULL;
+	    CSL_ExprBase* expr = aEnv.GetExpr(argn, "*");
+	    if (expr == NULL) {
+		expr = aEnv.GetExpr(argn, "");
+	    }
 	    if (expr != NULL ) {
 		if (!expr->IsTypeOf(aReqType) && expr->EType().size() > 1) {
+		    aArgr = argrsaved;
 		    expr->ApplyArgs(aEnv, aArgs, aArgr, evalres, aReqType);
 		}
 		else {
-		    evalres = expr;
+		    evalres = expr->Clone();
 		}
 	    }
 	    else {
 		evalres = new CSL_ExprBase("-", argn);
 	    }
+
 	    // Getting argument type for constructor
 	    // TODO [YB] To implement attempting all constructor registered
-	    if (evalres->RType().compare(aReqType) == 0) {
-		aRes = evalres;
-	    }
-	    else {
-		CSL_ExprBase* constr = aEnv.GetExpr(aReqType, "~1 " + evalres->RType());
-		if (constr != NULL) {
-		    constr->Apply(aEnv, aArgs, aArgr, *evalres, aRes, aReqType);
+	    if (evalres != NULL) {
+		if (evalres->RType().compare(aReqType) == 0) {
+		    aRes = evalres;
 		}
-		else  {
+		else {
+		    CSL_ExprBase* constr = aEnv.GetExpr(aReqType, "~1 " + evalres->RType());
+		    if (constr != NULL) {
+			constr->Apply(aEnv, aArgs, aArgr, *evalres, aRes, aReqType);
+		    }
+		    // [YB] Disabled indirect constructors
+		    /*
+		       else  {
 		    // No direct consructor found. Try next level.
 		    constr = aEnv.GetExpr(aReqType, "");
-		    if (constr) {
-			aArgr = argrsaved;
-			constr->ApplyArgs(aEnv, aArgs, aArgr, aRes, aReqType);
+		    if (constr && !((constr->AType().compare("-") == 0) && (evalres->RType().compare("-") != 0))) {
+		    aArgr = argrsaved;
+		    constr->ApplyArgs(aEnv, aArgs, aArgr, aRes, aReqType);
 		    }
 		    else {
-			aEnv.Logger()->WriteFormat("Evaluating [%s ...]: Constructor not found for [%s]", argn.c_str(), aReqType.c_str());
+		    aEnv.Logger()->WriteFormat("Evaluating [%s ...]: Constructor [%s<-%s] not found", argn.c_str(), aReqType.c_str(), 
+		    evalres->RType().c_str());
+		    }
+		    }
+		    */
+		    else {
+			aEnv.Logger()->WriteFormat("Evaluating [%s ...]: Constructor [%s<-%s] not found", argn.c_str(), aReqType.c_str(), 
+				evalres->RType().c_str());
 		    }
 		}
 	    }
@@ -130,7 +147,9 @@ void CSL_ExprBase::ApplyArgs(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<st
     if (aArgr != aArgs.end()) {
 	CSL_ExprBase* evalres = NULL;
 	EvalArgs(aEnv, AType(), aArgs, aArgr, evalres);
-	Apply(aEnv, aArgs, aArgr, *evalres, aRes, aReqType);
+	if (evalres != NULL) {
+	    Apply(aEnv, aArgs, aArgr, *evalres, aRes, aReqType);
+	}
     }
     else {
 	// TODO YB Panic
@@ -200,7 +219,8 @@ string CSL_ExprBase::TypeLn(vector<string>::const_iterator& aTop) const
 
 TBool CSL_ExprBase::IsTypeOf(const string& aType) const
 {
-    return (aType.compare(TypeLn()) == 0);
+    return ((aType.compare(TypeLn()) == 0) || ((iType.size() == 1) && (aType.compare("*")) == 0));
+    //return (aType.compare(TypeLn()) == 0);
 }
 
 void CSL_ExprBase::ParseSet(const string& aData, vector<string>& aRes)
@@ -290,6 +310,27 @@ CSL_ExprBase* CSL_FunBase::Env::GetExpr(const string& aName, const string& aRtyp
     }
     else {
 	return iEnv.GetExpr(aName, aRtype);
+    }
+    return res;
+}
+
+multimap<string, CSL_ExprBase*>::iterator CSL_FunBase::Env::GetExprs(const string& aName, const string& aRtype,
+	multimap<string, CSL_ExprBase*>::iterator& aEnd)
+{
+    multimap<string, CSL_ExprBase*>::iterator res;
+    if (iFun.iArgsInfo.count(aName) != 0) {
+	CSL_ExprBase* arg = iFun.iArgs[iFun.iArgsInfo[aName]];
+	if (aRtype.empty() || (aRtype.compare(arg->RType()) == 0)) {
+	    iEnv.GetExprs(aName, aRtype, aEnd);
+	    res = aEnd; res--;
+	    (*res).second = arg;
+	}
+	else {
+	    res = iEnv.GetExprs(aName, aRtype, aEnd);
+	}
+    }
+    else {
+	res = iEnv.GetExprs(aName, aRtype, aEnd);
     }
     return res;
 }
@@ -437,6 +478,20 @@ void CSL_EfLtFloat::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<strin
     }
 }
 
+void CSL_EfLeFloat::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	float x,y;
+	CSL_EfFloat::FromStr(x,iArgs[0]->Data());
+	CSL_EfFloat::FromStr(y,aArg.Data());
+	TBool res = x <= y;
+	aRes = new CSL_EfTBool(res);
+    }
+}
 
 
 void CSL_EfGtInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
@@ -647,7 +702,8 @@ void CSL_EfAddVectF1::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<str
     aRes = new CSL_ExprBase("TVectF", sres);
 }
 
-void CSL_EfIf::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
+void CSL_EfIf::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
 {
     if (iType.size() > 2) {
 	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
@@ -658,6 +714,7 @@ void CSL_EfIf::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::i
 	aRes = cond ? iArgs[1]: &aArg;
     }
 }
+
 
 void CSL_EfFilter::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
 {
@@ -710,8 +767,10 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     //SetExprEmb("set", new CSL_EfSet("TInt TInt"));
     //SetExprEmb("set", new CSL_EfSet("TVectF TVectF"));
     SetExprEmb("if", new CSL_EfIf("TInt TInt TInt TBool"));
+    SetExprEmb("if", new CSL_EfIf("* * * TBool"));
     SetExprEmb("lt", new CSL_EfLtInt());
     SetExprEmb("lt", new CSL_EfLtFloat());
+    SetExprEmb("le", new CSL_EfLeFloat());
     SetExprEmb("gt", new CSL_EfGtInt());
     SetExprEmb("filter", new CSL_EfFilter("TInt"));
     SetExprEmb("count", new CSL_EfCount("TInt"));
@@ -790,9 +849,14 @@ void CSL_Interpr::EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, 
 		else {
 		    // Expression
 		    CSL_ExprBase::EvalArgs(*this, rtype, args, argsrest, res);
-		    SetExpr(name, res);
-		    if (logspecdata & KBaseDa_Trex ) {
-			Logger()->WriteFormat("[%s] = %s", name.c_str(), res->ToString().c_str());
+		    if (res != NULL) {
+			SetExpr(name, res);
+			if (logspecdata & KBaseDa_Trex ) {
+			    Logger()->WriteFormat("[%s] = %s", name.c_str(), res->ToString().c_str());
+			}
+		    }
+		    else {
+			Logger()->WriteFormat("Error evaluating [%s] as [%s]", name.c_str(), data.c_str());
 		    }
 		}
 		// TODO [YB] To check type
@@ -813,16 +877,21 @@ void CSL_Interpr::EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, 
 	    vector<string> args;
 	    CSL_ExprBase::ParseTerms(line, args);
 	    vector<string>::iterator argsrest = args.begin();
-	    CSL_ExprBase* res = new CSL_ExprBase();
+	    CSL_ExprBase* res = NULL;
 	    CSL_ExprBase::EvalArgs(*this, state_dtype, args, argsrest, res);
-	    CAE_StateEx* stateext = state->GetFbObj(stateext);
-	    if (stateext != NULL) {
-		stateext->Set(res);
+	    if (res != NULL) {
+		CAE_StateEx* stateext = state->GetFbObj(stateext);
+		if (stateext != NULL) {
+		    stateext->Set(res);
+		}
+		else {
+		    state->SetFromStr(res->Data());
+		}
+		delete res;
 	    }
 	    else {
-		state->SetFromStr(res->Data());
+		Logger()->WriteFormat("Error evaluating [%s]", line.c_str());
 	    }
-	    delete res;
 	}
     } while (!fin);
 }
@@ -843,6 +912,34 @@ CSL_ExprBase* CSL_Interpr::GetExpr(const string& aName, const string& aRtype)
 	}
     }
     return (res != NULL) ? res : iContext->GetExpr(aName, aRtype);
+}
+
+multimap<string, CSL_ExprBase*>::iterator CSL_Interpr::GetExprs(const string& aName, const string& aRtype, 
+	multimap<string, CSL_ExprBase*>::iterator& aEnd)
+{
+    multimap<string, CSL_ExprBase*>::iterator res;
+    // Look at emb terms first then for current
+    string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
+    multimap<string, CSL_ExprBase*>::iterator it = iExprsEmb.find(key);
+    if (it != iExprsEmb.end()) {
+	res = it; aEnd = iExprsEmb.end();
+    }
+    else {
+	multimap<string, CSL_ExprBase*>::iterator it = iExprs.find(key);
+	if (it != iExprs.end()) {
+	    res = it; aEnd = iExprs.end();
+	}
+	else {
+	    multimap<string, CSL_ExprBase*>::iterator it = iContext->GetExprs(aName, aRtype, aEnd);
+	    if (it != aEnd) {
+		res = it;
+	    }
+	    else {
+		aEnd = iExprsEmb.end(); res = aEnd;
+	    }
+	}
+    }
+    return res;
 }
 
 void CSL_Interpr::SetExpr(const string& aName, CSL_ExprBase* aExpr, multimap<string, CSL_ExprBase*>& aExprs)
