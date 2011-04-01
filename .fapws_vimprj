@@ -20,6 +20,7 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapws.h
   panics.h
   tadesl.h
+  view.h
   deslbase.cpp
   fapbase.cpp
   fapext.cpp
@@ -80,6 +81,7 @@ test=test CD=. filter="*" {
   ut_emtran.cpp
   ut_emtran_spec.xml
   ut_emtran_spec_2.xml
+  ut_emtran_spec_3.xml
   ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
@@ -101,6 +103,16 @@ test=test CD=. filter="*" {
    ut-fapws-lib
   }
 }
+ testsia=testsia CD=. filter="*" {
+  Makefile
+  Makefile.am
+  Makefile.in
+  main.cpp
+  fatia-sin=fatia-sin CD=. filter="*" {
+   Makefile.am
+   main.cpp
+  }
+ }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {
  configure.ac

@@ -32,15 +32,25 @@ You must have the libxml-2.0 and development headers installed to build.
 AC_SUBST(LIBXML_CFLAGS)
 AC_SUBST(LIBXML_LIBS)
 
+# TODO [YB] For Gtk view, to be removed after view separating
+PKG_CHECK_MODULES(GTKPLUS, gtk+-2.0, , [
+    AC_MSG_ERROR([You must have 'gtk+-2.0' dev headers (gtk+-2.0-dev) installed
+    ]) ])
+
+AC_SUBST(GTKPLUS_CFLAGS)
+AC_SUBST(GTKPLUS_LIBS)
+
+
 if test x$debug = xyes; then
     CXXFLAGS="-g -O0"
 else
-    CXXFLAGS="-g -O2"
+#    CXXFLAGS="-g -O2"
+    CXXFLAGS="-g -O0"
 fi
 
 
-CXXFLAGS="$CXXFLAGS $GLIB_CFLAGS $LIBXML_CFLAGS" 
-LDFLAGS="$LDFLAGS $GLIB_LIBS $LIBXML_LIBS"
+CXXFLAGS="$CXXFLAGS $GLIB_CFLAGS $LIBXML_CFLAGS $GTKPLUS_CFLAGS" 
+LDFLAGS="$LDFLAGS $GLIB_LIBS $LIBXML_LIBS $GTKPLUS_LIBS"
 
 AC_CONFIG_FILES([libfapws.pc])
 

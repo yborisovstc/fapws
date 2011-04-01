@@ -9,16 +9,16 @@ To transform to html:
 -->
 
 
-<article status="draft" class="specification"> <title>Synchronous Finite automata framework. Requirements.</title>
+<article status="draft" class="specification"> <title>Discrete Events System framework. Requirements.</title>
 
     <articleinfo>
 	<author><personname><firstname>Yuri</firstname><surname>Borisov</surname></personname>
 	    <email>yuri.borisov.v@gmail.com</email></author> 
 
-	<releaseinfo>Ver.0.08 at 17-Mar-2011</releaseinfo>
+	<releaseinfo>Ver.0.09 at 30-Mar-2011</releaseinfo>
 
 	<abstract>
-	    <simpara>This document collects use-cases and software requirements for synchronous distributed finite automata framework.</simpara>
+	    <simpara>This document collects use-cases and software requirements for Discrete Events System framework.</simpara>
 	</abstract>
 
 	<revhistory>
@@ -38,6 +38,8 @@ To transform to html:
 		<revremark>Added <xref linkend="uc_3_ext_inp"/></revremark> </revision>
 	    <revision> <revnumber>0.08</revnumber> <date>17-Mar-2011</date> <authorinitials>Yuri Borisov</authorinitials>
 		<revremark>Added <xref linkend="sec_emb_trans"/></revremark> </revision>
+	    <revision> <revnumber>0.09</revnumber> <date>30-Mar-2011</date> <authorinitials>Yuri Borisov</authorinitials>
+		<revremark>Added <xref linkend="sec_views"/></revremark> </revision>
 	</revhistory>
 
     </articleinfo>
@@ -166,6 +168,25 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_emb_trans_uc_05"><title>FAP_UC_ET_05 User can specify new type</title>
 	    <simpara>User specifies the new type by specifying the constructor that results in required type.</simpara>
+	</sect2>
+    </sect1>
+
+    <sect1 id="sec_views"><title>Views</title>
+	<sect2 id="sec_views_01"><title>FAP_UC_VW_01 User specifies view for interpreter.</title>
+	    <simpara>User runs DES interpreter and specifies how many views should be created and what kind they shoud be of.</simpara>
+	</sect2>
+	<sect2 id="sec_views_02"><title>FAP_UC_VW_02 Client application creates view and adds it to DES interpreter</title>
+	</sect2>
+	<sect2 id="sec_views_03"><title>FAP_UC_VW_03 System shows the DES objects as hierarchy</title>
+	    <simpara>User specify view and the system set this view as a view of root DES object. Root DES object in turn 
+	    creates the views for components etc.. This view grapically places inside of owner's view.</simpara>
+	</sect2>
+	<sect2 id="sec_views_04"><title>FAP_UC_VW_04 User selects the full or compact form of view.</title>
+	    <simpara>System displays the view as a graphical hierarchy. User selects of full or compact form of view.
+		The full form shows inputs, outputs, components (in compact form), and connections. 
+		The compact form shows only inputs and outputs of object.</simpara>
+	</sect2>
+	<sect2 id="sec_views_05"><title>FAP_UC_VW_05 User changes base view and saves - system stores view data and uses it next time.</title>
 	</sect2>
     </sect1>
 </article>

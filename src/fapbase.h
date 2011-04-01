@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "fapplat.h"
+#include "fapview.h"
 #include <vector>
 #include <map>
 #include <string>
@@ -937,11 +938,12 @@ class MAE_Env
 	virtual MAE_TranEx *Tranex() = 0;
 };
 
+class MAE_View;
 // Base class for object. Object is container and owner of its component and states
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
 // TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough 
-class CAE_Object: public CAE_EBase, public MAE_TransContext
+class CAE_Object: public CAE_EBase, public MAE_TransContext, public MAE_ViewObserver
 {
 public:
 	// Operation under chromosome
@@ -1007,6 +1009,7 @@ public:
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, multimap<string,
 	       	CSL_ExprBase*>::iterator& aEnd);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
+	void AddView(const string& aName, MAE_View* aView);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1015,6 +1018,8 @@ protected:
 	void ConstructFromChromXL(const void* aChrom);
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	virtual void DoMutation();
+	// From MAE_ViewObserver
+	virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
@@ -1036,6 +1041,8 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void OnExposeBaseView(MAE_View* aView, CAV_Rect aRect);
+	void DrawComp(MAE_View* aView, CAV_Point aInitPt, CAV_Rect& aRes);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
@@ -1047,6 +1054,7 @@ private:
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;
+	map<string, MAE_View*> iViews;
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 

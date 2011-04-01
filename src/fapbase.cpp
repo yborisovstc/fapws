@@ -36,7 +36,12 @@
 #include "fapplat.h"
 #include "panics.h"
 #include "fapbase.h"
+#include "fapview.h"
 
+// Parameters of view
+const TInt KViewNameLineHeight = 20;
+const TInt KViewExtLineHeight = 20;
+const TInt KViewExtAreaWidth = 80;
 
 _LIT(KFapPanic, "FAP: Error %d");
 const TInt KNameSeparator  = '.';
@@ -1668,6 +1673,9 @@ FAPWS_API CAE_Object::~CAE_Object()
 	    delete iChromo;
 	    iChromo = NULL;
 	}
+	for (map<string, MAE_View*>::iterator it = iViews.begin(); it != iViews.end(); it++) {
+	    delete it->second;
+	}
 };
 
 TInt CAE_Object::LsEventFromStr(const char *aStr)
@@ -2612,6 +2620,53 @@ CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)
 {
     return iEnv->Tranex()->GetExpr(aType, "");
 }
+
+void CAE_Object::AddView(const string& aName, MAE_View* aView)
+{
+    _FAP_ASSERT (iViews.count(aName) == 0);
+    aView->SetObserver(this);
+    iViews[aName] = aView;
+}
+
+void CAE_Object::OnExpose(MAE_View* aView, CAV_Rect aRect)
+{
+    OnExposeBaseView(aView, aRect);
+}
+
+void CAE_Object::OnExposeBaseView(MAE_View* aView, CAV_Rect aRect)
+{
+    MAE_Window* wnd = aView->Wnd();
+    MAE_Gc* gc = wnd->Gc();
+    CAV_Rect rect = wnd->Rect();
+    // Draw the rect
+    gc->DrawRect(rect, EFalse);
+    // Draw head
+    CAV_Rect headrect = CAV_Rect(CAV_Point(0, 0), CAV_Point(rect.iBr.iX, KViewNameLineHeight));
+    gc->DrawRect(headrect, EFalse);
+    // Draw the name
+    gc->DrawText(InstName(), headrect);
+    // Draw Inputs/Outputs areas
+    CAV_Rect inprect = CAV_Rect(CAV_Point(rect.iBr.iX - KViewExtAreaWidth, rect.iTl.iY + KViewNameLineHeight), rect.iBr);
+    gc->DrawRect(inprect, EFalse);
+    CAV_Rect outprect = CAV_Rect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), CAV_Point(rect.iTl.iX + KViewExtAreaWidth, rect.iBr.iY));
+    gc->DrawRect(outprect, EFalse);
+    // Draw the outputs
+
+    CAV_Point extvert(0, KViewExtLineHeight);
+    CAV_Rect extrect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), 
+	    CAV_Point(rect.iTl.iX + KViewExtAreaWidth, KViewNameLineHeight + KViewExtLineHeight));
+    for (map<string, CAE_ConnPointBase*>::iterator it = iOutputs.begin(); it != iOutputs.end(); it++) {
+	gc->DrawRect(extrect, EFalse);
+	gc->DrawText(it->first, extrect);
+	extrect.Move(extvert);
+    }
+    
+}
+
+void CAE_Object::DrawComp(MAE_View* aView, CAV_Point aInitPt, CAV_Rect& aRes)
+{
+}
+
 
 //*********************************************************
 // CAE_ObjectBa - bit automata

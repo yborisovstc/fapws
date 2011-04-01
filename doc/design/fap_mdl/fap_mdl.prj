@@ -1,6 +1,6 @@
 format 70
 "fap_mdl"
-  revision 3
+  revision 4
   modified_by 2 "yborisov"
 
 
@@ -39,4 +39,6 @@ format 70
   package_ref 134530 // fap
 
   package_ref 141058 // fap1
+
+  package_ref 147586 // GTK
 end

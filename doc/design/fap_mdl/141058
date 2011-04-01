@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 6
+  revision 7
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -638,6 +638,139 @@ format 70
 	flow 140034 "<flow>"
 	  on activitynode_ref 135938 // join
 	end
+      end
+    end
+
+    class 182402 "MAE_View"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 169474 // <unidirectional association>
+	relation 169474 --->
+	  a role_name "" private
+	    classrelation_ref 169474 // <unidirectional association>
+	  b parent class_ref 182530 // MAE_Window
+      end
+
+      classrelation 169602 // <unidirectional association>
+	relation 169602 --->
+	  a role_name "" private
+	    classrelation_ref 169602 // <unidirectional association>
+	  b parent class_ref 182658 // MAE_Gc
+      end
+    end
+
+    classdiagram 154242 "fap1.view~clsdgm"
+      draw_all_relations no hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+      size A4
+    end
+
+    class 182530 "MAE_Window"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 169730 // <unidirectional association>
+	relation 169730 --->
+	  a role_name "" private
+	    classrelation_ref 169730 // <unidirectional association>
+	  b parent class_ref 182658 // MAE_Gc
+      end
+    end
+
+    class 182658 "MAE_Gc"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 182786 "CAV_Point"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 182914 "CAE_ViewGtk"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 169858 // <generalisation>
+	relation 169858 ---|>
+	  a public
+	    classrelation_ref 169858 // <generalisation>
+	  b parent class_ref 182402 // MAE_View
+      end
+
+      classrelation 170114 // <directional composition>
+	relation 170114 *-->
+	  a role_name "" private
+	    classrelation_ref 170114 // <directional composition>
+	  b parent class_ref 183042 // CAV_WindowGtk
+      end
+
+      classrelation 170370 // <directional composition>
+	relation 170370 *-->
+	  a role_name "" private
+	    classrelation_ref 170370 // <directional composition>
+	  b parent class_ref 183298 // GtkWidget
+      end
+    end
+
+    class 183042 "CAV_WindowGtk"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 169986 // <generalisation>
+	relation 169986 ---|>
+	  a public
+	    classrelation_ref 169986 // <generalisation>
+	  b parent class_ref 182530 // MAE_Window
+      end
+    end
+
+    class 183170 "CAV_Gc"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 170242 // <generalisation>
+	relation 170242 ---|>
+	  a public
+	    classrelation_ref 170242 // <generalisation>
+	  b parent class_ref 182658 // MAE_Gc
       end
     end
   end
