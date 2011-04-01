@@ -272,6 +272,17 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
+	const string& Name() { return iName; };
+	const string& Name() const { return iName; };
+	void SetName(const string& aName) { iName = aName; };
+	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
+	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
+	const CAE_EBase& Man() const { return *iMan;};
+	void SetMan(CAE_EBase* aMan) { iMan = aMan; };
+    protected:
+	string iName;
+	vector<CAE_ConnPointBase*> iConns;
+	CAE_EBase* iMan;
 };
 
 
@@ -968,6 +979,15 @@ public:
 	private:
 	    CAE_Object& iMaster;
     };
+	// Base view rendering element type
+	enum TReType {
+	    Et_Header,
+	    Et_Inp,
+	    Et_Outp,
+	    Et_CompHeader
+	};
+	// Type of rendering elements
+	typedef pair<TReType, string> TRelm;
 public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
@@ -994,7 +1014,9 @@ public:
 	CAE_StateBase* GetOutpState(const char* aName);
 	CAE_StateBase* GetInpState(const char* aName);
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
+	const map<string, CAE_ConnPointBase*>& Inputs() const {return iInputs;};
 	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
+	const map<string, CAE_ConnPointBase*>& Outputs() const {return iOutputs;};
 	// Create new inheritor of self. 
 	CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 	CAE_Object* CreateHeir(const char *aName, CAE_Object *aMan);
@@ -1020,6 +1042,7 @@ protected:
 	virtual void DoMutation();
 	// From MAE_ViewObserver
 	virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
+	virtual TBool OnButton(MAE_View* aView, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
@@ -1041,8 +1064,10 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void OnExposeBaseView(MAE_View* aView, CAV_Rect aRect);
-	void DrawComp(MAE_View* aView, CAV_Point aInitPt, CAV_Rect& aRes);
+	void Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes, TBool aDraw, CAV_Point aPt, 
+		TReType& aReType, vector<string>& aRelm);
+	void DrawCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;

@@ -41,7 +41,13 @@
 // Parameters of view
 const TInt KViewNameLineHeight = 20;
 const TInt KViewExtLineHeight = 20;
-const TInt KViewExtAreaWidth = 80;
+const TInt KViewExtAreaWidth = 90;
+const TInt KViewCompAreaWidth = 200;
+const TInt KViewCompGapHight = 20;
+const TInt KViewConnLineLen = 20;
+const TInt KViewConnIdHeight = 20;
+const TInt KViewConnIdWidth = 120;
+const TInt KViewConnIdMaxNum = 1;
 
 _LIT(KFapPanic, "FAP: Error %d");
 const TInt KNameSeparator  = '.';
@@ -345,6 +351,9 @@ TBool CAE_ConnPointExt::Connect(CAE_ConnPointBase *aConnPoint)
     TBool res = EFalse;
     if (iRef != NULL) {
 	res = iRef->Connect(aConnPoint);
+	if (res) {
+	    iConns.push_back(aConnPoint);
+	}
     }
     return res;
 }
@@ -1622,7 +1631,7 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
     if (sname.empty())
 	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName(), name);
     else {
-	if (aConns.count(name) > 0) {
+	if (aConns.count(sname) > 0) {
 	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName(), name);
 	    _FAP_ASSERT(EFalse);
 	}
@@ -1645,7 +1654,9 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 	    // Simple extender
 	    cp = new CAE_ConnPointExt();
 	}
-	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cp));
+	cp->SetName(sname);
+	cp->SetMan(this);
+	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(sname, cp));
     }
 }
 
@@ -2630,10 +2641,31 @@ void CAE_Object::AddView(const string& aName, MAE_View* aView)
 
 void CAE_Object::OnExpose(MAE_View* aView, CAV_Rect aRect)
 {
-    OnExposeBaseView(aView, aRect);
+    vector<string> relm;
+    TReType retype;
+    Render(aView, aRect, ETrue, CAV_Point(), retype, relm);
 }
 
-void CAE_Object::OnExposeBaseView(MAE_View* aView, CAV_Rect aRect)
+TBool CAE_Object::OnButton(MAE_View* aView, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{
+    vector<string> relm;
+    TReType retype;
+    Render(aView, aView->Wnd()->Rect(), EFalse, aPt, retype, relm);
+    if (retype == Et_CompHeader) {
+	if (aView->Type() == MAE_View::Et_Regular) {
+	    // Set view to component
+	    aView->ResetObserver(this);
+//	    iViews[aName] = NULL;
+	    string cname = relm[0];
+	    CAE_EBase* comp = FindByName(cname.c_str());
+	    CAE_Object* obj = comp->GetFbObj(obj);
+	    obj->AddView(iViews.begin()->first, aView);
+	}
+    }
+    return ETrue;
+}
+
+void CAE_Object::Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
 {
     MAE_Window* wnd = aView->Wnd();
     MAE_Gc* gc = wnd->Gc();
@@ -2642,13 +2674,20 @@ void CAE_Object::OnExposeBaseView(MAE_View* aView, CAV_Rect aRect)
     gc->DrawRect(rect, EFalse);
     // Draw head
     CAV_Rect headrect = CAV_Rect(CAV_Point(0, 0), CAV_Point(rect.iBr.iX, KViewNameLineHeight));
+    if (aDraw) {
     gc->DrawRect(headrect, EFalse);
+    }
+    else if (headrect.Includes(aPt)) {
+	aReType = Et_Header;
+    }
+    CAV_Rect baserc = CAV_Rect(CAV_Point(rect.iTl + CAV_Point(0, KViewNameLineHeight)), rect.iBr);
     // Draw the name
     gc->DrawText(InstName(), headrect);
     // Draw Inputs/Outputs areas
-    CAV_Rect inprect = CAV_Rect(CAV_Point(rect.iBr.iX - KViewExtAreaWidth, rect.iTl.iY + KViewNameLineHeight), rect.iBr);
+    CAV_Rect inprect = CAV_Rect(baserc.iTl + CAV_Point(baserc.iBr.iX - KViewExtAreaWidth, 0), baserc.iBr);
     gc->DrawRect(inprect, EFalse);
-    CAV_Rect outprect = CAV_Rect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), CAV_Point(rect.iTl.iX + KViewExtAreaWidth, rect.iBr.iY));
+    //CAV_Rect outprect = CAV_Rect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), CAV_Point(rect.iTl.iX + KViewExtAreaWidth, rect.iBr.iY));
+    CAV_Rect outprect = CAV_Rect(baserc.iTl, baserc.iBr - CAV_Point(baserc.iBr.iX - KViewExtAreaWidth, 0));
     gc->DrawRect(outprect, EFalse);
     // Draw the outputs
 
@@ -2660,11 +2699,94 @@ void CAE_Object::OnExposeBaseView(MAE_View* aView, CAV_Rect aRect)
 	gc->DrawText(it->first, extrect);
 	extrect.Move(extvert);
     }
+    // Draw components
+    CAV_Rect cdres = rect;
+    CAV_Point cdinipt = baserc.iTl + CAV_Point((baserc.iBr.iX - KViewCompAreaWidth)/2, KViewCompGapHight);
+    for (vector<CAE_EBase*>::iterator it = iCompReg.begin(); it != iCompReg.end(); it++) {
+	CAE_Object* obj = (*it)->GetFbObj(obj);
+	if (obj != NULL) {
+	    RenderComp(*obj, *gc, cdinipt, cdres, aDraw, aPt, aReType, aRelm);
+	    cdinipt += CAV_Point(0, cdres.Height() + KViewCompGapHight);
+	}
+    }
     
 }
 
-void CAE_Object::DrawComp(MAE_View* aView, CAV_Point aInitPt, CAV_Rect& aRes)
+void CAE_Object::RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes, TBool aDraw, CAV_Point aPt, 
+	TReType& aReType, vector<string>& aRelm)
 {
+    // Draw head
+    CAV_Rect headrect(aInitPt, aInitPt + CAV_Point(KViewCompAreaWidth, KViewNameLineHeight));
+    if (aDraw) {
+	aGc.DrawRect(headrect, EFalse);
+    }
+    else if (headrect.Includes(aPt)) {
+	aReType = Et_CompHeader;
+	aRelm.push_back(aComp.InstName());
+    }
+    // Draw the name
+    aGc.DrawText(aComp.InstName(), headrect);
+    // Draw inputs
+    CAV_Rect iresrc = headrect;
+    CAV_Point initpt = headrect.iBr - CAV_Point(KViewExtAreaWidth, 0);
+    for (map<string, CAE_ConnPointBase*>::const_iterator it = aComp.Inputs().begin(); it != aComp.Inputs().end(); it++) {
+	DrawCpoint(*(it->second), ETrue, aGc, initpt, iresrc);
+	initpt += CAV_Point(0, iresrc.Height());
+    }
+    // Draw outputs
+    initpt = headrect.iBr - CAV_Point(headrect.Width(), 0);
+    CAV_Rect oresrc = headrect;
+    for (map<string, CAE_ConnPointBase*>::const_iterator it = aComp.Outputs().begin(); it != aComp.Outputs().end(); it++) {
+	DrawCpoint(*(it->second), EFalse, aGc, initpt, oresrc);
+	initpt += CAV_Point(0, oresrc.Height());
+    }
+    TInt maxy = max(iresrc.iBr.iY, oresrc.iBr.iY);
+    CAV_Rect baserc(headrect.iBr - CAV_Point(headrect.Width(), 0), CAV_Point(headrect.iBr.iX, maxy));
+    aGc.DrawRect(baserc, EFalse);
+    CAV_Rect fullrc(aInitPt, baserc.iBr);
+    aRes = fullrc;
+}
+
+void CAE_Object::DrawCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes)
+{
+    CAV_Rect headrect(aInitPt, aInitPt + CAV_Point(KViewExtAreaWidth, KViewExtLineHeight));
+    aGc.DrawRect(headrect, EFalse);
+    // Draw the name
+    aGc.DrawText(aCpoint.Name(), headrect);
+    aRes = headrect;
+    // Draw the connection line
+    CAV_Point pt1, pt2;
+    if (aInp) {
+	pt1 = headrect.iBr - CAV_Point(0, headrect.Height() / 2);
+	pt2 = pt1 + CAV_Point(KViewConnLineLen, 0);
+    }
+    else {
+	pt1 = headrect.iTl + CAV_Point(0, headrect.Height() / 2);
+	pt2 = pt1 - CAV_Point(KViewConnLineLen, 0);
+    }
+    aGc.DrawLine(pt1, pt2);
+    // Draw conn Ids
+    CAV_Rect cidrc;
+    if (aInp) {
+	cidrc = CAV_Rect(pt2 - CAV_Point(0, KViewConnIdHeight/2), pt2 + CAV_Point(KViewConnIdWidth, KViewConnIdHeight/2));
+    }
+    else {
+	cidrc = CAV_Rect(pt2 - CAV_Point(KViewConnIdWidth, KViewConnIdHeight/2), pt2 + CAV_Point(0, KViewConnIdHeight/2));
+    }
+    TInt count = KViewConnIdMaxNum + 1;
+    for (vector<CAE_ConnPointBase*>::const_iterator it = aCpoint.Conns().begin(); it != aCpoint.Conns().end() && count > 0; it++, count--) {
+	aGc.DrawRect(cidrc, EFalse);
+	CAE_ConnPointBase* cp = *it;
+	const CAE_EBase& mgr = cp->Man();
+	string pair_name = (&mgr == NULL) ? "?" : mgr.InstName();
+	aGc.DrawText((count == 1) ? ".." : pair_name + "." + cp->Name(), cidrc);
+	if (aInp) {
+	    cidrc.Move(CAV_Point(cidrc.Width(), 0));
+	}
+	else {
+	    cidrc.Move(CAV_Point(-cidrc.Width(), 0));
+	}
+    }
 }
 
 

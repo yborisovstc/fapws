@@ -20,7 +20,7 @@ libfapws_la_SOURCES = \
 		       fapws.cpp \
 		       fapws.h \
 		       fapplat.h \
-		       view.h \
+		       fapview.h \
 		       viewgtk.h \
 		       viewgtk.cpp \
 		       fapviewprim.h \
@@ -34,7 +34,7 @@ include_HEADERS = \
 		  fapext.h \
 		  fapstext.h \
 		  fapfact.h \
-		  view.h \
+		  fapview.h \
 		  viewgtk.h \
 		  fapviewprim.h \
 		  fapplat.h

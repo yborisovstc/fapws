@@ -12,15 +12,18 @@ class CAV_WindowGtk;
 class CAE_ViewGtk: public MAE_View
 {
     public:
-	CAE_ViewGtk(GtkWidget* aWidget);
+	CAE_ViewGtk(TType aType, GtkWidget* aWidget);
 	virtual ~CAE_ViewGtk();
 	MAE_ViewObserver* Observer() { return iObserver;};
 	// From MAE_View
+	virtual TType Type() {return iType;};
 	virtual MAE_Window* Wnd();
 	virtual void SetObserver(MAE_ViewObserver* aObs);
+	virtual void ResetObserver(MAE_ViewObserver* aObs);
 	virtual void SetDetLevel(TInt aLevel);
 	virtual TInt DetLevel() { return iDetLevel; };
     private:
+	TType iType;
 	CAV_WindowGtk* iWnd;
 	GtkWidget *iWidget;
 	MAE_ViewObserver* iObserver;
@@ -51,6 +54,7 @@ class CAV_Gc: public MAE_Gc
 	// From MAE_Gc
 	virtual void DrawRect(CAV_Rect aRect, TBool aFilled);
 	virtual void DrawText(const string& aText, CAV_Rect aRect);
+	virtual void DrawLine(CAV_Point aPt1, CAV_Point aPt2);
     private:
 	CAV_WindowGtk* iWnd;
 	GdkGC* iGdkGc;
