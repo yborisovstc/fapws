@@ -171,6 +171,24 @@ To transform to html:
 	</sect2>
     </sect1>
 
+    <sect1 id="sec_conn"><title>Connections</title>
+	<sect3 id="sec_conn_02"><title>UC_CONN_02 Object has its own input that represent input of some internal state</title>
+	    <simpara> It allows to has the unified interface for states and objects. Morover it solves the problem with access to the object.
+		All access to the object shall be done via objects connection point.  </simpara> 
+	    <simpara>Let's use term "extention" for that. So system connection point is actually an extender. It extends the internal
+		connection point</simpara>
+	</sect3>
+	<sect3 id="sec_conn_03"><title>UC_CONN_03 Connection point can be connected to many connection points</title>
+	    <simpara>An example is state output that can be connected to many state inputs. The alternative way could be to have many 
+		connection points for output</simpara> 
+	</sect3>
+	<sect3 id="sec_conn_05"><title>UC_CONN_05 Subsystem connections set can be state of system.</title>
+	    <simpara>System controls the structure of subsystem (connections set, transition function). The structure
+		is represented as state - it can be connected to other states, thus the change of structure will cause the activation
+		of dependent states</simpara>
+	</sect3>
+    </sect1>
+
     <sect1 id="sec_views"><title>Views</title>
 	<sect2 id="sec_views_01"><title>FAP_UC_VW_01 User specifies view for interpreter.</title>
 	    <simpara>User runs DES interpreter and specifies how many views should be created and what type they shoud be of.</simpara>
@@ -179,12 +197,12 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_02"><title>FAP_UC_VW_06 User specifies base view and see the systems spec</title>
 	    <simpara>User specify that the view of type "base". System displays it's specification in graphic notation.</simpara>
+	    <simpara>System displays the following on the base view: inputs, outputs, transitions, states, components</simpara>
 	</sect2>
 	<sect2 id="sec_views_03"><title>FAP_UC_VW_03 System shows the DES objects as hierarchy in base view</title>
-	    <simpara>User specify view and the system set this view as a view of root DES object. Root DES object in turn 
-	    creates the views for components etc.. This view grapically places inside of owner's view.</simpara>
+	    <simpara>User specify view and the system set this view as a view of root DES object.  </simpara>
 	</sect2>
-	<sect2 id="sec_views_04"><title>FAP_UC_VW_04 User selects the full or compact form of view.</title>
+	<sect2 id="sec_views_04"><title>FAP_UC_VW_04 User selects different level of detalisation in view.</title>
 	    <simpara>System displays the view as a graphical hierarchy. User selects of full or compact form of view.
 		The full form shows inputs, outputs, components (in compact form), and connections. 
 		The compact form shows only inputs and outputs of object.</simpara>
@@ -193,6 +211,15 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_07"><title>FAP_UC_VW_07 User can act to view</title>
 	    <simpara>User acts on view. The system reacts on this and change the view properly.</simpara>
+	</sect2>
+	<sect2 id="sec_views_08"><title>FAP_UC_VW_08 User taps on component</title>
+	    <simpara>User taps on component - system displays component base view</simpara>
+	</sect2>
+	<sect2 id="sec_views_09"><title>FAP_UC_VW_09 User taps on connection id</title>
+	    <simpara>User taps on connecion id - system higlight connection id and all corresponding connection ids</simpara>
+	</sect2>
+	<sect2 id="sec_views_10"><title>FAP_UC_VW_10 USER selects system with state - SYSTEM displays state, showing state elemenst</title>
+	    <simpara>The following elemensts are displayed: trans, init, inputs</simpara>
 	</sect2>
     </sect1>
 </article>

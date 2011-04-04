@@ -44,10 +44,14 @@ const TInt KViewExtLineHeight = 20;
 const TInt KViewExtAreaWidth = 90;
 const TInt KViewCompAreaWidth = 200;
 const TInt KViewCompGapHight = 20;
+const TInt KViewStateWidth = 300;
 const TInt KViewConnLineLen = 20;
-const TInt KViewConnIdHeight = 20;
+const TInt KViewConnIdHeight = 16;
 const TInt KViewConnIdWidth = 120;
 const TInt KViewConnIdMaxNum = 1;
+const TInt KViewTransWidth = 200;
+const TInt KViewTransHeight = 100;
+const TInt KViewStateGapTransInp = 20;
 
 _LIT(KFapPanic, "FAP: Error %d");
 const TInt KNameSeparator  = '.';
@@ -146,8 +150,16 @@ TBool CAE_ConnSlot::IsEmpty() const
     return res;
 }
 
-
+/*
 CAE_ConnPoint::CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): 
+    iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
+{
+    iSrcs = new CAE_ConnSlot(iSrcsTempl);
+}
+*/
+
+CAE_ConnPoint::CAE_ConnPoint(const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
+	const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): CAE_ConnPointBase(aName, aMan),
     iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
 {
     iSrcs = new CAE_ConnSlot(iSrcsTempl);
@@ -207,6 +219,8 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
 	    res = res1;
 	}
     }
+    if (res)
+	iConns.push_back(aConnPoint);
     return res;
 }
 
@@ -322,6 +336,12 @@ void CAE_ConnPoint::Disconnect()
 	    }
 	}
     }
+}
+
+TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint) 
+{
+    iConns.push_back(aConnPoint);
+    return ETrue;
 }
 
 void CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint)
@@ -610,6 +630,31 @@ void *CAE_EBase::DoGetFbObj(const char *aName)
 	return NULL;
 }
 
+TTransInfo::TTransInfo(const string& aETrans): iFun(NULL), iOpInd(0), iHandle(NULL), iId(NULL)
+{
+    FormatEtrans(aETrans, iETrans);
+}
+
+void TTransInfo::FormatEtrans(const string& aTrans, string& aRes)
+{
+    // Remove leading tabs
+    size_t pb = 0, pe = 0;
+    TBool fin = EFalse;
+    pb = aTrans.find_first_not_of("\n\t ", pe);
+    if (pb == string::npos) fin = ETrue;
+    while (!fin) {
+	pe = aTrans.find('\n', pb);
+	if (pe == string::npos || pe == aTrans.size()) {
+	    pe = aTrans.size();
+	    fin = ETrue;
+	}
+	string line = aTrans.substr(pb, pe - pb);
+	pb = aTrans.find_first_not_of("\n\t ", pe);
+	if (pb == string::npos) fin = ETrue;
+	aRes += line + (fin ? "" : "\n");
+    };
+}
+
 // ******************************************************************************
 // CAE_StateBase - state base
 // ******************************************************************************
@@ -643,7 +688,7 @@ void CAE_StateBase::ConstructL()
     CAE_ConnSlot::Template dt, st;
     dt["_1"]  = "State";
     st["_1"]  = "State";
-    CAE_ConnPoint *outp = new CAE_ConnPoint(st, dt); 
+    CAE_ConnPoint *outp = new CAE_ConnPoint("output", this, st, dt); 
     iOutput = outp;
     outp->Srcs()->SetPin("_1", this);
     if (Logger())
@@ -755,7 +800,7 @@ void CAE_StateBase::AddInputL(const char* aName)
     CAE_ConnSlot::Template dt, st;
     st["_1"]  = "State";
     dt["_1"]  = "State";
-    CAE_ConnPoint *cpoint = new CAE_ConnPoint(st, dt);
+    CAE_ConnPoint *cpoint = new CAE_ConnPoint(aName, this, st, dt);
     cpoint->Srcs()->SetPin("_1", this);
     pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
     bool bres = res.second;
@@ -822,7 +867,7 @@ void CAE_StateBase::DoTrans()
 	iTrans.iFun(iMan, this);
     else if (iTrans.iOpInd != 0)
 	DoOperation();
-    else if ((iTrans.iId != NULL) && (strcmp(iTrans.iId, "_emb") == 0)) {
+    else if (!iTrans.iETrans.empty()) {
 	iMan->DoTrans(this);
     }
 };
@@ -1543,7 +1588,7 @@ void CAE_Object::CreateStateInp(void* aSpecNode, CAE_StateBase *aState)
 	if (!r_dest_spec) {
 	    dt["_1"] = "State";
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint(st, dt);
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(name, aState, st, dt);
 	cpoint->Srcs()->SetPin("_1", aState);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
@@ -1579,7 +1624,7 @@ void CAE_Object::CreateStateInp(const CAE_ChromoNode& aSpec, CAE_StateBase *aSta
 	if (!r_dest_spec) {
 	    dt["_1"] = "State";
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint(st, dt);
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(name, aState, st, dt);
 	cpoint->Srcs()->SetPin("_1", aState);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
@@ -1600,7 +1645,7 @@ void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aC
 	CAE_ConnPointBase* cp = NULL;
 	if (chman->GetChild(aSpecNode) != NULL) {
 	    // There are pins spec - Commutating extender
-	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC();
+	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(name, this);
 	    cp = cpoint;
 	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
 		TCaeElemType etype = chman->FapType(elem);
@@ -1618,7 +1663,7 @@ void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aC
 	}
 	else {
 	    // Simple extender
-	    cp = new CAE_ConnPointExt();
+	    cp = new CAE_ConnPointExt(name, this);
 	}
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cp));
     }
@@ -1638,7 +1683,7 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 	CAE_ConnPointBase* cp = NULL;
 	if ((aSpecNode.Find(ENt_CpSource) != aSpecNode.End()) || (aSpecNode.Find(ENt_CpDest) != aSpecNode.End()))  {
 	    // There are pins spec - Commutating extender
-	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC();
+	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(sname, this);
 	    for (CAE_ChromoNode::Const_Iterator it = aSpecNode.Begin(); it != aSpecNode.End(); it++) {
 		CAE_ChromoNode node = (*it);
 		if (node.Type() == ENt_CpSource) {
@@ -1652,10 +1697,8 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 	}
 	else {
 	    // Simple extender
-	    cp = new CAE_ConnPointExt();
+	    cp = new CAE_ConnPointExt(sname, this);
 	}
-	cp->SetName(sname);
-	cp->SetMan(this);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(sname, cp));
     }
 }
@@ -1852,7 +1895,8 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 	    }
 	    else if (stelem.Type() == ENt_Trans) {
 		// Embedded transition
-		TTransInfo tinfo(NULL, "_emb", NULL);
+		CAE_ChromoNode::Const_Iterator nodetxt = stelem.FindText();
+		TTransInfo tinfo((*nodetxt).Content());
 		state->SetTrans(tinfo);
 	    }
 	    else
@@ -1900,8 +1944,8 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpec)
 void CAE_Object::AddTrans(const CAE_ChromoNode& aSpec)
 {
     CAE_ChromoNode::Const_Iterator iconnode = aSpec.FindText();
-    const string content = (*iconnode).Content();
-    iEnv->Tranex()->EvalTrans(this, this, content);
+    SetTrans((*iconnode).Content());
+    iEnv->Tranex()->EvalTrans(this, this, iTransSrc);
     iTrans = iEnv->Tranex()->Exprs();
 }
 
@@ -1918,7 +1962,7 @@ void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
 	CAE_ConnPointBase* p2 = GetConn(p2_name);
 	if ((p1 != NULL) && (p2 != NULL))
 	{
-	    if (!p1->Extend(p2))
+	    if (!p1->Extend(p2) || !(p2->Extend(p1)))
 	    {
 		Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: failure", p1_name, p2_name);
 	    }
@@ -2560,26 +2604,7 @@ CAE_StateBase* CAE_Object::GetInpState(const char* aName)
 
 void CAE_Object::DoTrans(CAE_StateBase* aState)
 {
-    // Find the state in chromo
-    CAE_ChromoNode chroot = iChromo->Root();
-    void* handle = aState->GetTrans().iHandle;
-    if (handle == NULL) {
-	for (CAE_ChromoNode::Iterator it = chroot.Begin(); it != chroot.End(); it++ ) {
-	    CAE_ChromoNode node = *it;
-	    if ((node.Type() == ENt_State) && (node.Name().compare(aState->InstName()) == 0)) {
-		CAE_ChromoNode::Iterator itrans = node.Find(ENt_Trans);
-		CAE_ChromoNode trans = *itrans;
-		handle = (void *) trans.Handle();
-		TTransInfo tinfo(NULL, "_emb", handle);
-		aState->SetTrans(tinfo);
-		break;
-	    }
-	}
-    }
-    CAE_ChromoNode ntrans(chroot.Mdl(), handle);
-    CAE_ChromoNode::Iterator iconnode = ntrans.FindText();
-    const string content = (*iconnode).Content();
-    iEnv->Tranex()->EvalTrans(this, aState, content);
+    iEnv->Tranex()->EvalTrans(this, aState, aState->iTrans.iETrans);
 }
 
 // TODO [YB] This method is used for state init. Actually init is trans that performs on creation phase.
@@ -2632,11 +2657,16 @@ CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)
     return iEnv->Tranex()->GetExpr(aType, "");
 }
 
-void CAE_Object::AddView(const string& aName, MAE_View* aView)
+void CAE_Object::SetTrans(const string& aTrans)
 {
-    _FAP_ASSERT (iViews.count(aName) == 0);
+    TTransInfo::FormatEtrans(aTrans, iTransSrc);
+}
+
+void CAE_Object::AddView(MAE_View* aView)
+{
+    _FAP_ASSERT (iViews[aView->Name()] == 0);
     aView->SetObserver(this);
-    iViews[aName] = aView;
+    iViews[aView->Name()] = aView;
 }
 
 void CAE_Object::OnExpose(MAE_View* aView, CAV_Rect aRect)
@@ -2646,20 +2676,34 @@ void CAE_Object::OnExpose(MAE_View* aView, CAV_Rect aRect)
     Render(aView, aRect, ETrue, CAV_Point(), retype, relm);
 }
 
-TBool CAE_Object::OnButton(MAE_View* aView, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+TBool CAE_Object::OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
 {
     vector<string> relm;
-    TReType retype;
-    Render(aView, aView->Wnd()->Rect(), EFalse, aPt, retype, relm);
-    if (retype == Et_CompHeader) {
-	if (aView->Type() == MAE_View::Et_Regular) {
-	    // Set view to component
-	    aView->ResetObserver(this);
-//	    iViews[aName] = NULL;
-	    string cname = relm[0];
-	    CAE_EBase* comp = FindByName(cname.c_str());
-	    CAE_Object* obj = comp->GetFbObj(obj);
-	    obj->AddView(iViews.begin()->first, aView);
+    if (aEvent == EBte_Press) {
+	TReType retype = Et_Unknown;
+	Render(aView, aView->Wnd()->Rect(), EFalse, aPt, retype, relm);
+	if (retype == Et_CompHeader) {
+	    if (aView->Type() == MAE_View::Et_Regular) {
+		// Set view to component
+		aView->ResetObserver(this);
+		iViews[aView->Name()] = NULL;
+		string cname = relm[0];
+		CAE_EBase* comp = FindByName(cname.c_str());
+		CAE_Object* obj = comp->GetFbObj(obj);
+		aView->Wnd()->Clear();
+		obj->AddView(aView);
+		obj->OnExpose(aView, CAV_Rect());
+	    }
+	}
+	else if (retype == Et_Header) {
+	    if (aView->Type() == MAE_View::Et_Regular && iMan != NULL) {
+		// Return view to super-system
+		aView->ResetObserver(this);
+		iViews[aView->Name()] = NULL;
+		aView->Wnd()->Clear();
+		iMan->AddView(aView);
+		iMan->OnExpose(aView, CAV_Rect());
+	    }
 	}
     }
     return ETrue;
@@ -2675,48 +2719,87 @@ void CAE_Object::Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point 
     // Draw head
     CAV_Rect headrect = CAV_Rect(CAV_Point(0, 0), CAV_Point(rect.iBr.iX, KViewNameLineHeight));
     if (aDraw) {
-    gc->DrawRect(headrect, EFalse);
+	gc->DrawRect(headrect, EFalse);
+	// Draw the name
+	MAE_TextLayout* nametl = gc->CreateTextLayout();
+	nametl->SetText(InstName());
+	nametl->Draw(headrect.iTl);
     }
     else if (headrect.Includes(aPt)) {
 	aReType = Et_Header;
     }
     CAV_Rect baserc = CAV_Rect(CAV_Point(rect.iTl + CAV_Point(0, KViewNameLineHeight)), rect.iBr);
-    // Draw the name
-    gc->DrawText(InstName(), headrect);
     // Draw Inputs/Outputs areas
+    /*
     CAV_Rect inprect = CAV_Rect(baserc.iTl + CAV_Point(baserc.iBr.iX - KViewExtAreaWidth, 0), baserc.iBr);
     gc->DrawRect(inprect, EFalse);
     //CAV_Rect outprect = CAV_Rect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), CAV_Point(rect.iTl.iX + KViewExtAreaWidth, rect.iBr.iY));
     CAV_Rect outprect = CAV_Rect(baserc.iTl, baserc.iBr - CAV_Point(baserc.iBr.iX - KViewExtAreaWidth, 0));
     gc->DrawRect(outprect, EFalse);
-    // Draw the outputs
+    */
 
-    CAV_Point extvert(0, KViewExtLineHeight);
-    CAV_Rect extrect(CAV_Point(rect.iTl.iX, rect.iTl.iY + KViewNameLineHeight), 
-	    CAV_Point(rect.iTl.iX + KViewExtAreaWidth, KViewNameLineHeight + KViewExtLineHeight));
+    // Draw outputs
+    CAV_Rect cdres = baserc.iTl + CAV_Point(0, KViewCompGapHight);
     for (map<string, CAE_ConnPointBase*>::iterator it = iOutputs.begin(); it != iOutputs.end(); it++) {
-	gc->DrawRect(extrect, EFalse);
-	gc->DrawText(it->first, extrect);
-	extrect.Move(extvert);
+	RenderEpoint(*(it->second), EFalse, *gc, cdres, aDraw, aPt, aReType, aRelm);
+	cdres.Move(CAV_Point(0, cdres.Height()));
     }
-    // Draw components
-    CAV_Rect cdres = rect;
-    CAV_Point cdinipt = baserc.iTl + CAV_Point((baserc.iBr.iX - KViewCompAreaWidth)/2, KViewCompGapHight);
+
+    // Draw inputs
+    cdres = baserc.iTl + CAV_Point(baserc.Width() - KViewExtAreaWidth, KViewCompGapHight);
+    for (map<string, CAE_ConnPointBase*>::iterator it = iInputs.begin(); it != iInputs.end(); it++) {
+	RenderEpoint(*(it->second), ETrue, *gc, cdres, aDraw, aPt, aReType, aRelm);
+	cdres.Move(CAV_Point(0, cdres.Height()));
+    }
+
+    // Draw transitions
+    cdres = baserc.iTl + CAV_Point(baserc.iBr.iX/2, KViewCompGapHight);
+    RenderTrans(iTransSrc, *gc, cdres, aDraw, aPt, aReType, aRelm);
+
+    // Draw states
+    cdres = baserc.iTl + CAV_Point(baserc.iBr.iX/2, cdres.iBr.iY + KViewCompGapHight);
+    for (vector<CAE_EBase*>::iterator it = iCompReg.begin(); it != iCompReg.end(); it++) {
+	CAE_StateBase* comp = (*it)->GetFbObj(comp);
+	if (comp != NULL) {
+	    RenderState(*comp, *gc, cdres, aDraw, aPt, aReType, aRelm);
+	    cdres.Move(CAV_Point(0, cdres.Height() + KViewCompGapHight));
+	}
+    }
+
+    // Draw subsystems
+    //cdinipt = baserc.iTl + CAV_Point((baserc.iBr.iX - KViewCompAreaWidth)/2, cdres.iBr.iY + KViewCompGapHight);
+    cdres = baserc.iTl + CAV_Point((baserc.iBr.iX - KViewCompAreaWidth)/2, cdres.iBr.iY + KViewCompGapHight);
     for (vector<CAE_EBase*>::iterator it = iCompReg.begin(); it != iCompReg.end(); it++) {
 	CAE_Object* obj = (*it)->GetFbObj(obj);
 	if (obj != NULL) {
-	    RenderComp(*obj, *gc, cdinipt, cdres, aDraw, aPt, aReType, aRelm);
-	    cdinipt += CAV_Point(0, cdres.Height() + KViewCompGapHight);
+	    RenderComp(*obj, *gc, cdres, aDraw, aPt, aReType, aRelm);
+	    cdres.Move(CAV_Point(0, cdres.Height() + KViewCompGapHight));
 	}
     }
     
 }
 
-void CAE_Object::RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes, TBool aDraw, CAV_Point aPt, 
+void CAE_Object::RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect,
+	TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
+{
+    MAE_TextLayout* txt = aGc.CreateTextLayout();
+    txt->SetText(aTrans);
+    CAV_Point tsize;
+    txt->GetSizePu(tsize);
+    CAV_Point tl = aRect.iTl - CAV_Point(tsize.iX/2, 0);
+    CAV_Rect rect(tl, tl + tsize);
+    if (aDraw) {
+	txt->Draw(rect.iTl);
+	aGc.DrawRect(rect, EFalse);
+    }
+    aRect = rect;
+}
+
+void CAE_Object::RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, 
 	TReType& aReType, vector<string>& aRelm)
 {
     // Draw head
-    CAV_Rect headrect(aInitPt, aInitPt + CAV_Point(KViewCompAreaWidth, KViewNameLineHeight));
+    CAV_Rect headrect(aRect.iTl, aRect.iTl + CAV_Point(KViewCompAreaWidth, KViewNameLineHeight));
     if (aDraw) {
 	aGc.DrawRect(headrect, EFalse);
     }
@@ -2727,33 +2810,83 @@ void CAE_Object::RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Point aIni
     // Draw the name
     aGc.DrawText(aComp.InstName(), headrect);
     // Draw inputs
-    CAV_Rect iresrc = headrect;
-    CAV_Point initpt = headrect.iBr - CAV_Point(KViewExtAreaWidth, 0);
+    CAV_Rect iresrc = headrect.iBr - CAV_Point(KViewExtAreaWidth, 0);
     for (map<string, CAE_ConnPointBase*>::const_iterator it = aComp.Inputs().begin(); it != aComp.Inputs().end(); it++) {
-	DrawCpoint(*(it->second), ETrue, aGc, initpt, iresrc);
-	initpt += CAV_Point(0, iresrc.Height());
+	RenderCpoint(*(it->second), ETrue, EFalse, aGc, iresrc, aDraw, aPt, aReType, aRelm);
+	iresrc.Move(CAV_Point(0, iresrc.Height()));
     }
     // Draw outputs
-    initpt = headrect.iBr - CAV_Point(headrect.Width(), 0);
+    iresrc = headrect.iBr - CAV_Point(headrect.Width(), 0);
     CAV_Rect oresrc = headrect;
     for (map<string, CAE_ConnPointBase*>::const_iterator it = aComp.Outputs().begin(); it != aComp.Outputs().end(); it++) {
-	DrawCpoint(*(it->second), EFalse, aGc, initpt, oresrc);
-	initpt += CAV_Point(0, oresrc.Height());
+	RenderCpoint(*(it->second), EFalse, EFalse, aGc, iresrc, aDraw, aPt, aReType, aRelm);
+	iresrc.Move(CAV_Point(0, oresrc.Height()));
     }
     TInt maxy = max(iresrc.iBr.iY, oresrc.iBr.iY);
     CAV_Rect baserc(headrect.iBr - CAV_Point(headrect.Width(), 0), CAV_Point(headrect.iBr.iX, maxy));
     aGc.DrawRect(baserc, EFalse);
-    CAV_Rect fullrc(aInitPt, baserc.iBr);
-    aRes = fullrc;
+    CAV_Rect fullrc(aRect.iTl, baserc.iBr);
+    aRect = fullrc;
 }
 
-void CAE_Object::DrawCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes)
+void CAE_Object::RenderState(const CAE_StateBase& aComp, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, 
+	TReType& aReType, vector<string>& aRelm)
 {
-    CAV_Rect headrect(aInitPt, aInitPt + CAV_Point(KViewExtAreaWidth, KViewExtLineHeight));
-    aGc.DrawRect(headrect, EFalse);
+    // Render trans
+    CAV_Rect trnrec = aRect;
+    RenderTrans(aComp.iTrans.iETrans, aGc, trnrec, EFalse, aPt, aReType, aRelm);
+
+    // Draw head
+    CAV_Point headipt = aRect.iTl - CAV_Point((trnrec.Width() + KViewExtAreaWidth + KViewStateGapTransInp)/2, 0);
+    CAV_Rect headrect(headipt, headipt + CAV_Point(trnrec.Width() + KViewExtAreaWidth + KViewStateGapTransInp, KViewNameLineHeight));
+    if (aDraw) {
+	aGc.DrawRect(headrect, EFalse);
+    }
+    else if (headrect.Includes(aPt)) {
+	aReType = Et_StateHeader;
+	aRelm.push_back(aComp.InstName());
+    }
+    trnrec = headrect.iTl + CAV_Point(trnrec.Width()/2, headrect.Height());
+    RenderTrans(aComp.iTrans.iETrans, aGc, trnrec, aDraw, aPt, aReType, aRelm);
     // Draw the name
-    aGc.DrawText(aCpoint.Name(), headrect);
-    aRes = headrect;
+    if (aDraw) {
+	aGc.DrawRect(headrect, EFalse);
+	aGc.DrawText(aComp.InstName(), headrect);
+    }
+    // Draw inputs
+    CAV_Rect iresrc = headrect.iBr - CAV_Point(KViewExtAreaWidth, 0);
+    for (map<string, CAE_ConnPointBase*>::const_iterator it = aComp.Inputs().begin(); it != aComp.Inputs().end(); it++) {
+	RenderCpoint(*(it->second), ETrue, ETrue, aGc, iresrc, aDraw, aPt, aReType, aRelm);
+	iresrc.Move(CAV_Point(0, iresrc.Height()));
+    }
+   
+    CAV_Rect baserc(headrect.iBr - CAV_Point(headrect.Width(), 0), CAV_Point(headrect.iBr.iX, iresrc.iBr.iY));
+    aGc.DrawRect(baserc, EFalse);
+    CAV_Rect fullrc(aRect.iTl, baserc.iBr);
+
+    // Draw output
+    iresrc = baserc.iTl + CAV_Point(0, baserc.Height()/2);
+    CAV_Rect oresrc = headrect;
+    RenderCpoint(*(aComp.Output()), EFalse, ETrue, aGc, iresrc, aDraw, aPt, aReType, aRelm);
+    iresrc.Move(CAV_Point(0, oresrc.Height()));
+
+    aRect = fullrc;
+}
+
+void CAE_Object::RenderCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, TBool aState, MAE_Gc& aGc, CAV_Rect& aRect,
+	TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
+{
+    CAV_Rect headrect;
+    if (aState && !aInp) {
+	headrect = CAV_Rect(aRect.iTl - CAV_Point(0, KViewExtLineHeight/2), aRect.iTl + CAV_Point(KViewExtAreaWidth, KViewExtLineHeight));
+    }
+    else {
+	headrect = CAV_Rect(aRect.iTl, aRect.iTl + CAV_Point(KViewExtAreaWidth, KViewExtLineHeight));
+	aGc.DrawRect(headrect, EFalse);
+	// Draw the name
+	aGc.DrawText(aCpoint.Name(), headrect);
+	aRect = headrect;
+    }
     // Draw the connection line
     CAV_Point pt1, pt2;
     if (aInp) {
@@ -2767,24 +2900,103 @@ void CAE_Object::DrawCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc
     aGc.DrawLine(pt1, pt2);
     // Draw conn Ids
     CAV_Rect cidrc;
-    if (aInp) {
-	cidrc = CAV_Rect(pt2 - CAV_Point(0, KViewConnIdHeight/2), pt2 + CAV_Point(KViewConnIdWidth, KViewConnIdHeight/2));
-    }
-    else {
-	cidrc = CAV_Rect(pt2 - CAV_Point(KViewConnIdWidth, KViewConnIdHeight/2), pt2 + CAV_Point(0, KViewConnIdHeight/2));
-    }
+    CAV_Point ciinitpt = pt2;
     TInt count = KViewConnIdMaxNum + 1;
     for (vector<CAE_ConnPointBase*>::const_iterator it = aCpoint.Conns().begin(); it != aCpoint.Conns().end() && count > 0; it++, count--) {
-	aGc.DrawRect(cidrc, EFalse);
 	CAE_ConnPointBase* cp = *it;
 	const CAE_EBase& mgr = cp->Man();
 	string pair_name = (&mgr == NULL) ? "?" : mgr.InstName();
-	aGc.DrawText((count == 1) ? ".." : pair_name + "." + cp->Name(), cidrc);
+	string ftxt = (count == 1) ? "..." : pair_name + "." + cp->Name();
+	MAE_TextLayout* nametl = aGc.CreateTextLayout();
+	nametl->SetText(ftxt);
+	CAV_Point tsize;
+	nametl->GetSizePu(tsize);
 	if (aInp) {
-	    cidrc.Move(CAV_Point(cidrc.Width(), 0));
+	    cidrc = CAV_Rect(ciinitpt - CAV_Point(0, KViewConnIdHeight/2), ciinitpt + CAV_Point(tsize.iX, KViewConnIdHeight/2));
+	    ciinitpt += CAV_Point(cidrc.Width(), 0);
 	}
 	else {
-	    cidrc.Move(CAV_Point(-cidrc.Width(), 0));
+	    cidrc = CAV_Rect(ciinitpt - CAV_Point(tsize.iX, KViewConnIdHeight/2), ciinitpt + CAV_Point(0, KViewConnIdHeight/2));
+	    ciinitpt -= CAV_Point(cidrc.Width(), 0);
+	}
+	aGc.DrawRect(cidrc, EFalse);
+	nametl->Draw(cidrc.iTl);
+    }
+}
+
+void CAE_Object::RenderEpoint(CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Rect& aRect,
+	TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
+{
+    CAV_Rect headrect;
+    headrect = CAV_Rect(aRect.iTl, aRect.iTl + CAV_Point(KViewExtAreaWidth, KViewExtLineHeight));
+    aGc.DrawRect(headrect, EFalse);
+    // Draw the name
+    aGc.DrawText(aCpoint.Name(), headrect);
+    aRect = headrect;
+    // Draw the connection line
+    CAV_Point pt1, pt2;
+    if (!aInp) {
+	pt1 = headrect.iBr - CAV_Point(0, headrect.Height() / 2);
+	pt2 = pt1 + CAV_Point(KViewConnLineLen, 0);
+    }
+    else {
+	pt1 = headrect.iTl + CAV_Point(0, headrect.Height() / 2);
+	pt2 = pt1 - CAV_Point(KViewConnLineLen, 0);
+    }
+    aGc.DrawLine(pt1, pt2);
+    // Draw conn Ids
+    CAV_Rect cidrc;
+    CAV_Point ciinitpt = pt2;
+    CAE_ConnPointExt* ext = aCpoint.GetFbObj(ext);
+    if (ext != NULL) {
+	// Simple ext point
+	CAE_ConnPointBase* cp = ext->Ref();
+	const CAE_EBase& mgr = cp->Man();
+	string pair_name = (&mgr == NULL) ? "?" : mgr.InstName();
+	string ftxt = pair_name + "." + cp->Name();
+	MAE_TextLayout* nametl = aGc.CreateTextLayout();
+	nametl->SetText(ftxt);
+	CAV_Point tsize;
+	nametl->GetSizePu(tsize);
+	if (!aInp) {
+	    cidrc = CAV_Rect(ciinitpt - CAV_Point(0, KViewConnIdHeight/2), ciinitpt + CAV_Point(tsize.iX, KViewConnIdHeight/2));
+	}
+	else {
+	    cidrc = CAV_Rect(ciinitpt - CAV_Point(tsize.iX, KViewConnIdHeight/2), ciinitpt + CAV_Point(0, KViewConnIdHeight/2));
+	}
+	nametl->Draw(cidrc.iTl);
+	aGc.DrawRect(cidrc, EFalse);
+    }
+    else {
+	CAE_ConnPointExtC* extc = aCpoint.GetFbObj(extc);
+	for (map<string, CAE_ConnPointExtC::SlotTempl::slot_templ_elem>::iterator pit = extc->Templ().Srcs().begin(); 
+		pit != extc->Templ().Srcs().end(); pit++) {
+	    string pinname = (*pit).second;
+	    for (vector<CAE_ConnPointExtC::Slot>::iterator sit = extc->Slots().begin(); sit != extc->Slots().end(); sit++) {
+		CAE_ConnPointBase* pint = (*sit).Srcs()[pinname].first;
+		// Multipin ext point
+		TInt count = KViewConnIdMaxNum + 1;
+		for (vector<CAE_ConnPointBase*>::const_iterator it = aCpoint.Conns().begin(); it != aCpoint.Conns().end() && count > 0; it++, count--) {
+		    CAE_ConnPointBase* cp = *it;
+		    const CAE_EBase& mgr = cp->Man();
+		    string pair_name = (&mgr == NULL) ? "?" : mgr.InstName();
+		    string ftxt = (count == 1) ? "..." : pair_name + "." + cp->Name();
+		    MAE_TextLayout* nametl = aGc.CreateTextLayout();
+		    nametl->SetText(ftxt);
+		    CAV_Point tsize;
+		    nametl->GetSizePu(tsize);
+		    if (!aInp) {
+			cidrc = CAV_Rect(ciinitpt - CAV_Point(0, KViewConnIdHeight/2), ciinitpt + CAV_Point(tsize.iX, KViewConnIdHeight/2));
+			ciinitpt += CAV_Point(cidrc.Width(), 0);
+		    }
+		    else {
+			cidrc = CAV_Rect(ciinitpt - CAV_Point(tsize.iX, KViewConnIdHeight/2), ciinitpt + CAV_Point(0, KViewConnIdHeight/2));
+			ciinitpt -= CAV_Point(cidrc.Width(), 0);
+		    }
+		    aGc.DrawRect(cidrc, EFalse);
+		    nametl->Draw(cidrc.iTl);
+		}
+	    }
 	}
     }
 }

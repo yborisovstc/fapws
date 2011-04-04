@@ -51,13 +51,13 @@ static const TTransInfo* tinfos[] = {
 class UT_FAP_Contr : public CPPUNIT_NS::TestFixture
 {
     CPPUNIT_TEST_SUITE(UT_FAP_Contr);
-    CPPUNIT_TEST(test_Conn_main);
+    CPPUNIT_TEST(test_Contr_main);
     CPPUNIT_TEST_SUITE_END();
 public:
     virtual void setUp();
     virtual void tearDown();
 private:
-    void test_Conn_main();
+    void test_Contr_main();
 private:
     CAE_Env* iEnv;
 };
@@ -208,7 +208,7 @@ void UT_FAP_Contr::tearDown()
     CPPUNIT_ASSERT_EQUAL_MESSAGE("tearDown", 0, 0);
 }
 
-void UT_FAP_Contr::test_Conn_main()
+void UT_FAP_Contr::test_Contr_main()
 {
     printf("\n === Test of controlling\n");
     CAE_Object *order = iEnv->Root()->GetComp("Order");

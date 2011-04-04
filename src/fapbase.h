@@ -259,9 +259,11 @@ inline const char *CAE_EBase::Type() { return "EBase";}
 
 // TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
+// TODO [YB] To enhance connection/extension model
 class CAE_ConnPointBase: public CAE_Base
 {
     public:
+	CAE_ConnPointBase(const string aName, CAE_EBase* aMan): iName(aName), iMan(aMan) {};
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
@@ -274,11 +276,9 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
-	void SetName(const string& aName) { iName = aName; };
 	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
 	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
 	const CAE_EBase& Man() const { return *iMan;};
-	void SetMan(CAE_EBase* aMan) { iMan = aMan; };
     protected:
 	string iName;
 	vector<CAE_ConnPointBase*> iConns;
@@ -314,7 +314,9 @@ class CAE_ConnSlot
 class CAE_ConnPoint: public CAE_ConnPointBase
 {
     public:
-	CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
+	//CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
+	CAE_ConnPoint(const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
+		const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
 	virtual ~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
@@ -322,7 +324,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
-	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) {return EFalse;};
+	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
@@ -349,7 +351,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 class CAE_ConnPointExt: public CAE_ConnPointBase
 {
     public:
-	CAE_ConnPointExt(): iRef(NULL) {};
+	CAE_ConnPointExt(const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aName, aMan), iRef(NULL) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
@@ -370,6 +372,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 
 // 
 // Commutating extender. Allows pin commutation for srcs and dest
+// TODO [YB] Reconsider, why not to use the set of simple ext instead
 class CAE_ConnPointExtC: public CAE_ConnPointBase
 {
     public:
@@ -405,7 +408,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	};
 
     public:
-	CAE_ConnPointExtC() {};
+	CAE_ConnPointExtC(const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aName, aMan) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
@@ -455,9 +458,12 @@ public:
 	TTransInfo(TTransFun aFun, const char* aId = NULL, void* aHandle = NULL):
 	    iFun(aFun), iHandle(aHandle), iOpInd(0), iId(aId) {}
 	TTransInfo(TUint32 aOpInd): iFun(NULL), iOpInd(aOpInd) {}
+	TTransInfo(const string& aETrans);
+	static void FormatEtrans(const string& aTrans, string& aRes);
 public:
 	TTransFun iFun;
 	void* iHandle; // Handle of trans within system chromo
+	string iETrans; // Embedded trans
 	TUint32 iOpInd;
 	const char *iId;	// Unique identificator of Transition
 };
@@ -516,9 +522,11 @@ public:
 	CAE_StateBase* Input(const char* aName);
 	CAE_StateBase& Inp(const char* aName) { return *(Input(aName));};
 	map<string, CAE_ConnPointBase*>& Inputs() {return iInputs;};
+	const map<string, CAE_ConnPointBase*>& Inputs() const {return iInputs;};
 	mult_point_inp_iterator MpInput_begin(const char *aName);
 	mult_point_inp_iterator MpInput_end(const char *aName);
 	CAE_ConnPointBase* Output() {return iOutput;};
+	const CAE_ConnPointBase* Output() const {return iOutput;};
 	static inline const char *Type(); 
 	// Set transition procedure. It may be callback function aFun or defined state operation
 	// In this case aFun, aCbo should be set to NULL
@@ -981,9 +989,11 @@ public:
     };
 	// Base view rendering element type
 	enum TReType {
+	    Et_Unknown,
 	    Et_Header,
 	    Et_Inp,
 	    Et_Outp,
+	    Et_StateHeader,
 	    Et_CompHeader
 	};
 	// Type of rendering elements
@@ -1031,7 +1041,7 @@ public:
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, multimap<string,
 	       	CSL_ExprBase*>::iterator& aEnd);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
-	void AddView(const string& aName, MAE_View* aView);
+	void AddView(MAE_View* aView);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1042,7 +1052,7 @@ protected:
 	virtual void DoMutation();
 	// From MAE_ViewObserver
 	virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
-	virtual TBool OnButton(MAE_View* aView, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
@@ -1065,9 +1075,15 @@ private:
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
-	void RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes, TBool aDraw, CAV_Point aPt, 
+	void RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void RenderState(const CAE_StateBase& aState, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, 
 		TReType& aReType, vector<string>& aRelm);
-	void DrawCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Point aInitPt, CAV_Rect& aRes);
+	void RenderCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, TBool aState, MAE_Gc& aGc, CAV_Rect& aRect,
+		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void RenderEpoint(CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Rect& aRes,
+		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void SetTrans(const string& aTrans);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
@@ -1080,6 +1096,7 @@ private:
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;
 	map<string, MAE_View*> iViews;
+	string iTransSrc;
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 

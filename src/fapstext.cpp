@@ -182,7 +182,10 @@ template<> FAPWS_API void CAE_TState<TBool>::DoOperation()
 
 template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) const
 {
-    CAE_State::DataFromStr(aStr, aData);
+    TBool* data = (TBool*) aData;
+    *data = EFalse;
+    if (strcmp(aStr, "True") == 0 || strcmp(aStr, "true") == 0 || strcmp(aStr, "1") == 0)
+	*data = ETrue;
 }
 
 template<> char *CAE_TState<TBool>::DataToStr(TBool aCurr) const
