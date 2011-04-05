@@ -14,22 +14,19 @@ class CAE_ViewGtk: public MAE_View
     public:
 	CAE_ViewGtk(TType aType, GtkWidget* aWidget);
 	virtual ~CAE_ViewGtk();
-	MAE_ViewObserver* Observer() { return iObserver;};
 	// From MAE_View
 	virtual TType Type() {return iType;};
 	virtual const string& Name();
 	virtual void SetName(const string& aName);
 	virtual MAE_Window* Wnd();
-	virtual void SetObserver(MAE_ViewObserver* aObs);
-	virtual void ResetObserver(MAE_ViewObserver* aObs);
 	virtual void SetDetLevel(TInt aLevel);
 	virtual TInt DetLevel() { return iDetLevel; };
+	CAV_WindowGtk* WndGtk() { return iWnd;}
     private:
 	TType iType;
 	string iName;
 	CAV_WindowGtk* iWnd;
 	GtkWidget *iWidget;
-	MAE_ViewObserver* iObserver;
 	// Detalization level
 	TInt iDetLevel;
 };
@@ -39,20 +36,31 @@ class CAV_WindowGtk: public MAE_Window
 {
     friend class CAV_Gc;
     public:
-	CAV_WindowGtk(CAV_WindowGtk* aParent, GdkWindow* aGdkWnd, PangoContext* aPContext);
+	CAV_WindowGtk(CAV_WindowGtk* aParent, const string& aName, GdkWindow* aGdkWnd, PangoContext* aPContext);
 	virtual ~CAV_WindowGtk();
 	// From MAE_Window
+	virtual const string& Name();
+	virtual void Destroy();
 	virtual CAV_Rect Rect();
+	virtual void SetRect(const CAV_Rect& aRect);
 	virtual MAE_Gc* Gc();
 	virtual void Clear();
-	virtual MAE_Window* CreateWindow(const string& aName, const Attr& aAttr);
+	virtual MAE_Window* CreateWindow(const string& aName);
 	virtual MAE_Window* Wnd(const string& aName);
+	virtual void Show();
+	virtual void SetObserver(MAE_ViewObserver* aObs);
+	virtual void ResetObserver(MAE_ViewObserver* aObs);
+	void OnExpose(MAE_View* aView, CAV_Rect aRect);
+	TBool OnButton(MAE_View* aView, MAE_Window* aWnd, MAE_ViewObserver::TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	void RemoveChild(CAV_WindowGtk* aWnd);
     private:
+	string iName;
 	CAV_WindowGtk* iParent;
 	GdkWindow* iGdkWnd;
 	CAV_Gc* iGc;
 	PangoContext* iPContext;
 	map<string, CAV_WindowGtk*> iChilds;
+	MAE_ViewObserver* iObserver;
 };
 
 class CAV_Gc: public MAE_Gc

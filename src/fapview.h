@@ -26,8 +26,6 @@ class MAE_View
 	virtual const string& Name() = 0;
 	virtual void SetName(const string& aName) = 0;
 	virtual MAE_Window* Wnd() = 0;
-	virtual void SetObserver(MAE_ViewObserver* aObs) = 0;
-	virtual void ResetObserver(MAE_ViewObserver* aObs) = 0;
 	virtual void SetDetLevel(TInt aLevel) = 0;
 	virtual TInt DetLevel() = 0;
 };
@@ -42,11 +40,17 @@ class MAE_Window
 	    CAV_Rect iRect;
 	};
     public:
+	virtual void Destroy() = 0;
 	virtual CAV_Rect Rect() = 0;
+	virtual void SetRect(const CAV_Rect& aRect) = 0;
 	virtual MAE_Gc* Gc() = 0;
 	virtual void Clear() = 0;
-	virtual MAE_Window* CreateWindow(const string& aName, const Attr& aAttr) = 0;
+	virtual const string& Name() = 0;
+	virtual MAE_Window* CreateWindow(const string& aName) = 0;
 	virtual MAE_Window* Wnd(const string& aName) = 0;
+	virtual void SetObserver(MAE_ViewObserver* aObs) = 0;
+	virtual void ResetObserver(MAE_ViewObserver* aObs) = 0;
+	virtual void Show() = 0;
 };
 
 class MAE_TextLayout;

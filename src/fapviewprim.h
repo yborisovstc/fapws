@@ -36,7 +36,11 @@ class CAV_Rect
 	TInt Height() const { return iBr.iY - iTl.iY; };
 	TInt Width() const { return iBr.iX - iTl.iX; };
 	void Move(CAV_Point aShift) { iTl += aShift; iBr += aShift; };
-	TBool Includes(CAV_Point aPt) { return aPt.iX >= iTl.iX && aPt.iX <= iBr.iX && aPt.iY >= iTl.iY && aPt.iY <= iBr.iY;};
+	void Resize(CAV_Point aPt) { iBr += aPt; };
+	CAV_Point Tr() { return CAV_Point(iBr.iX, iTl.iY);};
+	CAV_Point Bl() { return CAV_Point(iTl.iX, iBr.iY);};
+	TBool Intersects(CAV_Point aPt) { return aPt.iX >= iTl.iX && aPt.iX <= iBr.iX && aPt.iY >= iTl.iY && aPt.iY <= iBr.iY;};
+	TBool Intersects(CAV_Rect aRc) { return Intersects(aRc.iTl) || Intersects(aRc.iBr) || Intersects(aRc.Tr()) || Intersects(aRc.Bl());};
     public:
 	CAV_Point iTl, iBr; 
 };

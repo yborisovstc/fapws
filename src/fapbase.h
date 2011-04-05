@@ -998,6 +998,35 @@ public:
 	};
 	// Type of rendering elements
 	typedef pair<TReType, string> TRelm;
+
+	// Base view agents
+private:
+	class Bva: public MAE_ViewObserver 
+    {
+	public:
+	    Bva(CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName);
+	    virtual ~Bva();
+	    virtual void Render(CAV_Rect& aRect, TBool aDraw) {};
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_View* aView, CAV_Rect aRect) {};
+	    virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
+	public:
+	    CAE_Object& iSys;
+	    MAE_Window* iWnd;
+	    TReType iType;
+	    string iName;
+    };
+
+	class BvaHead : public Bva
+    {
+	public:
+	    BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aSys, aOwnedWnd, Et_Header, "Header") {};
+	    virtual void Render(CAV_Rect& aRect, TBool aDraw);
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+    };
+
 public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
@@ -1084,6 +1113,10 @@ private:
 		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void SetTrans(const string& aTrans);
+	TBool BvaExists(TReType aType, const string& aName);
+	Bva* GetBva(TReType aType, const string& aName);
+	void AddBva(Bva* aBva);
+	void ResetView();
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;
@@ -1097,6 +1130,7 @@ private:
 	ChromoPx iChromoIface;
 	map<string, MAE_View*> iViews;
 	string iTransSrc;
+	map<TRelm, Bva*> iBvas; // Base view agents
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 
