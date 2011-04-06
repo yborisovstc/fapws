@@ -49,7 +49,7 @@ class CAV_WindowGtk: public MAE_Window
 	virtual void Clear();
 	virtual MAE_Window* CreateWindow(const string& aName);
 	virtual MAE_Window* Wnd(const string& aName);
-	virtual void Show();
+	virtual void Show(TBool aAll = EFalse);
 	virtual void SetObserver(MAE_ViewObserver* aObs);
 	virtual void ResetObserver(MAE_ViewObserver* aObs);
 	void RemoveChild(CAV_WindowGtk* aWnd);

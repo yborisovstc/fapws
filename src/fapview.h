@@ -52,7 +52,7 @@ class MAE_Window
 	virtual MAE_Window* Wnd(const string& aName) = 0;
 	virtual void SetObserver(MAE_ViewObserver* aObs) = 0;
 	virtual void ResetObserver(MAE_ViewObserver* aObs) = 0;
-	virtual void Show() = 0;
+	virtual void Show(TBool aAll = EFalse) = 0;
 };
 
 class MAE_TextLayout;

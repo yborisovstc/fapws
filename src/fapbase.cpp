@@ -2662,11 +2662,6 @@ void CAE_Object::SetTrans(const string& aTrans)
     TTransInfo::FormatEtrans(aTrans, iTransSrc);
 }
 
-TBool CAE_Object::BvaExists(TReType aType, const string& aName)
-{
-    return (iBvas.count(TRelm(aType, aName)) > 0);
-}
-
 void CAE_Object::AddBva(Bva* aBva)
 {
     iBvas[TRelm(aBva->iType, aBva->iName)] = aBva;
@@ -2681,8 +2676,13 @@ CAE_Object::Bva* CAE_Object::GetBva(TReType aType, const string& aName)
 void CAE_Object::AddView(MAE_View* aView)
 {
     _FAP_ASSERT (iViews[aView->Name()] == 0);
-    aView->Wnd()->SetObserver(this);
     iViews[aView->Name()] = aView;
+    BvaSyst* bva = new BvaSyst(*this, aView->Wnd(), aView->Name());
+    AddBva(bva);
+    // TODO [YB] Hack
+    CAV_Rect rec = aView->Wnd()->Rect();
+    bva->Render(rec);
+    bva->iWnd->Show(ETrue);
 }
 
 void CAE_Object::ResetView()
@@ -3050,9 +3050,13 @@ void CAE_Object::OnHeaderPress(const MAE_View* aView)
 // Base view agents
 //*********************************************************
 
-CAE_Object::Bva::Bva(CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName): iSys(aSys), iType(aType), iName(aName) 
+CAE_Object::Bva::Bva(CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd): 
+    iSys(aSys), iType(aType), iName(aName) 
 {
-    iWnd = aOwnedWnd->CreateWindow(iName);
+    if (aCreateWnd)
+	iWnd = aWnd->CreateWindow(iName);
+    else
+	iWnd = aWnd;
     iWnd->SetObserver(this);
 }
 
@@ -3060,7 +3064,85 @@ CAE_Object::Bva::~Bva()
 {
     iWnd->Destroy();
     iWnd = NULL;
+    for (map<TRelm, Bva*>::iterator it = iBvas.begin(); it != iBvas.end(); it++) {
+	delete it->second;
+    }
 }
+
+void CAE_Object::Bva::AddBva(Bva* aBva)
+{
+    iBvas[TRelm(aBva->iType, aBva->iName)] = aBva;
+}
+
+CAE_Object::Bva* CAE_Object::Bva::GetBva(TReType aType, const string& aName)
+{
+    map<TRelm, Bva*>::iterator it = iBvas.find(TRelm(aType, aName));
+    return (it != iBvas.end()) ? it->second : NULL; 
+}
+
+
+// Base view agents for system
+
+void CAE_Object::BvaSyst::Render(CAV_Rect& aRect)
+{
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = aRect;
+    // Render the header
+    Bva* bva = GetBva(Et_Header, "Header");
+    if (bva == NULL) {
+	AddBva(bva = new BvaHead(iSys, iWnd));
+    }
+    CAV_Rect cdres = rect;
+    bva->Render(cdres);
+    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
+    bva->iWnd->SetPrefRect(headrc);
+    bva->iWnd->SetRect(headrc);
+
+    // Render the comps
+    for (vector<CAE_EBase*>::iterator it = iSys.iCompReg.begin(); it != iSys.iCompReg.end(); it++) {
+	CAE_Object* obj = (*it)->GetFbObj(obj);
+	if (obj != NULL) {
+	    bva = GetBva(Et_Comp, obj->InstName());
+	    if (bva == NULL) {
+		AddBva(bva = new BvaComp(iSys, iWnd, obj->InstName()));
+	    }
+	    cdres = CAV_Rect(CAV_Point(rect.iTl.iX, cdres.iBr.iY + KViewCompGapHight), rect.Width(), 40);
+	    bva->Render(cdres);
+	    bva->iWnd->SetPrefRect(cdres);
+	    bva->iWnd->SetRect(cdres);
+	}
+    }
+}
+
+void CAE_Object::BvaSyst::Draw()
+{
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = iWnd->Rect();
+    // Draw the rect
+    gc->DrawRect(rect, EFalse);
+}
+
+void CAE_Object::BvaSyst::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    Draw();
+}
+
+TBool CAE_Object::BvaSyst::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{	    
+    if (aEvent == EBte_Press) {
+    }
+}
+
+void CAE_Object::BvaSyst::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    if (aWnd->Rect() != aRect) {
+	aWnd->SetRect(aRect);
+	CAV_Rect rec = aRect;
+	Render(rec);
+    }
+}
+
+// Base view agents for header
 
 void CAE_Object::BvaHead::Render(CAV_Rect& aRect)
 {
@@ -3105,6 +3187,98 @@ void CAE_Object::BvaHead::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
     CAV_Rect rec = aRect;
     Render(rec);
 }
+
+// Base view agents for component
+
+void CAE_Object::BvaComp::Render(CAV_Rect& aRect)
+{
+    CAV_Rect rect = CAV_Rect(aRect.iTl + CAV_Point((aRect.Width() - KViewCompAreaWidth)/2, 0), KViewCompAreaWidth, 40);
+    // Render the header
+    Bva* bva = GetBva(Et_CompHeader, iName);
+    if (bva == NULL) {
+	AddBva(bva = new BvaCompHead(iSys, iWnd, iName));
+    }
+    CAV_Rect cdres = rect;
+    bva->Render(cdres);
+    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
+    bva->iWnd->SetPrefRect(headrc);
+    //bva->iWnd->SetRect(headrc);
+    aRect = rect;
+}
+
+void CAE_Object::BvaComp::Draw()
+{
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = iWnd->Rect();
+    // Draw the rect
+    gc->DrawRect(rect.Resize(CAV_Point(-1, -1)), EFalse);
+}
+
+void CAE_Object::BvaComp::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    Draw();
+}
+
+TBool CAE_Object::BvaComp::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{	    
+    if (aEvent == EBte_Press) {
+    }
+}
+
+void CAE_Object::BvaComp::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    if (aWnd->Rect() != aRect) {
+	CAV_Rect rec = aRect;
+	Render(rec);
+    }
+}
+
+// Base view agents for components header
+
+void CAE_Object::BvaCompHead::Render(CAV_Rect& aRect)
+{
+    MAE_Gc* gc = iWnd->Gc();
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iName);
+    CAV_Point tsize;
+    nametl->GetSizePu(tsize);
+    CAV_Rect rect = CAV_Rect(aRect.iTl, tsize.iX, KViewNameLineHeight);
+    aRect = rect;
+}
+
+void CAE_Object::BvaCompHead::Draw()
+{
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = iWnd->Rect();
+    // Draw the name
+    CAV_Rect tr = rect;
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iName);
+    CAV_Rect drc(rect.iTl, rect.iBr - CAV_Point(1, 1));
+    nametl->Draw(drc.iTl);
+    gc->DrawRect(drc, EFalse);
+    iWnd->Show();
+}
+
+void CAE_Object::BvaCompHead::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    Draw();
+}
+
+TBool CAE_Object::BvaCompHead::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{	    
+    if (aEvent == EBte_Press) {
+	iSys.OnHeaderPress(aWnd->View());
+    }
+}
+
+void CAE_Object::BvaCompHead::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    CAV_Rect rec = aRect;
+    Render(rec);
+}
+
+
 
 //*********************************************************
 // CAE_ObjectBa - bit automata

@@ -992,6 +992,7 @@ public:
 	    Et_Unknown,
 	    Et_System,
 	    Et_Header,
+	    Et_Comp,
 	    Et_Inp,
 	    Et_Outp,
 	    Et_StateHeader,
@@ -1005,8 +1006,10 @@ private:
 	class Bva: public MAE_ViewObserver 
     {
 	public:
-	    Bva(CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName);
+	    Bva(CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
 	    virtual ~Bva();
+	    Bva* GetBva(TReType aType, const string& aName);
+	    void AddBva(Bva* aBva);
 	    // Renders the childs, returns hint for its rect
 	    virtual void Render(CAV_Rect& aRect) {};
 	    virtual void Draw() {};
@@ -1039,7 +1042,31 @@ private:
 	class BvaSyst : public Bva
     {
 	public:
-	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_System, aName) {};
+	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_System, aName, EFalse) {};
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+    };
+	// Base view agent for component
+	class BvaComp : public Bva
+    {
+	public:
+	    BvaComp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_Comp, aName) {};
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+    };
+	// Base view agent for components header
+	class BvaCompHead : public Bva
+    {
+	public:
+	    BvaCompHead(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_CompHeader, aName) {};
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1135,7 +1162,6 @@ private:
 		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void SetTrans(const string& aTrans);
-	TBool BvaExists(TReType aType, const string& aName);
 	Bva* GetBva(TReType aType, const string& aName);
 	void AddBva(Bva* aBva);
 	void ResetView();

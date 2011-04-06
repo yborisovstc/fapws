@@ -48,6 +48,7 @@ gboolean handle_expose_event(GtkWidget *widget, GdkEventExpose *event, gpointer 
 {
     CAV_WindowGtk* self = (CAV_WindowGtk*) data;
     self->Observer()->OnExpose(self, CAE_ViewGtkUtils::Rect(event->area));
+    return FALSE;
 }
 
 gboolean handle_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
@@ -165,7 +166,7 @@ void CAV_WindowGtk::SetPrefRect(const CAV_Rect& aRect)
     gtk_widget_set_size_request(GTK_WIDGET(iWidget), aRect.Width(), aRect.Height());
 }
 
-void CAV_WindowGtk::Show()
+void CAV_WindowGtk::Show(TBool aAll)
 {
     // Dbg
     int x, y, w, h;
@@ -173,6 +174,8 @@ void CAV_WindowGtk::Show()
     gdk_drawable_get_size(iWidget->bin_window, &w, &h);
     //
     gtk_widget_show(GTK_WIDGET(iWidget));
+    if (aAll)
+	gtk_widget_show_all(GTK_WIDGET(iWidget));
 }
 
 void CAV_WindowGtk::Clear()

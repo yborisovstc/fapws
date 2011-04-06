@@ -23,6 +23,8 @@ class CAV_Point
 	CAV_Point operator-(const CAV_Point& aArg) { return CAV_Point(iX - aArg.iX, iY - aArg.iY);};
 	CAV_Point& operator+=(const CAV_Point& aArg) { iX += aArg.iX, iY += aArg.iY; return *this;};
 	CAV_Point& operator-=(const CAV_Point& aArg) { iX -= aArg.iX, iY -= aArg.iY; return *this;};
+	TBool operator==(const CAV_Point& aArg) { return (iX == aArg.iX &&  iY == aArg.iY);};
+	TBool operator!=(const CAV_Point& aArg) { return !((*this) == aArg);};
     public:
 	TInt iX, iY;
 };
@@ -34,10 +36,12 @@ class CAV_Rect
 	CAV_Rect(CAV_Point aTl, CAV_Point aBr): iTl(aTl), iBr(aBr) {};
 	CAV_Rect(CAV_Point aTl): iTl(aTl), iBr(aTl) {};
 	CAV_Rect(CAV_Point aTl, TInt aWidth, TInt aHeight): iTl(aTl), iBr(aTl.iX + aWidth, aTl.iY + aHeight) {};
+	TBool operator==(const CAV_Rect& aRect) { return (iTl == aRect.iTl && iBr == aRect.iBr);};
+	TBool operator!=(const CAV_Rect& aRect) { return !((*this) == aRect);};
 	TInt Height() const { return iBr.iY - iTl.iY; };
 	TInt Width() const { return iBr.iX - iTl.iX; };
 	void Move(CAV_Point aShift) { iTl += aShift; iBr += aShift; };
-	void Resize(CAV_Point aPt) { iBr += aPt; };
+	CAV_Rect& Resize(CAV_Point aPt) { iBr += aPt; return *this;};
 	CAV_Point Tr() { return CAV_Point(iBr.iX, iTl.iY);};
 	CAV_Point Bl() { return CAV_Point(iTl.iX, iBr.iY);};
 	TBool Intersects(CAV_Point aPt) { return aPt.iX >= iTl.iX && aPt.iX <= iBr.iX && aPt.iY >= iTl.iY && aPt.iY <= iBr.iY;};
