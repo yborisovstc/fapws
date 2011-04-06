@@ -990,6 +990,7 @@ public:
 	// Base view rendering element type
 	enum TReType {
 	    Et_Unknown,
+	    Et_System,
 	    Et_Header,
 	    Et_Inp,
 	    Et_Outp,
@@ -1006,25 +1007,45 @@ private:
 	public:
 	    Bva(CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName);
 	    virtual ~Bva();
-	    virtual void Render(CAV_Rect& aRect, TBool aDraw) {};
+	    // Renders the childs, returns hint for its rect
+	    virtual void Render(CAV_Rect& aRect) {};
+	    virtual void Draw() {};
+	    void SetRect(const CAV_Rect& aRect) {iWnd->SetRect(aRect);};
 	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_View* aView, CAV_Rect aRect) {};
-	    virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) {};
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) {};
 	public:
 	    CAE_Object& iSys;
 	    MAE_Window* iWnd;
 	    TReType iType;
 	    string iName;
+	    map<TRelm, Bva*> iBvas; 
     };
 
+	// Base view agent for header
 	class BvaHead : public Bva
     {
 	public:
 	    BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aSys, aOwnedWnd, Et_Header, "Header") {};
-	    virtual void Render(CAV_Rect& aRect, TBool aDraw);
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
 	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+    };
+	// Base view agent for system
+	class BvaSyst : public Bva
+    {
+	public:
+	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_System, aName) {};
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
     };
 
 public:
@@ -1080,8 +1101,9 @@ protected:
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	virtual void DoMutation();
 	// From MAE_ViewObserver
-	virtual void OnExpose(MAE_View* aView, CAV_Rect aRect);
-	virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
@@ -1103,7 +1125,7 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
+	void Render(MAE_Window* aWnd, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void RenderState(const CAE_StateBase& aState, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, 
 		TReType& aReType, vector<string>& aRelm);
@@ -1117,6 +1139,7 @@ private:
 	Bva* GetBva(TReType aType, const string& aName);
 	void AddBva(Bva* aBva);
 	void ResetView();
+	void OnHeaderPress(const MAE_View* aView);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;

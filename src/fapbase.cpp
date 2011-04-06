@@ -2693,52 +2693,44 @@ void CAE_Object::ResetView()
     iBvas.clear();
 }
 
-void CAE_Object::OnExpose(MAE_View* aView, CAV_Rect aRect)
+void CAE_Object::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
 {
     vector<string> relm;
     TReType retype;
-    Render(aView, aRect, ETrue, CAV_Point(), retype, relm);
+    Render(aWnd, aRect, ETrue, CAV_Point(), retype, relm);
 }
 
-TBool CAE_Object::OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+TBool CAE_Object::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
 {
     vector<string> relm;
     if (aEvent == EBte_Press) {
 	TReType retype = Et_Unknown;
-	Render(aView, aView->Wnd()->Rect(), EFalse, aPt, retype, relm);
+	Render(aWnd, aWnd->Rect(), EFalse, aPt, retype, relm);
 	if (retype == Et_CompHeader) {
-	    if (aView->Type() == MAE_View::Et_Regular) {
-		// Set view to component
-		aView->Wnd()->ResetObserver(this);
-		ResetView();
-		iViews[aView->Name()] = NULL;
-		string cname = relm[0];
-		CAE_EBase* comp = FindByName(cname.c_str());
-		CAE_Object* obj = comp->GetFbObj(obj);
-		aView->Wnd()->Clear();
-		obj->AddView(aView);
-		obj->OnExpose(aView, CAV_Rect());
-	    }
+	    // Set view to component
+	    aWnd->ResetObserver(this);
+	    ResetView();
+	    MAE_View* view = iViews[aWnd->View()->Name()];
+	    iViews[view->Name()] = NULL;
+	    string cname = relm[0];
+	    CAE_EBase* comp = FindByName(cname.c_str());
+	    CAE_Object* obj = comp->GetFbObj(obj);
+	    aWnd->Clear();
+	    obj->AddView(view);
+	    obj->OnExpose(view->Wnd(), CAV_Rect());
 	}
-	/*
-	else if (retype == Et_Header) {
-	    if (aView->Type() == MAE_View::Et_Regular && iMan != NULL) {
-		// Return view to super-system
-		aView->Wnd()->ResetObserver(this);
-		iViews[aView->Name()] = NULL;
-		aView->Wnd()->Clear();
-		iMan->AddView(aView);
-		iMan->OnExpose(aView, CAV_Rect());
-	    }
-	}
-	*/
     }
     return ETrue;
 }
 
-void CAE_Object::Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
+void CAE_Object::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
 {
-    MAE_Window* wnd = aView->Wnd();
+    aWnd->SetRect(aRect);
+}
+
+void CAE_Object::Render(MAE_Window* aWnd, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm)
+{
+    MAE_Window* wnd = aWnd;
     MAE_Gc* gc = wnd->Gc();
     CAV_Rect rect = wnd->Rect();
     // Draw the rect
@@ -2749,8 +2741,12 @@ void CAE_Object::Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point 
 	AddBva(bva = new BvaHead(*this, wnd));
     }
     CAV_Rect cdres = rect;
-    bva->Render(cdres, aDraw);
-
+    bva->Render(cdres);
+    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
+    bva->iWnd->SetPrefRect(headrc);
+    bva->iWnd->SetRect(headrc);
+    if (aDraw)
+	bva->Draw();
     /*
     CAV_Rect headrect = CAV_Rect(CAV_Point(0, 0), CAV_Point(rect.iBr.iX, KViewNameLineHeight));
     if (aDraw) {
@@ -2813,7 +2809,6 @@ void CAE_Object::Render(MAE_View* aView, CAV_Rect aRect, TBool aDraw, CAV_Point 
 	    cdres.Move(CAV_Point(0, cdres.Height() + KViewCompGapHight));
 	}
     }
-    
 }
 
 void CAE_Object::RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect,
@@ -3038,6 +3033,18 @@ void CAE_Object::RenderEpoint(CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aG
     }
 }
 
+void CAE_Object::OnHeaderPress(const MAE_View* aView)
+{
+    // Return view to super-system
+    MAE_View* view = iViews[aView->Name()];
+    iViews[view->Name()] = NULL;
+    view->Wnd()->ResetObserver(this);
+    view->Wnd()->Clear();
+    CAE_Object* obj = iMan;
+    obj->AddView(view);
+    ResetView();
+    obj->OnExpose(view->Wnd(), CAV_Rect());
+}
 
 //*********************************************************
 // Base view agents
@@ -3046,6 +3053,7 @@ void CAE_Object::RenderEpoint(CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aG
 CAE_Object::Bva::Bva(CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName): iSys(aSys), iType(aType), iName(aName) 
 {
     iWnd = aOwnedWnd->CreateWindow(iName);
+    iWnd->SetObserver(this);
 }
 
 CAE_Object::Bva::~Bva()
@@ -3054,48 +3062,56 @@ CAE_Object::Bva::~Bva()
     iWnd = NULL;
 }
 
-void CAE_Object::BvaHead::Render(CAV_Rect& aRect, TBool aDraw)
+void CAE_Object::BvaHead::Render(CAV_Rect& aRect)
 {
     MAE_Gc* gc = iWnd->Gc();
-    CAV_Rect rect = CAV_Rect(CAV_Point(0, 0), CAV_Point(aRect.iBr.iX, KViewNameLineHeight));
-    if (aDraw) {
-	// Draw the name
-	MAE_TextLayout* nametl = gc->CreateTextLayout();
-	nametl->SetText(iSys.InstName());
-	CAV_Rect drc(rect.iTl + CAV_Point(1, 1), rect.iBr - CAV_Point(1, 1));
-	nametl->Draw(drc.iTl);
-	gc->DrawRect(drc, EFalse);
-	iWnd->SetRect(rect);
-	iWnd->Show();
-    }
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iSys.InstName());
+    CAV_Point tsize;
+    nametl->GetSizePu(tsize);
+    CAV_Rect rect = CAV_Rect(aRect.iTl, tsize.iX, KViewNameLineHeight);
     aRect = rect;
 }
 
-void CAE_Object::BvaHead::OnExpose(MAE_View* aView, CAV_Rect aRect)
+void CAE_Object::BvaHead::Draw()
 {
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = iWnd->Rect();
+    // Draw the name
+    CAV_Rect tr = rect;
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iSys.InstName());
+    CAV_Rect drc(rect.iTl + CAV_Point(1, 1), rect.iBr - CAV_Point(1, 1));
+    nametl->Draw(drc.iTl);
+    gc->DrawRect(drc, EFalse);
+    iWnd->Show();
 }
 
-TBool CAE_Object::BvaHead::OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+void CAE_Object::BvaHead::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
 {
+    Draw();
+}
+
+TBool CAE_Object::BvaHead::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{	    
     if (aEvent == EBte_Press) {
-	if (iSys.iMan != NULL) {
-	    // Return view to super-system
-	    aView->Wnd()->ResetObserver(this);
-	    iSys.iViews[aView->Name()] = NULL;
-	    aView->Wnd()->Clear();
-	    iSys.iMan->AddView(aView);
-	    iSys.iMan->OnExpose(aView, CAV_Rect());
-	}
+	iSys.OnHeaderPress(aWnd->View());
     }
 }
 
 
-    //*********************************************************
-    // CAE_ObjectBa - bit automata
-    //*********************************************************
+void CAE_Object::BvaHead::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    CAV_Rect rec = aRect;
+    Render(rec);
+}
+
+//*********************************************************
+// CAE_ObjectBa - bit automata
+//*********************************************************
 
 
-    FAPWS_API CAE_ObjectBa::CAE_ObjectBa(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo):
+FAPWS_API CAE_ObjectBa::CAE_ObjectBa(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo):
     CAE_Object(aInstName, aMan), iLen(aLen), iTrans(NULL), iNew(NULL), iCurr(NULL), 
     iInpInfo(aInpInfo), iOutInfo(aOutInfo)
 {
@@ -3103,12 +3119,12 @@ TBool CAE_Object::BvaHead::OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aE
 
 FAPWS_API CAE_ObjectBa::~CAE_ObjectBa()
 {
-	if (iTrans != NULL)
-	{
-		delete[] iTrans;
-		iTrans = NULL;
-	}
-	if (iNew != NULL)
+    if (iTrans != NULL)
+    {
+	delete[] iTrans;
+	iTrans = NULL;
+    }
+    if (iNew != NULL)
 	{
 		delete[] iNew;
 		iNew = NULL;

@@ -33,6 +33,7 @@ class CAV_Rect
 	CAV_Rect(): iTl(), iBr() {};
 	CAV_Rect(CAV_Point aTl, CAV_Point aBr): iTl(aTl), iBr(aBr) {};
 	CAV_Rect(CAV_Point aTl): iTl(aTl), iBr(aTl) {};
+	CAV_Rect(CAV_Point aTl, TInt aWidth, TInt aHeight): iTl(aTl), iBr(aTl.iX + aWidth, aTl.iY + aHeight) {};
 	TInt Height() const { return iBr.iY - iTl.iY; };
 	TInt Width() const { return iBr.iX - iTl.iX; };
 	void Move(CAV_Point aShift) { iTl += aShift; iBr += aShift; };

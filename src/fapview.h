@@ -23,7 +23,7 @@ class MAE_View
 	};
     public:
 	virtual TType Type() = 0;
-	virtual const string& Name() = 0;
+	virtual const string& Name() const = 0;
 	virtual void SetName(const string& aName) = 0;
 	virtual MAE_Window* Wnd() = 0;
 	virtual void SetDetLevel(TInt aLevel) = 0;
@@ -40,9 +40,11 @@ class MAE_Window
 	    CAV_Rect iRect;
 	};
     public:
+	virtual const MAE_View* View() = 0;
 	virtual void Destroy() = 0;
 	virtual CAV_Rect Rect() = 0;
 	virtual void SetRect(const CAV_Rect& aRect) = 0;
+	virtual void SetPrefRect(const CAV_Rect& aRect) = 0;
 	virtual MAE_Gc* Gc() = 0;
 	virtual void Clear() = 0;
 	virtual const string& Name() = 0;
@@ -80,8 +82,9 @@ class MAE_ViewObserver
 	    EBte_Release
 	};
     public:
-	virtual void OnExpose(MAE_View* aView, CAV_Rect aRect) = 0;
-	virtual TBool OnButton(MAE_View* aView, MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) = 0;
+	virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) = 0;
+	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) = 0;
+	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) = 0;
 };
 
 #endif // __FAP_VIEW_H
