@@ -36,6 +36,7 @@ class CAV_Rect
 	CAV_Rect(CAV_Point aTl, CAV_Point aBr): iTl(aTl), iBr(aBr) {};
 	CAV_Rect(CAV_Point aTl): iTl(aTl), iBr(aTl) {};
 	CAV_Rect(CAV_Point aTl, TInt aWidth, TInt aHeight): iTl(aTl), iBr(aTl.iX + aWidth, aTl.iY + aHeight) {};
+	CAV_Rect(TInt aWidth, TInt aHeight): iTl(0, 0), iBr(aWidth, aHeight) {};
 	TBool operator==(const CAV_Rect& aRect) { return (iTl == aRect.iTl && iBr == aRect.iBr);};
 	TBool operator!=(const CAV_Rect& aRect) { return !((*this) == aRect);};
 	TInt Height() const { return iBr.iY - iTl.iY; };
@@ -44,6 +45,7 @@ class CAV_Rect
 	CAV_Rect& Resize(CAV_Point aPt) { iBr += aPt; return *this;};
 	CAV_Point Tr() { return CAV_Point(iBr.iX, iTl.iY);};
 	CAV_Point Bl() { return CAV_Point(iTl.iX, iBr.iY);};
+	CAV_Point Size() { return CAV_Point(iBr.iX - iTl.iX, iBr.iY - iTl.iY);};
 	TBool Intersects(CAV_Point aPt) { return aPt.iX >= iTl.iX && aPt.iX <= iBr.iX && aPt.iY >= iTl.iY && aPt.iY <= iBr.iY;};
 	TBool Intersects(CAV_Rect aRc) { return Intersects(aRc.iTl) || Intersects(aRc.iBr) || Intersects(aRc.Tr()) || Intersects(aRc.Bl());};
     public:

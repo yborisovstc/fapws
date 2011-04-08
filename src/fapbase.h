@@ -996,7 +996,8 @@ public:
 	    Et_Inp,
 	    Et_Outp,
 	    Et_StateHeader,
-	    Et_CompHeader
+	    Et_CompHeader,
+	    Et_CompInp
 	};
 	// Type of rendering elements
 	typedef pair<TReType, string> TRelm;
@@ -1018,6 +1019,7 @@ private:
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) {};
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) {};
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) {};
 	public:
 	    CAE_Object& iSys;
 	    MAE_Window* iWnd;
@@ -1030,49 +1032,66 @@ private:
 	class BvaHead : public Bva
     {
 	public:
-	    BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aSys, aOwnedWnd, Et_Header, "Header") {};
+	    BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
     };
 	// Base view agent for system
 	class BvaSyst : public Bva
     {
 	public:
-	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_System, aName, EFalse) {};
+	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
     };
 	// Base view agent for component
 	class BvaComp : public Bva
     {
 	public:
-	    BvaComp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_Comp, aName) {};
+	    BvaComp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
     };
 	// Base view agent for components header
 	class BvaCompHead : public Bva
     {
 	public:
-	    BvaCompHead(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): Bva(aSys, aOwnedWnd, Et_CompHeader, aName) {};
+	    BvaCompHead(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
+    };
+	// Base view agent for components inputs
+	class BvaCompInp : public Bva
+    {
+	public:
+	    BvaCompInp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
     };
 
 public:
@@ -1131,6 +1150,7 @@ protected:
 	virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome

@@ -12,6 +12,7 @@ static gboolean handle_size_request_event( GtkWidget *widget, GtkRequisition *re
 CAE_ViewGtk::CAE_ViewGtk(TType aType, GtkLayout* aWidget): iType(aType), iWidget(aWidget)
 {
     PangoContext* pcnt = gtk_widget_get_pango_context(GTK_WIDGET(iWidget));
+//    gtk_container_set_resize_mode(GTK_CONTAINER(iWidget), GTK_RESIZE_QUEUE);
     iWnd = new CAV_WindowGtk(this, NULL, "Main", iWidget, pcnt);
 }
 
@@ -78,13 +79,16 @@ gboolean handle_size_allocate_event( GtkWidget *widget, GtkAllocation *allocatio
 gboolean handle_size_request_event( GtkWidget *widget, GtkRequisition *requisition, gpointer data)
 {
     CAV_WindowGtk* self = (CAV_WindowGtk*) data;
-    CAV_Rect rect = self->Rect();
+    CAV_Rect rect;
     gint w,h;
     gtk_widget_get_size_request(widget, &w, &h);
 //    gtk_widget_set_size_request(widget, 321, 223);
     gtk_widget_get_size_request(widget, &w, &h);
     //requisition->width = 500;
     //requisition->height = 300;
+    self->Observer()->OnPrefSizeRequested(self, rect);
+    requisition->width = rect.Width();
+    requisition->height = rect.Height();
 }
 
 
@@ -151,8 +155,15 @@ CAV_Rect CAV_WindowGtk::Rect()
 void CAV_WindowGtk::SetRect(const CAV_Rect& aRect)
 {
     gtk_layout_set_size(iWidget, aRect.Width(), aRect.Height());
-    if (iParent != NULL)
-	gtk_layout_move(iParent->iWidget, GTK_WIDGET(iWidget), aRect.iTl.iX, aRect.iTl.iY);
+    // TODO [YB] Using gtk_layout_move cause infinite loop of alloc-event. To analyze
+//    if (iParent != NULL)
+//	gtk_layout_move(iParent->iWidget, GTK_WIDGET(iWidget), aRect.iTl.iX, aRect.iTl.iY);
+    GtkAllocation alloc;
+    alloc.x = aRect.iTl.iX;
+    alloc.y = aRect.iTl.iY;
+    alloc.width = aRect.Width();
+    alloc.height = aRect.Height();
+    gtk_widget_size_allocate(GTK_WIDGET(iWidget), &alloc);
     // Dbg
     guint width, height;
     gtk_layout_get_size(iWidget, &width, &height);
@@ -161,9 +172,23 @@ void CAV_WindowGtk::SetRect(const CAV_Rect& aRect)
     gdk_drawable_get_size(iWidget->bin_window, &w, &h);
 }
 
-void CAV_WindowGtk::SetPrefRect(const CAV_Rect& aRect)
+void CAV_WindowGtk::SetPrefSize(const CAV_Rect& aRect)
 {
     gtk_widget_set_size_request(GTK_WIDGET(iWidget), aRect.Width(), aRect.Height());
+}
+
+CAV_Rect CAV_WindowGtk::GetPrefSize()
+{
+    gint w, h;
+    gtk_widget_get_size_request(GTK_WIDGET(iWidget), &w, &h);
+    return CAV_Rect(CAV_Point(0, 0), w, h);
+}
+
+CAV_Rect CAV_WindowGtk::CalcPrefSize()
+{
+    GtkRequisition req;
+    gtk_widget_size_request(GTK_WIDGET(iWidget), &req);
+    return CAV_Rect(CAV_Point(0, 0), req.width, req.height);
 }
 
 void CAV_WindowGtk::Show(TBool aAll)
@@ -188,6 +213,7 @@ MAE_Window* CAV_WindowGtk::CreateWindow(const string& aName)
     CAV_WindowGtk* res = NULL;
     _FAP_ASSERT(iChilds.count(aName) == 0);
     GtkLayout *widget = GTK_LAYOUT(gtk_layout_new(NULL, NULL));
+    gtk_container_set_resize_mode(GTK_CONTAINER(iWidget), GTK_RESIZE_QUEUE);
     gtk_layout_put(iWidget, GTK_WIDGET(widget), 0, 0);
     gtk_widget_realize(GTK_WIDGET(widget));
     gdk_window_set_events(widget->bin_window, GDK_ALL_EVENTS_MASK);

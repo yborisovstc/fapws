@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 7
+  revision 9
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -372,6 +372,90 @@ format 70
       idl_decl ""
       explicit_switch_type ""
       
+      operation 170242 "EvalArgs"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 170370 "ApplyArgs"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 170498 "Apply"
+	stereotype "virtual"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 170626 "Clone"
+	stereotype "virtual"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      attribute 149762 "iName"
+	private explicit_type "string"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      attribute 149890 "iType"
+	private explicit_type "vector<string>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      attribute 150018 "iData"
+	private explicit_type "string"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      attribute 150146 "iArgs"
+	private explicit_type "vector<CSL_ExprBase*>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      classrelation 177026 // <dependency>
+	relation 177026 -_->
+	  a default
+	    classrelation_ref 177026 // <dependency>
+	  b parent class_ref 189954 // MSL_ExprEnv
+      end
     end
 
     activity 128002 "fap1.dest~act"
@@ -771,6 +855,214 @@ format 70
 	  a public
 	    classrelation_ref 170242 // <generalisation>
 	  b parent class_ref 182658 // MAE_Gc
+      end
+    end
+
+    classdiagram 160770 "fap1~clsdgm.dest"
+      draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+      size A4
+    end
+
+    class 189826 "CSL_FunBase"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 176898 // <generalisation>
+	relation 176898 ---|>
+	  a public
+	    classrelation_ref 176898 // <generalisation>
+	  b parent class_ref 175874 // CSL_ExprBase
+      end
+
+      attribute 150274 "iArgsInfo"
+	private explicit_type "map<string, int>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      class 190082 "Env"
+	visibility package 
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_2_2 python_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	classrelation 177154 // <generalisation>
+	  relation 177154 ---|>
+	    a public
+	      classrelation_ref 177154 // <generalisation>
+	    b parent class_ref 189954 // MSL_ExprEnv
+	end
+
+	operation 170882 "GetExprs"
+	  stereotype "virtual"
+	  cpp_virtual public explicit_return_type ""
+	  nparams 0
+	  
+	  
+	  
+	  
+	  
+	end
+      end
+    end
+
+    class 189954 "MSL_ExprEnv"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 170754 "GetExprs"
+	stereotype "virtual"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+    end
+
+    class 190210 "CSL_EfStruct"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      attribute 150402 "iFields"
+	private explicit_type "map<string, pair<string, int>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      classrelation 177282 // <generalisation>
+	relation 177282 ---|>
+	  a public
+	    classrelation_ref 177282 // <generalisation>
+	  b parent class_ref 175874 // CSL_ExprBase
+      end
+    end
+
+    class 190338 "CSL_Interpr"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 177410 // <generalisation>
+	relation 177410 ---|>
+	  a public
+	    classrelation_ref 177410 // <generalisation>
+	  b parent class_ref 189954 // MSL_ExprEnv
+      end
+
+      operation 171010 "GetExprs"
+	stereotype "virtual"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      attribute 150530 "iExprsEmb"
+	private explicit_type "multimap<string, CSL_ExprBase*>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      attribute 150658 "iExprs"
+	private explicit_type "multimap<string, CSL_ExprBase*>"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      attribute 150786 "iExpContext"
+	private explicit_type "CAE_EBase*"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      operation 171138 "EvalTrans"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      attribute 157314 "iContext"
+	private explicit_type "MAE_TransContext*"
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      classrelation 183938 // <unidirectional association>
+	relation 183938 --->
+	  a role_name "" private
+	    classrelation_ref 183938 // <unidirectional association>
+	  b parent class_ref 196866 // MAE_TransContext
+      end
+    end
+
+    class 196866 "MAE_TransContext"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 177666 "GetExprs"
+	stereotype "virtual"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
       end
     end
   end

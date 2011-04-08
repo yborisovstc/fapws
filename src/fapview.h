@@ -42,9 +42,14 @@ class MAE_Window
     public:
 	virtual const MAE_View* View() = 0;
 	virtual void Destroy() = 0;
+	// TODO [YB] Actually Rect returns size, so it is not that rect that is set by SetRect, consider renaming to avoid confusion
 	virtual CAV_Rect Rect() = 0;
 	virtual void SetRect(const CAV_Rect& aRect) = 0;
-	virtual void SetPrefRect(const CAV_Rect& aRect) = 0;
+	// Sets preferred size. (-1, -1) means the size is undefined
+	virtual void SetPrefSize(const CAV_Rect& aRect) = 0;
+	virtual CAV_Rect GetPrefSize() = 0;
+	// Calculate preferred size, uses pref size set explicitly. If it is undefined that requests observer via OnPrefSizeRequested
+	virtual CAV_Rect CalcPrefSize() = 0;
 	virtual MAE_Gc* Gc() = 0;
 	virtual void Clear() = 0;
 	virtual const string& Name() = 0;
@@ -85,6 +90,7 @@ class MAE_ViewObserver
 	virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) = 0;
 	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) = 0;
 	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) = 0;
+	virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) = 0;
 };
 
 #endif // __FAP_VIEW_H

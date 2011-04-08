@@ -2680,8 +2680,8 @@ void CAE_Object::AddView(MAE_View* aView)
     BvaSyst* bva = new BvaSyst(*this, aView->Wnd(), aView->Name());
     AddBva(bva);
     // TODO [YB] Hack
-    CAV_Rect rec = aView->Wnd()->Rect();
-    bva->Render(rec);
+//    CAV_Rect rec = aView->Wnd()->Rect();
+//    bva->Render(rec);
     bva->iWnd->Show(ETrue);
 }
 
@@ -2692,6 +2692,9 @@ void CAE_Object::ResetView()
     }
     iBvas.clear();
 }
+
+void CAE_Object::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{}
 
 void CAE_Object::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
 {
@@ -2743,7 +2746,7 @@ void CAE_Object::Render(MAE_Window* aWnd, CAV_Rect aRect, TBool aDraw, CAV_Point
     CAV_Rect cdres = rect;
     bva->Render(cdres);
     CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
-    bva->iWnd->SetPrefRect(headrc);
+    bva->iWnd->SetPrefSize(headrc);
     bva->iWnd->SetRect(headrc);
     if (aDraw)
 	bva->Draw();
@@ -3083,33 +3086,53 @@ CAE_Object::Bva* CAE_Object::Bva::GetBva(TReType aType, const string& aName)
 
 // Base view agents for system
 
+CAE_Object::BvaSyst::BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): 
+    Bva(aSys, aOwnedWnd, Et_System, aName, EFalse) 
+{
+    iWnd->SetPrefSize(CAV_Rect(-1, -1));
+    // Add header bva
+    AddBva(new BvaHead(iSys, iWnd));
+    // Add components bvas
+    for (vector<CAE_EBase*>::iterator it = iSys.iCompReg.begin(); it != iSys.iCompReg.end(); it++) {
+	CAE_Object* obj = (*it)->GetFbObj(obj);
+	if (obj != NULL) {
+	    AddBva(new BvaComp(iSys, iWnd, obj->InstName()));
+	}
+    }
+}
+
 void CAE_Object::BvaSyst::Render(CAV_Rect& aRect)
 {
     MAE_Gc* gc = iWnd->Gc();
     CAV_Rect rect = aRect;
     // Render the header
+    CAV_Rect headrc;
     Bva* bva = GetBva(Et_Header, "Header");
-    if (bva == NULL) {
-	AddBva(bva = new BvaHead(iSys, iWnd));
+    if (bva != NULL) {
+	CAV_Rect cdres = bva->iWnd->CalcPrefSize();
+	headrc = CAV_Rect(rect.iTl, rect.Width(), cdres.Height());
+	// TODO [YB] It s not clear how gtk container handles resizing. I can see that even size is set to child
+	// the container anycase allocate pref size to child. So as workaround i set pref size together with size.
+	// To consider the mechanism and update
+	bva->iWnd->SetPrefSize(headrc);
+	bva->iWnd->SetRect(headrc);
     }
-    CAV_Rect cdres = rect;
-    bva->Render(cdres);
-    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
-    bva->iWnd->SetPrefRect(headrc);
-    bva->iWnd->SetRect(headrc);
 
     // Render the comps
+    CAV_Point comprec_base((rect.iTl.iX + rect.iBr.iX)/2, headrc.iBr.iY + KViewCompGapHight);
     for (vector<CAE_EBase*>::iterator it = iSys.iCompReg.begin(); it != iSys.iCompReg.end(); it++) {
 	CAE_Object* obj = (*it)->GetFbObj(obj);
 	if (obj != NULL) {
 	    bva = GetBva(Et_Comp, obj->InstName());
-	    if (bva == NULL) {
-		AddBva(bva = new BvaComp(iSys, iWnd, obj->InstName()));
+	    if (bva != NULL) {
+		//cdres = CAV_Rect(CAV_Point(rect.iTl.iX, cdres.iBr.iY + KViewCompGapHight), rect.Width(), 40);
+		//bva->Render(cdres);
+		CAV_Rect comprec = bva->iWnd->CalcPrefSize();
+		comprec.Move(comprec_base - CAV_Point(comprec.Width()/2, 0));
+		bva->iWnd->SetPrefSize(comprec);
+		bva->iWnd->SetRect(comprec);
+		comprec_base += CAV_Point(0, comprec.Height() + KViewCompGapHight);
 	    }
-	    cdres = CAV_Rect(CAV_Point(rect.iTl.iX, cdres.iBr.iY + KViewCompGapHight), rect.Width(), 40);
-	    bva->Render(cdres);
-	    bva->iWnd->SetPrefRect(cdres);
-	    bva->iWnd->SetRect(cdres);
 	}
     }
 }
@@ -3119,7 +3142,7 @@ void CAE_Object::BvaSyst::Draw()
     MAE_Gc* gc = iWnd->Gc();
     CAV_Rect rect = iWnd->Rect();
     // Draw the rect
-    gc->DrawRect(rect, EFalse);
+    //gc->DrawRect(rect, EFalse);
 }
 
 void CAE_Object::BvaSyst::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
@@ -3135,14 +3158,28 @@ TBool CAE_Object::BvaSyst::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, 
 
 void CAE_Object::BvaSyst::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
 {
-    if (aWnd->Rect() != aRect) {
-	aWnd->SetRect(aRect);
-	CAV_Rect rec = aRect;
-	Render(rec);
+    CAV_Rect rec = aRect;
+    Render(rec);
+}
+
+void CAE_Object::BvaSyst::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{
+    CAV_Rect head_rec;
+    Bva* bva = GetBva(Et_Header, "Header");
+    if (bva != NULL) {
+    CAV_Rect head_rec = bva->iWnd->CalcPrefSize();
     }
+    CAV_Rect body_rec(400, 400);
+    aRect = CAV_Rect(body_rec.Width(), head_rec.Height() + body_rec.Height());
+    int x = 34;
 }
 
 // Base view agents for header
+
+CAE_Object::BvaHead::BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aSys, aOwnedWnd, Et_Header, "Header")
+{
+    iWnd->SetPrefSize(CAV_Rect(0, KViewNameLineHeight));
+}
 
 void CAE_Object::BvaHead::Render(CAV_Rect& aRect)
 {
@@ -3181,29 +3218,64 @@ TBool CAE_Object::BvaHead::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, 
     }
 }
 
-
 void CAE_Object::BvaHead::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
 {
     CAV_Rect rec = aRect;
     Render(rec);
 }
 
+void CAE_Object::BvaHead::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{
+    aRect = CAV_Rect(0, KViewNameLineHeight);
+}
+
 // Base view agents for component
+
+CAE_Object::BvaComp::BvaComp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+    Bva(aSys, aOwnedWnd, Et_Comp, aName) 
+{
+    CAE_EBase* elem = iSys.FindByName(aName.c_str());
+    CAE_Object* comp = elem->GetFbObj(comp);
+    iWnd->SetPrefSize(CAV_Rect(-1, -1));
+    // Add header
+    AddBva(new BvaCompHead(iSys, iWnd, iName));
+    // Add Inputs
+    for (map<string, CAE_ConnPointBase*>::const_iterator it = comp->Inputs().begin(); it != comp->Inputs().end(); it++) {
+	AddBva(new BvaCompInp(iSys, iWnd, it->first));
+    }
+}
 
 void CAE_Object::BvaComp::Render(CAV_Rect& aRect)
 {
-    CAV_Rect rect = CAV_Rect(aRect.iTl + CAV_Point((aRect.Width() - KViewCompAreaWidth)/2, 0), KViewCompAreaWidth, 40);
+    // TODO [YB] We cannot use iWnd->Rect() here
+    CAV_Rect rect(CAV_Point(0, 0), aRect.Width(), aRect.Height());
     // Render the header
     Bva* bva = GetBva(Et_CompHeader, iName);
-    if (bva == NULL) {
-	AddBva(bva = new BvaCompHead(iSys, iWnd, iName));
+    CAV_Rect headsz = bva->iWnd->CalcPrefSize();
+    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), headsz.Height());
+    bva->iWnd->SetPrefSize(headrc);
+    bva->iWnd->SetRect(headrc);
+    // Render inputs
+    // Calculate inputs width first
+    TInt inp_w = 0;
+    for (map<TRelm, Bva*>::iterator it = iBvas.begin(); it != iBvas.end(); it++) {
+	if (it->first.first == Et_CompInp) {
+	    Bva* inp = it->second;
+	    CAV_Rect inp_rc = inp->iWnd->CalcPrefSize();
+	    if (inp_rc.Width() > inp_w) inp_w = inp_rc.Width();
+	}
     }
-    CAV_Rect cdres = rect;
-    bva->Render(cdres);
-    CAV_Rect headrc = CAV_Rect(rect.iTl, rect.Width(), KViewNameLineHeight);
-    bva->iWnd->SetPrefRect(headrc);
-    //bva->iWnd->SetRect(headrc);
-    aRect = rect;
+    CAV_Point inp_base(rect.Width() - inp_w, headrc.Height());
+    // Render now
+    for (map<TRelm, Bva*>::iterator it = iBvas.begin(); it != iBvas.end(); it++) {
+	if (it->first.first == Et_CompInp) {
+	    Bva* inp = it->second;
+	    CAV_Rect inp_rc = inp->iWnd->CalcPrefSize();
+	    CAV_Rect inp_frec(inp_base, inp_w, inp_rc.Height());
+	    inp->iWnd->SetPrefSize(inp_frec);
+	    inp->iWnd->SetRect(inp_frec);
+	}
+    }
 }
 
 void CAE_Object::BvaComp::Draw()
@@ -3227,13 +3299,48 @@ TBool CAE_Object::BvaComp::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, 
 
 void CAE_Object::BvaComp::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
 {
-    if (aWnd->Rect() != aRect) {
-	CAV_Rect rec = aRect;
-	Render(rec);
+    CAV_Rect rec = aRect;
+    Render(rec);
+}
+
+void CAE_Object::BvaComp::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{
+    CAV_Point sz;
+    Bva* bva = GetBva(Et_CompHeader, iName);
+    CAV_Rect head_rec = bva->iWnd->CalcPrefSize();
+    // Calculate inputs size
+    CAV_Point inps_sz;
+    for (map<TRelm, Bva*>::iterator it = iBvas.begin(); it != iBvas.end(); it++) {
+	if (it->first.first == Et_CompInp) {
+	    Bva* inp = it->second;
+	    CAV_Rect inp_rec = inp->iWnd->CalcPrefSize();
+	    if (inp_rec.Width() > inps_sz.iX) 
+		inps_sz.iX = inp_rec.Width();
+	    inps_sz.iY += inp_rec.Height();
+	}
     }
+    sz.iX = head_rec.Width();
+    if (inps_sz.iX > sz.iX)
+	sz.iX = inps_sz.iX;
+    sz.iY = head_rec.Height() + inps_sz.iY;
+    aRect = CAV_Rect(sz.iX, sz.iY);
+    int x = 34;
 }
 
 // Base view agents for components header
+
+CAE_Object::BvaCompHead::BvaCompHead(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+    Bva(aSys, aOwnedWnd, Et_CompHeader, aName) 
+{
+    MAE_Gc* gc = iWnd->Gc();
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iName);
+    CAV_Point tsize;
+    nametl->GetSizePu(tsize);
+    CAV_Rect rect = CAV_Rect(tsize.iX, KViewNameLineHeight);
+    iWnd->SetPrefSize(rect);
+    iWnd->Show();
+}
 
 void CAE_Object::BvaCompHead::Render(CAV_Rect& aRect)
 {
@@ -3243,7 +3350,6 @@ void CAE_Object::BvaCompHead::Render(CAV_Rect& aRect)
     CAV_Point tsize;
     nametl->GetSizePu(tsize);
     CAV_Rect rect = CAV_Rect(aRect.iTl, tsize.iX, KViewNameLineHeight);
-    aRect = rect;
 }
 
 void CAE_Object::BvaCompHead::Draw()
@@ -3257,7 +3363,6 @@ void CAE_Object::BvaCompHead::Draw()
     CAV_Rect drc(rect.iTl, rect.iBr - CAV_Point(1, 1));
     nametl->Draw(drc.iTl);
     gc->DrawRect(drc, EFalse);
-    iWnd->Show();
 }
 
 void CAE_Object::BvaCompHead::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
@@ -3276,6 +3381,65 @@ void CAE_Object::BvaCompHead::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
 {
     CAV_Rect rec = aRect;
     Render(rec);
+}
+
+
+void CAE_Object::BvaCompHead::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{
+}
+
+// Base view agents for components inputs
+
+CAE_Object::BvaCompInp::BvaCompInp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+    Bva(aSys, aOwnedWnd, Et_CompInp, aName) 
+{
+    MAE_Gc* gc = iWnd->Gc();
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iName);
+    CAV_Point tsize;
+    nametl->GetSizePu(tsize);
+    CAV_Rect rect(tsize.iX, KViewExtLineHeight);
+    iWnd->SetPrefSize(rect);
+    iWnd->Show();
+}
+
+void CAE_Object::BvaCompInp::Render(CAV_Rect& aRect)
+{
+}
+
+void CAE_Object::BvaCompInp::Draw()
+{
+    MAE_Gc* gc = iWnd->Gc();
+    CAV_Rect rect = iWnd->Rect();
+    // Draw the name
+    CAV_Rect tr = rect;
+    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    nametl->SetText(iName);
+    CAV_Rect drc(rect.iTl, rect.iBr - CAV_Point(1, 1));
+    nametl->Draw(drc.iTl);
+    gc->DrawRect(drc, EFalse);
+}
+
+void CAE_Object::BvaCompInp::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    Draw();
+}
+
+TBool CAE_Object::BvaCompInp::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+{	    
+    if (aEvent == EBte_Press) {
+    }
+}
+
+void CAE_Object::BvaCompInp::OnResized(MAE_Window* aWnd, CAV_Rect aRect)
+{
+    CAV_Rect rec = aRect;
+    Render(rec);
+}
+
+void CAE_Object::BvaCompInp::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
+{
+    aRect = CAV_Rect(0, KViewConnLineLen);
 }
 
 

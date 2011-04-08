@@ -43,7 +43,9 @@ class CAV_WindowGtk: public MAE_Window
 	virtual const string& Name();
 	virtual void Destroy();
 	virtual CAV_Rect Rect();
-	virtual void SetPrefRect(const CAV_Rect& aRect);
+	virtual void SetPrefSize(const CAV_Rect& aRect);
+	virtual CAV_Rect GetPrefSize();
+	virtual CAV_Rect CalcPrefSize();
 	virtual void SetRect(const CAV_Rect& aRect);
 	virtual MAE_Gc* Gc();
 	virtual void Clear();
