@@ -962,7 +962,7 @@ class MAE_View;
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
 // TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough 
-class CAE_Object: public CAE_EBase, public MAE_TransContext, public MAE_ViewObserver
+class CAE_Object: public CAE_EBase, public MAE_TransContext
 {
 public:
 	// Operation under chromosome
@@ -997,7 +997,11 @@ public:
 	    Et_Outp,
 	    Et_StateHeader,
 	    Et_CompHeader,
-	    Et_CompInp
+	    Et_CompInp,
+	    Et_LeftConns,
+	    Et_RightConns,
+	    Et_CompOutp,
+	    Et_Conn
 	};
 	// Type of rendering elements
 	typedef pair<TReType, string> TRelm;
@@ -1007,20 +1011,25 @@ private:
 	class Bva: public MAE_ViewObserver 
     {
 	public:
-	    Bva(CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
+	    Bva(const Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
 	    virtual ~Bva();
 	    Bva* GetBva(TReType aType, const string& aName);
 	    void AddBva(Bva* aBva);
 	    // Renders the childs, returns hint for its rect
 	    virtual void Render(CAV_Rect& aRect) {};
+	    // TODO [YB] To remove Draw
 	    virtual void Draw() {};
+	    virtual void OnButton(const Bva* aChild, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {}; 
 	    void SetRect(const CAV_Rect& aRect) {iWnd->SetRect(aRect);};
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) {};
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) {};
 	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) {};
+	    virtual void OnMotion(MAE_Window* aWnd, const CAV_Point& aCoord) {};
+	    virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter);
 	public:
+	    const Bva* iParent;
 	    CAE_Object& iSys;
 	    MAE_Window* iWnd;
 	    TReType iType;
@@ -1032,7 +1041,7 @@ private:
 	class BvaHead : public Bva
     {
 	public:
-	    BvaHead(CAE_Object& aSys, MAE_Window* aOwnedWnd);
+	    BvaHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1045,7 +1054,7 @@ private:
 	class BvaSyst : public Bva
     {
 	public:
-	    BvaSyst(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaSyst(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1058,7 +1067,7 @@ private:
 	class BvaComp : public Bva
     {
 	public:
-	    BvaComp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaComp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1071,7 +1080,7 @@ private:
 	class BvaCompHead : public Bva
     {
 	public:
-	    BvaCompHead(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaCompHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1084,7 +1093,50 @@ private:
 	class BvaCompInp : public Bva
     {
 	public:
-	    BvaCompInp(CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaCompInp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
+    };
+	// Base view agent for conns (Et_LeftConns - placed left from conn point, Et_RightConns - placed right)
+	class BvaConns : public Bva
+    {
+	public:
+	    BvaConns(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName, 
+		    const vector<CAE_ConnPointBase*>& aConns);
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    virtual void OnButton(const Bva* aChild, TBtnEv aEvent, TInt aBtn, CAV_Point aPt); 
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
+    };
+
+	// Base view agent for components outputs
+	class BvaCompOutp : public Bva
+    {
+	public:
+	    BvaCompOutp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    virtual void Render(CAV_Rect& aRect);
+	    virtual void Draw();
+	    // From MAE_ViewObserver
+	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
+	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
+	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
+    };
+	// Base view agent for connection id
+	class BvaConn : public Bva
+    {
+	public:
+	    BvaConn(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    virtual ~BvaConn();
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1146,11 +1198,6 @@ protected:
 	void ConstructFromChromXL(const void* aChrom);
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	virtual void DoMutation();
-	// From MAE_ViewObserver
-	virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
 private:
 	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome

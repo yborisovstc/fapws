@@ -30,6 +30,16 @@ class MAE_View
 	virtual TInt DetLevel() = 0;
 };
 
+class CAE_Color
+{
+    public:
+	CAE_Color(TInt aRed, TInt aGreen, TInt aBlue): iRed(aRed), iGreen(aGreen), iBlue(aBlue) {};
+    public:
+	TInt iRed;
+	TInt iGreen;
+	TInt iBlue;
+};
+
 class MAE_Gc;
 class MAE_Window
 {
@@ -38,6 +48,13 @@ class MAE_Window
 	{
 	    public:
 	    CAV_Rect iRect;
+	};
+	enum TState {
+	    ESt_Normal,
+	    ESt_Active, // active window, such as a depressed button
+	    ESt_Prelight, // pointer is over the window and the window will respond to mouse clicks
+	    ESt_Selected, // selected item, such the selected row in a list
+	    ESt_Insens, // unresponsive to user actions
 	};
     public:
 	virtual const MAE_View* View() = 0;
@@ -58,6 +75,9 @@ class MAE_Window
 	virtual void SetObserver(MAE_ViewObserver* aObs) = 0;
 	virtual void ResetObserver(MAE_ViewObserver* aObs) = 0;
 	virtual void Show(TBool aAll = EFalse) = 0;
+	virtual void SetBg(TState aState, const CAE_Color& aColor) = 0;
+	virtual TState GetState() = 0;
+	virtual void SetState(TState aState) = 0;
 };
 
 class MAE_TextLayout;
@@ -91,6 +111,8 @@ class MAE_ViewObserver
 	virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) = 0;
 	virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) = 0;
 	virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) = 0;
+	virtual void OnMotion(MAE_Window* aWnd, const CAV_Point& aCoord) = 0;
+	virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter) = 0;
 };
 
 #endif // __FAP_VIEW_H

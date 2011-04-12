@@ -41,7 +41,7 @@ class CAV_Rect
 	TBool operator!=(const CAV_Rect& aRect) { return !((*this) == aRect);};
 	TInt Height() const { return iBr.iY - iTl.iY; };
 	TInt Width() const { return iBr.iX - iTl.iX; };
-	void Move(CAV_Point aShift) { iTl += aShift; iBr += aShift; };
+	CAV_Rect& Move(CAV_Point aShift) { iTl += aShift; iBr += aShift; return *this;};
 	CAV_Rect& Resize(CAV_Point aPt) { iBr += aPt; return *this;};
 	CAV_Point Tr() { return CAV_Point(iBr.iX, iTl.iY);};
 	CAV_Point Bl() { return CAV_Point(iTl.iX, iBr.iY);};

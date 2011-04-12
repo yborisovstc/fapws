@@ -7,6 +7,8 @@ static gboolean handle_button_press_event(GtkWidget *widget, GdkEventButton *eve
 static gboolean handle_button_release_event(GtkWidget *widget, GdkEventButton *event, gpointer data);
 static gboolean handle_size_allocate_event( GtkWidget *widget, GtkAllocation *allocation, gpointer data);
 static gboolean handle_size_request_event( GtkWidget *widget, GtkRequisition *requisition, gpointer data);
+static gboolean handle_motion_notify_event( GtkWidget *widget, GdkEventMotion *event, gpointer data);
+static gboolean handle_enter_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data);
 
 
 CAE_ViewGtk::CAE_ViewGtk(TType aType, GtkLayout* aWidget): iType(aType), iWidget(aWidget)
@@ -91,6 +93,20 @@ gboolean handle_size_request_event( GtkWidget *widget, GtkRequisition *requisiti
     requisition->height = rect.Height();
 }
 
+gboolean handle_motion_notify_event( GtkWidget *widget, GdkEventMotion *event, gpointer data)
+{
+    CAV_WindowGtk* self = (CAV_WindowGtk*) data;
+    CAV_Point coord(event->x, event->y);
+    self->Observer()->OnMotion(self, coord);
+}
+
+gboolean handle_enter_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data)
+{
+    CAV_WindowGtk* self = (CAV_WindowGtk*) data;
+    self->Observer()->OnCrossing(self, (event->type == GDK_ENTER_NOTIFY));
+}
+
+
 
 CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, const string& aName, GtkLayout* aWidget, PangoContext* aPContext): 
     iView(aView), iParent(aParent), iName(aName), iWidget(aWidget), iGc(NULL), iPContext(aPContext), iObserver(NULL)
@@ -102,6 +118,8 @@ CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, cons
     g_signal_connect (G_OBJECT (iWidget), "button_release_event", G_CALLBACK (handle_button_release_event), this);
     g_signal_connect (G_OBJECT (iWidget), "size_allocate", G_CALLBACK (handle_size_allocate_event), this);
     g_signal_connect (G_OBJECT (iWidget), "size_request", G_CALLBACK (handle_size_request_event), this);
+    g_signal_connect (G_OBJECT (iWidget), "motion_notify_event", G_CALLBACK (handle_motion_notify_event), this);
+    g_signal_connect (G_OBJECT (iWidget), "enter_notify_event", G_CALLBACK (handle_enter_notify_event), this);
 }
 
 CAV_WindowGtk::~CAV_WindowGtk()
@@ -239,6 +257,28 @@ MAE_Window* CAV_WindowGtk::Wnd(const string& aName)
     return iChilds.find(aName)->second;
 }
 
+void CAV_WindowGtk::SetBg(TState aState, const CAE_Color& aColor)
+{
+    GdkColor color;
+    CAE_ViewGtkUtils::ColorToGtk(aColor, &color);
+    GtkStateType type  = CAE_ViewGtkUtils::StateToGtk(aState);
+    gtk_widget_modify_bg(GTK_WIDGET(iWidget), type, &color);
+}
+
+MAE_Window::TState CAV_WindowGtk::GetState()
+{
+    GtkStateType gtk = gtk_widget_get_state(GTK_WIDGET(iWidget));
+    return CAE_ViewGtkUtils::GtkToState(gtk);
+}
+
+void CAV_WindowGtk::SetState(TState aState)
+{
+    GtkStateType gtkstate = CAE_ViewGtkUtils::StateToGtk(aState);
+    gtk_widget_set_state(GTK_WIDGET(iWidget), gtkstate);
+}
+
+
+
 CAV_Gc::CAV_Gc(CAV_WindowGtk* aWnd, GdkGC* aGdkGc): iWnd(aWnd), iGdkGc(aGdkGc)
 {
 }
@@ -263,6 +303,35 @@ CAV_Rect CAE_ViewGtkUtils::Rect(GdkRectangle aRect)
 {
     return CAV_Rect(CAV_Point(aRect.x, aRect.y), CAV_Point(aRect.x + aRect.width, aRect.y + aRect.height));
 }
+
+void CAE_ViewGtkUtils::ColorToGtk(const CAE_Color& aColor, GdkColor* aGdkColor)
+{
+    aGdkColor->pixel = 0;
+    aGdkColor->red = aColor.iRed;
+    aGdkColor->green = aColor.iGreen;
+    aGdkColor->blue = aColor.iBlue;
+}
+
+GtkStateType CAE_ViewGtkUtils::StateToGtk(MAE_Window::TState aState)
+{
+    if (aState == MAE_Window::ESt_Normal) return GTK_STATE_NORMAL;
+    else if (aState == MAE_Window::ESt_Active) return GTK_STATE_ACTIVE;
+    else if (aState == MAE_Window::ESt_Prelight) return GTK_STATE_PRELIGHT;
+    else if (aState == MAE_Window::ESt_Selected) return GTK_STATE_SELECTED;
+    else if (aState == MAE_Window::ESt_Insens) return GTK_STATE_INSENSITIVE;
+}
+
+MAE_Window::TState CAE_ViewGtkUtils::GtkToState(GtkStateType aGtkState)
+{
+    if (aGtkState == GTK_STATE_NORMAL) return MAE_Window::ESt_Normal;
+    else if (aGtkState == GTK_STATE_ACTIVE) return MAE_Window::ESt_Active;
+    else if (aGtkState == GTK_STATE_PRELIGHT) return MAE_Window::ESt_Prelight;
+    else if (aGtkState == GTK_STATE_SELECTED) return MAE_Window::ESt_Selected;
+    else if (aGtkState == GTK_STATE_INSENSITIVE) return MAE_Window::ESt_Insens;
+}
+
+
+
 
 void CAV_Gc::DrawText(const string& aText, CAV_Rect aRect)
 {

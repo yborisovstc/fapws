@@ -54,6 +54,9 @@ class CAV_WindowGtk: public MAE_Window
 	virtual void Show(TBool aAll = EFalse);
 	virtual void SetObserver(MAE_ViewObserver* aObs);
 	virtual void ResetObserver(MAE_ViewObserver* aObs);
+	virtual TState GetState();
+	virtual void SetState(TState aState);
+	virtual void SetBg(TState aState, const CAE_Color& aColor);
 	void RemoveChild(CAV_WindowGtk* aWnd);
 	MAE_ViewObserver* Observer() {return iObserver;};
     private:
@@ -103,6 +106,9 @@ class CAE_ViewGtkUtils
 {
     public:
 	static CAV_Rect Rect(GdkRectangle aRect);
+	static void ColorToGtk(const CAE_Color& aColor, GdkColor* aGdkColor);
+	static GtkStateType StateToGtk(MAE_Window::TState aState);
+	static MAE_Window::TState GtkToState(GtkStateType aGtkState);
 };
 
 
