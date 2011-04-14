@@ -9,6 +9,8 @@ static gboolean handle_size_allocate_event( GtkWidget *widget, GtkAllocation *al
 static gboolean handle_size_request_event( GtkWidget *widget, GtkRequisition *requisition, gpointer data);
 static gboolean handle_motion_notify_event( GtkWidget *widget, GdkEventMotion *event, gpointer data);
 static gboolean handle_enter_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data);
+static gboolean handle_leave_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data);
+static     void handle_state_changed_event( GtkWidget *widget, GtkStateType state, gpointer data);
 
 
 CAE_ViewGtk::CAE_ViewGtk(TType aType, GtkLayout* aWidget): iType(aType), iWidget(aWidget)
@@ -103,15 +105,84 @@ gboolean handle_motion_notify_event( GtkWidget *widget, GdkEventMotion *event, g
 gboolean handle_enter_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data)
 {
     CAV_WindowGtk* self = (CAV_WindowGtk*) data;
-    self->Observer()->OnCrossing(self, (event->type == GDK_ENTER_NOTIFY));
+    GtkWidget* wd = GTK_WIDGET(self->iWidget);
+    if (widget == wd) {
+	self->Observer()->OnCrossing(self, ETrue);
+    }
+    return FALSE;
+}
+
+gboolean handle_leave_notify_event( GtkWidget *widget, GdkEventCrossing *event, gpointer data)
+{
+    CAV_WindowGtk* self = (CAV_WindowGtk*) data;
+    if (widget == GTK_WIDGET(self->iWidget)) {
+	self->Observer()->OnCrossing(self, EFalse);
+    }
+    return FALSE;
+}
+
+void handle_state_changed_event( GtkWidget *widget, GtkStateType state, gpointer data)
+{
+    CAV_WindowGtk* self = (CAV_WindowGtk*) data;
+    self->Observer()->OnStateChanged(self, CAE_ViewGtkUtils::GtkToState(state));
 }
 
 
-
 CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, const string& aName, GtkLayout* aWidget, PangoContext* aPContext): 
-    iView(aView), iParent(aParent), iName(aName), iWidget(aWidget), iGc(NULL), iPContext(aPContext), iObserver(NULL)
+    iView(aView), iParent(aParent), iName(aName), iWidget(aWidget), iPContext(aPContext), iObserver(NULL)
 {
-    iGc = new CAV_Gc(this, gdk_gc_new(aWidget->bin_window));
+    GdkColormap*  cmap = gdk_colormap_get_system();
+    GtkStyle* style = gtk_widget_get_style(GTK_WIDGET(iWidget));
+    GdkGCValues values;
+    // Set bg context
+    GdkGC*  gc = style->bg_gc[GTK_STATE_NORMAL];
+    GdkColor clr = {0, 50000, 0, 0};
+    gboolean res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gc = style->bg_gc[GTK_STATE_PRELIGHT];
+    clr = {0, 0, 50000, 0};
+    res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gc = style->bg_gc[GTK_STATE_SELECTED];
+    clr = {0, 0, 0, 50000};
+    res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gtk_widget_set_style(GTK_WIDGET(iWidget), style);
+
+    // Set fg context
+    gc = style->fg_gc[GTK_STATE_NORMAL];
+    clr = {0, 10000, 0, 0};
+    res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gc = style->fg_gc[GTK_STATE_PRELIGHT];
+    clr = {0, 0, 10000, 0};
+    res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gc = style->fg_gc[GTK_STATE_SELECTED];
+    clr = {0, 0, 0, 10000};
+    res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
+    gdk_gc_set_foreground(gc, &clr);
+
+    gtk_widget_set_style(GTK_WIDGET(iWidget), style);
+
+    style = gtk_widget_get_style(GTK_WIDGET(iWidget));
+    gc = style->bg_gc[GTK_STATE_NORMAL];
+    gdk_gc_get_values(gc, &values);
+
+
+
+    for (int sti = ESt_Normal; sti <= ESt_Insens; sti++) {
+	TState state = TState(sti);
+	GtkStateType gstate =  CAE_ViewGtkUtils::StateToGtk(state);
+	iGcs[TGcKey(EGt_Cur, state)] = new CAV_Gc(this, gdk_gc_new(aWidget->bin_window));
+	iGcs[TGcKey(EGt_Bg, state)] = new CAV_Gc(this, style->bg_gc[gstate]);
+	iGcs[TGcKey(EGt_Fg, state)] = new CAV_Gc(this, style->fg_gc[gstate]);
+    }
     
     g_signal_connect(G_OBJECT(iWidget), "expose_event", G_CALLBACK(handle_expose_event), this);
     g_signal_connect (G_OBJECT (iWidget), "button_press_event", G_CALLBACK (handle_button_press_event), this);
@@ -120,12 +191,14 @@ CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, cons
     g_signal_connect (G_OBJECT (iWidget), "size_request", G_CALLBACK (handle_size_request_event), this);
     g_signal_connect (G_OBJECT (iWidget), "motion_notify_event", G_CALLBACK (handle_motion_notify_event), this);
     g_signal_connect (G_OBJECT (iWidget), "enter_notify_event", G_CALLBACK (handle_enter_notify_event), this);
+    g_signal_connect (G_OBJECT (iWidget), "leave_notify_event", G_CALLBACK (handle_leave_notify_event), this);
+    g_signal_connect (G_OBJECT (iWidget), "state_changed", G_CALLBACK (handle_state_changed_event), this);
 }
 
 CAV_WindowGtk::~CAV_WindowGtk()
 {
-    if (iGc != NULL) {
-	delete iGc;
+    for (map<TGcKey, CAV_Gc*>::iterator it = iGcs.begin(); it != iGcs.end(); it++) {
+	delete it->second;
     }
     gtk_widget_destroy(GTK_WIDGET(iWidget));
     iParent->RemoveChild(this);
@@ -136,9 +209,15 @@ void CAV_WindowGtk::Destroy()
     delete this;
 }
 
-MAE_Gc* CAV_WindowGtk::Gc()
+MAE_Gc* CAV_WindowGtk::Gc(TGcType aGcType)
 {
-    return iGc;
+    CAV_Gc* res;
+    GtkStateType gstate = gtk_widget_get_state(GTK_WIDGET(iWidget));
+    TState state = CAE_ViewGtkUtils::GtkToState(gstate); 
+    res = iGcs[TGcKey(aGcType, state)];
+    GdkGCValues values;
+    gdk_gc_get_values(res->iGdkGc, &values);
+    return res;
 }
 
 const string& CAV_WindowGtk::Name()
@@ -263,6 +342,7 @@ void CAV_WindowGtk::SetBg(TState aState, const CAE_Color& aColor)
     CAE_ViewGtkUtils::ColorToGtk(aColor, &color);
     GtkStateType type  = CAE_ViewGtkUtils::StateToGtk(aState);
     gtk_widget_modify_bg(GTK_WIDGET(iWidget), type, &color);
+    gtk_widget_modify_base(GTK_WIDGET(iWidget), type, &color);
 }
 
 MAE_Window::TState CAV_WindowGtk::GetState()
@@ -306,7 +386,7 @@ CAV_Rect CAE_ViewGtkUtils::Rect(GdkRectangle aRect)
 
 void CAE_ViewGtkUtils::ColorToGtk(const CAE_Color& aColor, GdkColor* aGdkColor)
 {
-    aGdkColor->pixel = 0;
+    aGdkColor->pixel = aColor.iValue;
     aGdkColor->red = aColor.iRed;
     aGdkColor->green = aColor.iGreen;
     aGdkColor->blue = aColor.iBlue;

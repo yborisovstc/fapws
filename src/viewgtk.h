@@ -47,7 +47,7 @@ class CAV_WindowGtk: public MAE_Window
 	virtual CAV_Rect GetPrefSize();
 	virtual CAV_Rect CalcPrefSize();
 	virtual void SetRect(const CAV_Rect& aRect);
-	virtual MAE_Gc* Gc();
+	virtual MAE_Gc* Gc(TGcType aGcType = EGt_Cur);
 	virtual void Clear();
 	virtual MAE_Window* CreateWindow(const string& aName);
 	virtual MAE_Window* Wnd(const string& aName);
@@ -59,12 +59,15 @@ class CAV_WindowGtk: public MAE_Window
 	virtual void SetBg(TState aState, const CAE_Color& aColor);
 	void RemoveChild(CAV_WindowGtk* aWnd);
 	MAE_ViewObserver* Observer() {return iObserver;};
+    public:
+	GtkLayout* iWidget;
+    private:
+	typedef pair<TGcType, TState> TGcKey; 
     private:
 	const MAE_View* iView;
 	string iName;
 	CAV_WindowGtk* iParent;
-	GtkLayout* iWidget;
-	CAV_Gc* iGc;
+	map<TGcKey, CAV_Gc*> iGcs;
 	PangoContext* iPContext;
 	map<string, CAV_WindowGtk*> iChilds;
 	MAE_ViewObserver* iObserver;
@@ -82,7 +85,7 @@ class CAV_Gc: public MAE_Gc
 	virtual void DrawText(const string& aText, CAV_Rect aRect);
 	virtual void DrawLine(CAV_Point aPt1, CAV_Point aPt2);
 	virtual MAE_TextLayout* CreateTextLayout();
-    private:
+    public:
 	CAV_WindowGtk* iWnd;
 	GdkGC* iGdkGc;
 };

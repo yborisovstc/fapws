@@ -1011,7 +1011,7 @@ private:
 	class Bva: public MAE_ViewObserver 
     {
 	public:
-	    Bva(const Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
+	    Bva(Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
 	    virtual ~Bva();
 	    Bva* GetBva(TReType aType, const string& aName);
 	    void AddBva(Bva* aBva);
@@ -1019,7 +1019,7 @@ private:
 	    virtual void Render(CAV_Rect& aRect) {};
 	    // TODO [YB] To remove Draw
 	    virtual void Draw() {};
-	    virtual void OnButton(const Bva* aChild, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {}; 
+	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState) {}; 
 	    void SetRect(const CAV_Rect& aRect) {iWnd->SetRect(aRect);};
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) {};
@@ -1028,8 +1028,9 @@ private:
 	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) {};
 	    virtual void OnMotion(MAE_Window* aWnd, const CAV_Point& aCoord) {};
 	    virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter);
+	    virtual void OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState) {};
 	public:
-	    const Bva* iParent;
+	    Bva* iParent;
 	    CAE_Object& iSys;
 	    MAE_Window* iWnd;
 	    TReType iType;
@@ -1041,7 +1042,7 @@ private:
 	class BvaHead : public Bva
     {
 	public:
-	    BvaHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd);
+	    BvaHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1054,9 +1055,10 @@ private:
 	class BvaSyst : public Bva
     {
 	public:
-	    BvaSyst(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaSyst(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
+	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
@@ -1067,9 +1069,10 @@ private:
 	class BvaComp : public Bva
     {
 	public:
-	    BvaComp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaComp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
+	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
@@ -1080,7 +1083,7 @@ private:
 	class BvaCompHead : public Bva
     {
 	public:
-	    BvaCompHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaCompHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1093,7 +1096,7 @@ private:
 	class BvaCompInp : public Bva
     {
 	public:
-	    BvaCompInp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaCompInp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1106,11 +1109,11 @@ private:
 	class BvaConns : public Bva
     {
 	public:
-	    BvaConns(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName, 
+	    BvaConns(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName, 
 		    const vector<CAE_ConnPointBase*>& aConns);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
-	    virtual void OnButton(const Bva* aChild, TBtnEv aEvent, TInt aBtn, CAV_Point aPt); 
+	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
 	    // From MAE_ViewObserver
 	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
@@ -1122,7 +1125,7 @@ private:
 	class BvaCompOutp : public Bva
     {
 	public:
-	    BvaCompOutp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaCompOutp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
 	    // From MAE_ViewObserver
@@ -1135,7 +1138,7 @@ private:
 	class BvaConn : public Bva
     {
 	public:
-	    BvaConn(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
+	    BvaConn(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
 	    virtual ~BvaConn();
 	    virtual void Render(CAV_Rect& aRect);
 	    virtual void Draw();
@@ -1144,6 +1147,8 @@ private:
 	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
 	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
 	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
+	    virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter);
+	    virtual void OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState);
     };
 
 public:

@@ -33,8 +33,9 @@ class MAE_View
 class CAE_Color
 {
     public:
-	CAE_Color(TInt aRed, TInt aGreen, TInt aBlue): iRed(aRed), iGreen(aGreen), iBlue(aBlue) {};
+	CAE_Color(TUint32 aValue, TInt aRed, TInt aGreen, TInt aBlue): iValue(aValue), iRed(aRed), iGreen(aGreen), iBlue(aBlue) {};
     public:
+	TUint32 iValue;
 	TInt iRed;
 	TInt iGreen;
 	TInt iBlue;
@@ -56,6 +57,11 @@ class MAE_Window
 	    ESt_Selected, // selected item, such the selected row in a list
 	    ESt_Insens, // unresponsive to user actions
 	};
+	enum TGcType {
+	    EGt_Cur,  // Current 
+	    EGt_Fg,   // Predefined (from style), foreground
+	    EGt_Bg   // Predefined (from style), background
+	};
     public:
 	virtual const MAE_View* View() = 0;
 	virtual void Destroy() = 0;
@@ -67,7 +73,7 @@ class MAE_Window
 	virtual CAV_Rect GetPrefSize() = 0;
 	// Calculate preferred size, uses pref size set explicitly. If it is undefined that requests observer via OnPrefSizeRequested
 	virtual CAV_Rect CalcPrefSize() = 0;
-	virtual MAE_Gc* Gc() = 0;
+	virtual MAE_Gc* Gc(TGcType aGcType = EGt_Cur) = 0;
 	virtual void Clear() = 0;
 	virtual const string& Name() = 0;
 	virtual MAE_Window* CreateWindow(const string& aName) = 0;
@@ -113,6 +119,7 @@ class MAE_ViewObserver
 	virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) = 0;
 	virtual void OnMotion(MAE_Window* aWnd, const CAV_Point& aCoord) = 0;
 	virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter) = 0;
+	virtual void OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState) = 0;
 };
 
 #endif // __FAP_VIEW_H

@@ -3042,7 +3042,7 @@ void CAE_Object::OnHeaderPress(const MAE_View* aView)
 // Base view agents
 //*********************************************************
 
-CAE_Object::Bva::Bva(const Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd): 
+CAE_Object::Bva::Bva(Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd): 
     iParent(aParent), iSys(aSys), iType(aType), iName(aName) 
 {
     static map<TReType, string> KBvaToString;
@@ -3090,22 +3090,14 @@ CAE_Object::Bva* CAE_Object::Bva::GetBva(TReType aType, const string& aName)
 
 void CAE_Object::Bva::OnCrossing(MAE_Window* aWnd, TBool aEnter)
 {
-    MAE_Window::TState state = aWnd->GetState();
-    if (aEnter) {
-	if (state == MAE_Window::ESt_Normal)
-	    aWnd->SetState(MAE_Window::ESt_Prelight);
-    }
-    else {
-	if (state == MAE_Window::ESt_Prelight)
-	    aWnd->SetState(MAE_Window::ESt_Normal);
-    }
+
 }
 
 
 
 // Base view agents for system
 
-CAE_Object::BvaSyst::BvaSyst(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): 
+CAE_Object::BvaSyst::BvaSyst(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): 
     Bva(aParent, aSys, aOwnedWnd, Et_System, aName, EFalse) 
 {
     iWnd->SetPrefSize(CAV_Rect(-1, -1));
@@ -3205,9 +3197,39 @@ void CAE_Object::BvaSyst::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
     aRect = CAV_Rect(fsz.iX, fsz.iY);
 }
 
+
+void CAE_Object::BvaSyst::OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState)
+{
+    if (aChild->iType == Et_Conn && aChild->iWnd->GetState() == MAE_Window::ESt_Selected && aPrevState != MAE_Window::ESt_Selected) {
+	// Highligt pair via selecting
+	const string& cname = aChild->iName;
+	if (cname.compare("...") != 0) {
+	    TBool isoutp = aChild->iParent->iType == Et_LeftConns;
+	    size_t ptp = cname.find_first_of('.');
+	    const string& paircompname = cname.substr(0, ptp);
+	    const string& paircpname = cname.substr(ptp + 1);
+	    const string& cpname = aChild->iParent->iName;
+	    const string& compname = aChild->iParent->iParent->iName;
+	    map<TRelm, Bva*>::iterator compit = iBvas.find(TRelm(Et_Comp, paircompname));
+	    Bva* compbva = compit->second;
+	    map<TRelm, Bva*>::iterator csit = compbva->iBvas.find(TRelm(isoutp ? Et_RightConns: Et_LeftConns, paircpname));
+	    Bva* csbva = csit->second;
+	    string ciname = compname + "." + cpname;
+	    map<TRelm, Bva*>::iterator cit = csbva->iBvas.find(TRelm(Et_Conn, ciname));
+	    if (cit == csbva->iBvas.end()) {
+		cit = csbva->iBvas.find(TRelm(Et_Conn, "..."));
+	    }
+	    Bva* cbva = cit->second;
+	    cbva->iWnd->SetState(MAE_Window::ESt_Selected);
+	}
+    }
+}
+
+
+
 // Base view agents for header
 
-CAE_Object::BvaHead::BvaHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aParent, aSys, aOwnedWnd, Et_Header, "Header")
+CAE_Object::BvaHead::BvaHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd): Bva(aParent, aSys, aOwnedWnd, Et_Header, "Header")
 {
     iWnd->SetPrefSize(CAV_Rect(0, KViewNameLineHeight));
     MAE_Gc* gc = iWnd->Gc();
@@ -3216,9 +3238,9 @@ CAE_Object::BvaHead::BvaHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* a
     CAV_Point tsize;
     nametl->GetSizePu(tsize);
     iWnd->SetPrefSize(CAV_Rect(tsize.iX, KViewNameLineHeight));
-    CAE_Color bg_norm(0, 40000, 0);
+    CAE_Color bg_norm(1, 0, 40000, 0);
     iWnd->SetBg(MAE_Window::ESt_Normal, bg_norm);
-    CAE_Color bg_pre(50000, 0, 0);
+    CAE_Color bg_pre(2, 50000, 0, 0);
     iWnd->SetBg(MAE_Window::ESt_Prelight, bg_pre);
     iWnd->Show();
 }
@@ -3264,7 +3286,7 @@ void CAE_Object::BvaHead::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
 
 // Base view agents for component
 
-CAE_Object::BvaComp::BvaComp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+CAE_Object::BvaComp::BvaComp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
     Bva(aParent, aSys, aOwnedWnd, Et_Comp, aName) 
 {
     CAE_EBase* elem = iSys.FindByName(aName.c_str());
@@ -3452,9 +3474,15 @@ void CAE_Object::BvaComp::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
     aRect = CAV_Rect(sz.iX, sz.iY);
 }
 
+void CAE_Object::BvaComp::OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState)
+{
+    iParent->OnChildStateChanged(aChild, aPrevState);
+}
+
+
 // Base view agents for components header
 
-CAE_Object::BvaCompHead::BvaCompHead(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+CAE_Object::BvaCompHead::BvaCompHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
     Bva(aParent, aSys, aOwnedWnd, Et_CompHeader, aName) 
 {
     MAE_Gc* gc = iWnd->Gc();
@@ -3516,7 +3544,7 @@ void CAE_Object::BvaCompHead::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aR
 
 // Base view agents for components inputs
 
-CAE_Object::BvaCompInp::BvaCompInp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+CAE_Object::BvaCompInp::BvaCompInp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
     Bva(aParent, aSys, aOwnedWnd, Et_CompInp, aName) 
 {
     MAE_Gc* gc = iWnd->Gc();
@@ -3571,7 +3599,7 @@ void CAE_Object::BvaCompInp::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRe
 
 // Base view agents for components outputs
 
-CAE_Object::BvaCompOutp::BvaCompOutp(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+CAE_Object::BvaCompOutp::BvaCompOutp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
     Bva(aParent, aSys, aOwnedWnd, Et_CompOutp, aName) 
 {
     MAE_Gc* gc = iWnd->Gc();
@@ -3625,7 +3653,7 @@ void CAE_Object::BvaCompOutp::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aR
 
 // Base view agents for connections
 
-CAE_Object::BvaConns::BvaConns(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName,
+CAE_Object::BvaConns::BvaConns(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName,
 	const vector<CAE_ConnPointBase*>& aConns):
     Bva(aParent, aSys, aOwnedWnd, aType, aName) 
 {
@@ -3692,13 +3720,15 @@ void CAE_Object::BvaConns::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect
 {
 }
 
-void CAE_Object::BvaConns::OnButton(const Bva* aChild, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
+void CAE_Object::BvaConns::OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState)
 {
+    iParent->OnChildStateChanged(aChild, aPrevState);
 }
+
 
 // Base view agents for connection id
 
-CAE_Object::BvaConn::BvaConn(const Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
+CAE_Object::BvaConn::BvaConn(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName):
     Bva(aParent, aSys, aOwnedWnd, Et_Conn, aName) 
 {
     MAE_Gc* gc = iWnd->Gc();
@@ -3708,10 +3738,6 @@ CAE_Object::BvaConn::BvaConn(const Bva* aParent, CAE_Object& aSys, MAE_Window* a
     nametl->GetSizePu(tsize);
     CAV_Rect rect(tsize.iX, KViewConnIdHeight);
     iWnd->SetPrefSize(rect);
-    CAE_Color bg_norm(40000, 40000, 0);
-    iWnd->SetBg(MAE_Window::ESt_Normal, bg_norm);
-    CAE_Color bg_pre(50000, 0, 0);
-    iWnd->SetBg(MAE_Window::ESt_Prelight, bg_pre);
     iWnd->Show();
 }
 
@@ -3725,15 +3751,17 @@ void CAE_Object::BvaConn::Render(CAV_Rect& aRect)
 
 void CAE_Object::BvaConn::Draw()
 {
-    MAE_Gc* gc = iWnd->Gc();
+    MAE_Gc* bggc = iWnd->Gc(MAE_Window::EGt_Bg);
+    MAE_Gc* fggc = iWnd->Gc(MAE_Window::EGt_Fg);
     CAV_Rect rect = iWnd->Rect();
     // Draw the name
     CAV_Rect tr = rect;
-    MAE_TextLayout* nametl = gc->CreateTextLayout();
+    MAE_TextLayout* nametl = fggc->CreateTextLayout();
     nametl->SetText(iName);
     CAV_Rect drc(rect.iTl, rect.iBr - CAV_Point(1, 1));
+    bggc->DrawRect(drc, ETrue);
+    fggc->DrawRect(drc, EFalse);
     nametl->Draw(drc.iTl);
-    gc->DrawRect(drc, EFalse);
 }
 
 void CAE_Object::BvaConn::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
@@ -3744,6 +3772,11 @@ void CAE_Object::BvaConn::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
 TBool CAE_Object::BvaConn::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
 {	    
     if (aEvent == EBte_Press) {
+	MAE_Window::TState state = aWnd->GetState();
+	if (state == MAE_Window::ESt_Selected)
+	    aWnd->SetState(MAE_Window::ESt_Prelight);
+	else
+	    aWnd->SetState(MAE_Window::ESt_Selected);
     }
 }
 
@@ -3757,6 +3790,25 @@ void CAE_Object::BvaConn::OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect)
 {
 }
 
+void CAE_Object::BvaConn::OnCrossing(MAE_Window* aWnd, TBool aEnter)
+{
+    MAE_Window::TState state = aWnd->GetState();
+    if (aEnter) {
+	if (state == MAE_Window::ESt_Normal)
+	    aWnd->SetState(MAE_Window::ESt_Prelight);
+    }
+    else {
+	if (state == MAE_Window::ESt_Prelight)
+	    aWnd->SetState(MAE_Window::ESt_Normal);
+    }
+}
+
+void CAE_Object::BvaConn::OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState)
+{
+    if (iWnd->GetState() == MAE_Window::ESt_Selected) {
+	iParent->OnChildStateChanged(this, aPrevState);
+    }
+}
 
 //*********************************************************
 // CAE_ObjectBa - bit automata
