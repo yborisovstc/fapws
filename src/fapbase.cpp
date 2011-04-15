@@ -3030,11 +3030,23 @@ void CAE_Object::OnHeaderPress(const MAE_View* aView)
     // Return view to super-system
     MAE_View* view = iViews[aView->Name()];
     iViews[view->Name()] = NULL;
-    //view->Wnd()->ResetObserver(this);
-    view->Wnd()->Clear();
+    //view->Wnd()->Clear();
+    ResetView();
     CAE_Object* obj = iMan;
     obj->AddView(view);
+    //obj->OnExpose(view->Wnd(), CAV_Rect());
+}
+
+void CAE_Object::OnCompHeaderPress(const MAE_View* aView, const string& aName)
+{
+    // Return view to super-system
+    MAE_View* view = iViews[aView->Name()];
+    iViews[view->Name()] = NULL;
+    //view->Wnd()->Clear();
     ResetView();
+    CAE_EBase* comp = FindByName(aName.c_str());
+    CAE_Object* obj = comp->GetFbObj(obj);
+    obj->AddView(view);
     //obj->OnExpose(view->Wnd(), CAV_Rect());
 }
 
@@ -3070,11 +3082,11 @@ CAE_Object::Bva::Bva(Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType a
 
 CAE_Object::Bva::~Bva()
 {
-    iWnd->Destroy();
-    iWnd = NULL;
     for (map<TRelm, Bva*>::iterator it = iBvas.begin(); it != iBvas.end(); it++) {
 	delete it->second;
     }
+    iWnd->Destroy();
+    iWnd = NULL;
 }
 
 void CAE_Object::Bva::AddBva(Bva* aBva)
@@ -3098,7 +3110,7 @@ void CAE_Object::Bva::OnCrossing(MAE_Window* aWnd, TBool aEnter)
 // Base view agents for system
 
 CAE_Object::BvaSyst::BvaSyst(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName): 
-    Bva(aParent, aSys, aOwnedWnd, Et_System, aName, EFalse) 
+    Bva(aParent, aSys, aOwnedWnd, Et_System, aName, ETrue) 
 {
     iWnd->SetPrefSize(CAV_Rect(-1, -1));
     // Add header bva
@@ -3526,7 +3538,7 @@ void CAE_Object::BvaCompHead::OnExpose(MAE_Window* aWnd, CAV_Rect aRect)
 TBool CAE_Object::BvaCompHead::OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt)
 {	    
     if (aEvent == EBte_Press) {
-	iSys.OnHeaderPress(aWnd->View());
+	iSys.OnCompHeaderPress(aWnd->View(), iName);
     }
 }
 

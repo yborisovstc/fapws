@@ -1238,6 +1238,7 @@ private:
 	void AddBva(Bva* aBva);
 	void ResetView();
 	void OnHeaderPress(const MAE_View* aView);
+	void OnCompHeaderPress(const MAE_View* aView, const string& aName);
 private:
 	// TODO [YB] To migrate to map
 	vector<CAE_EBase*> iCompReg;

@@ -26,6 +26,7 @@ class MAE_View
 	virtual const string& Name() const = 0;
 	virtual void SetName(const string& aName) = 0;
 	virtual MAE_Window* Wnd() = 0;
+	virtual MAE_Window* CreateRootWnd() = 0;
 	virtual void SetDetLevel(TInt aLevel) = 0;
 	virtual TInt DetLevel() = 0;
 };

@@ -12,13 +12,14 @@ class CAV_WindowGtk;
 class CAE_ViewGtk: public MAE_View
 {
     public:
-	CAE_ViewGtk(TType aType, GtkLayout* aWidget);
+	CAE_ViewGtk(TType aType, GtkWidget* aWidget);
 	virtual ~CAE_ViewGtk();
 	// From MAE_View
 	virtual TType Type() {return iType;};
 	virtual const string& Name() const;
 	virtual void SetName(const string& aName);
 	virtual MAE_Window* Wnd();
+	virtual MAE_Window* CreateRootWnd();
 	virtual void SetDetLevel(TInt aLevel);
 	virtual TInt DetLevel() { return iDetLevel; };
 	CAV_WindowGtk* WndGtk() { return iWnd;}
@@ -26,7 +27,7 @@ class CAE_ViewGtk: public MAE_View
 	TType iType;
 	string iName;
 	CAV_WindowGtk* iWnd;
-	GtkLayout *iWidget;
+	GtkWidget *iWidget;
 	// Detalization level
 	TInt iDetLevel;
 };
@@ -36,7 +37,7 @@ class CAV_WindowGtk: public MAE_Window
 {
     friend class CAV_Gc;
     public:
-	CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, const string& aName, GtkLayout* aWidget, PangoContext* aPContext);
+	CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, const string& aName, GtkWidget* aWidget, PangoContext* aPContext);
 	virtual ~CAV_WindowGtk();
 	// From MAE_Window
 	virtual const MAE_View* View() { return iView;};
@@ -60,7 +61,7 @@ class CAV_WindowGtk: public MAE_Window
 	void RemoveChild(CAV_WindowGtk* aWnd);
 	MAE_ViewObserver* Observer() {return iObserver;};
     public:
-	GtkLayout* iWidget;
+	GtkWidget* iWidget;
     private:
 	typedef pair<TGcType, TState> TGcKey; 
     private:
