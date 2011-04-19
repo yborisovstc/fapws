@@ -1,19 +1,22 @@
 
-fapws=/home/yborisov/projects/fap/git/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS {
-autogen.sh
-Makefile.am
-configure.ac
-AUTHORS
-COPYING
-ChangeLog
-README
-NEWS
+fapws=/home/yborisov/projects/fap/git/fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS *.in {
+ autogen.sh
+ Makefile.am
+ configure.ac
+ AUTHORS
+ COPYING
+ ChangeLog
+ README
+ NEWS
+ Makefile.in
+ libfapws.pc.in
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   deslbase.h
   fapbase.h
   fapext.h
   fapfact.h
   faplogger.h
+  fapopvi.h
   fapplat.h
   fapstext.h
   faptran.h
@@ -28,6 +31,7 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapext.cpp
   fapfact.cpp
   faplogger.cpp
+  fapopvi.cpp
   fapstext.cpp
   fapviewprim.cpp
   fapws.cpp
@@ -106,6 +110,31 @@ test=test CD=. filter="*" {
   libs=.libs CD=. filter="*" {
    ut-fapws-lib
   }
+}
+}
+fap-bvp-gtk=/home/yborisov/projects/fap/git/fap-bvp-gtk CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS *.in {
+ autogen.sh
+ Makefile.am
+ configure.ac
+ AUTHORS
+ COPYING
+ ChangeLog
+ README
+ NEWS
+src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
+  cagbin.h
+  cagcontainer.h
+  cagproxy.h
+  cagwindow.h
+  widgets.h
+  cagbin.cpp
+  cagcontainer.cpp
+  cagproxy.cpp
+  cagwindow.cpp
+  widgets.cpp
+  Makefile.am
+} 
+debian=debian CD=. filter="*" {
 }
 }
 fap-tias=/home/yborisov/projects/fap/git/fap-tias CD=. filter="README *.ac *.am" {

@@ -928,36 +928,10 @@ class CAE_TranExBase: public CAE_Base, public MAE_TranEx
 };
 
 
-// Provider of CAE elements
-class MAE_Provider
-{
-    public:
-	virtual CAE_StateBase* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
-	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const  = 0;
-	virtual CAE_EBase* CreateObjectL(const char *aName) const  = 0;
-	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
-	virtual void RegisterState(const TStateInfo *aInfo) = 0;
-	virtual void RegisterStates(const TStateInfo **aInfos) = 0;
-	virtual void RegisterTransf(const TTransInfo *aName) = 0;
-	virtual void RegisterTransfs(const TTransInfo **aNames) = 0;
-	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
-	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
-	virtual CAE_ChromoBase* CreateChromo() const = 0;
-	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const = 0;
-};
-
-// FAP environment interface
-class MAE_Env
-{
-    public:
-	virtual MAE_Provider *Provider() const = 0;
-	// Getting Cromosome manager
-	virtual MAE_ChroMan *Chman() const = 0;
-	virtual MCAE_LogRec *Logger() = 0;
-	virtual MAE_TranEx *Tranex() = 0;
-};
-
 class MAE_View;
+class MAE_Env;
+class MAE_Opv;
+class MCAE_LogRec;
 // Base class for object. Object is container and owner of its component and states
 // The component of object can be other objects
 // TODO [YB] Consider restricting access to object elements. Currently any internal object can be accessed
@@ -987,170 +961,19 @@ public:
 	private:
 	    CAE_Object& iMaster;
     };
-	// Base view rendering element type
-	enum TReType {
-	    Et_Unknown,
-	    Et_System,
-	    Et_Header,
-	    Et_Comp,
-	    Et_Inp,
-	    Et_Outp,
-	    Et_StateHeader,
-	    Et_CompHeader,
-	    Et_CompInp,
-	    Et_LeftConns,
-	    Et_RightConns,
-	    Et_CompOutp,
-	    Et_Conn
+
+	// Object's controller
+	class Ctrl
+	{
+	    public:
+		Ctrl(CAE_Object& aOwner): iOwner(aOwner) {}
+		vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
+		CAE_Object& Object() { return iOwner;}
+	    public:
+		CAE_Object& iOwner;
 	};
-	// Type of rendering elements
-	typedef pair<TReType, string> TRelm;
 
-	// Base view agents
-private:
-	class Bva: public MAE_ViewObserver 
-    {
-	public:
-	    Bva(Bva* aParent, CAE_Object& aSys, MAE_Window* aWnd, TReType aType, const string& aName, TBool aCreateWnd = ETrue);
-	    virtual ~Bva();
-	    Bva* GetBva(TReType aType, const string& aName);
-	    void AddBva(Bva* aBva);
-	    // Renders the childs, returns hint for its rect
-	    virtual void Render(CAV_Rect& aRect) {};
-	    // TODO [YB] To remove Draw
-	    virtual void Draw() {};
-	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState) {}; 
-	    void SetRect(const CAV_Rect& aRect) {iWnd->SetRect(aRect);};
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect) {};
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt) {};
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect) {};
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect) {};
-	    virtual void OnMotion(MAE_Window* aWnd, const CAV_Point& aCoord) {};
-	    virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter);
-	    virtual void OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState) {};
-	public:
-	    Bva* iParent;
-	    CAE_Object& iSys;
-	    MAE_Window* iWnd;
-	    TReType iType;
-	    string iName;
-	    map<TRelm, Bva*> iBvas; 
-    };
-
-	// Base view agent for header
-	class BvaHead : public Bva
-    {
-	public:
-	    BvaHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for system
-	class BvaSyst : public Bva
-    {
-	public:
-	    BvaSyst(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for component
-	class BvaComp : public Bva
-    {
-	public:
-	    BvaComp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for components header
-	class BvaCompHead : public Bva
-    {
-	public:
-	    BvaCompHead(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for components inputs
-	class BvaCompInp : public Bva
-    {
-	public:
-	    BvaCompInp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for conns (Et_LeftConns - placed left from conn point, Et_RightConns - placed right)
-	class BvaConns : public Bva
-    {
-	public:
-	    BvaConns(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, TReType aType, const string& aName, 
-		    const vector<CAE_ConnPointBase*>& aConns);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    virtual void OnChildStateChanged(const Bva* aChild, MAE_Window::TState aPrevState); 
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-
-	// Base view agent for components outputs
-	class BvaCompOutp : public Bva
-    {
-	public:
-	    BvaCompOutp(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-    };
-	// Base view agent for connection id
-	class BvaConn : public Bva
-    {
-	public:
-	    BvaConn(Bva* aParent, CAE_Object& aSys, MAE_Window* aOwnedWnd, const string& aName);
-	    virtual ~BvaConn();
-	    virtual void Render(CAV_Rect& aRect);
-	    virtual void Draw();
-	    // From MAE_ViewObserver
-	    virtual void OnExpose(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual TBool OnButton(MAE_Window* aWnd, TBtnEv aEvent, TInt aBtn, CAV_Point aPt);
-	    virtual void OnResized(MAE_Window* aWnd, CAV_Rect aRect);
-	    virtual void OnPrefSizeRequested(MAE_Window* aWnd, CAV_Rect& aRect);
-	    virtual void OnCrossing(MAE_Window* aWnd, TBool aEnter);
-	    virtual void OnStateChanged(MAE_Window* aWnd, MAE_Window::TState aPrevState);
-    };
-
+	friend class Crtl;
 public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
@@ -1195,6 +1018,9 @@ public:
 	       	CSL_ExprBase*>::iterator& aEnd);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
 	void AddView(MAE_View* aView);
+	void SetBaseViewProxy(MAE_Opv* aProxy);
+	void MoveBaseViewProxy(MAE_Opv* aProxy, CAE_Object* aObj);
+	void MoveBaseViewProxyToMan(MAE_Opv* aProxy);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1224,19 +1050,7 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void Render(MAE_Window* aWnd, CAV_Rect aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
-	void RenderComp(const CAE_Object& aComp, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
-	void RenderState(const CAE_StateBase& aState, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, 
-		TReType& aReType, vector<string>& aRelm);
-	void RenderCpoint(const CAE_ConnPointBase& aCpoint, TBool aInp, TBool aState, MAE_Gc& aGc, CAV_Rect& aRect,
-		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
-	void RenderEpoint(CAE_ConnPointBase& aCpoint, TBool aInp, MAE_Gc& aGc, CAV_Rect& aRes,
-		TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
-	void RenderTrans(const string& aTrans, MAE_Gc& aGc, CAV_Rect& aRect, TBool aDraw, CAV_Point aPt, TReType& aReType, vector<string>& aRelm);
 	void SetTrans(const string& aTrans);
-	Bva* GetBva(TReType aType, const string& aName);
-	void AddBva(Bva* aBva);
-	void ResetView();
 	void OnHeaderPress(const MAE_View* aView);
 	void OnCompHeaderPress(const MAE_View* aView, const string& aName);
 private:
@@ -1252,14 +1066,53 @@ private:
 	ChromoPx iChromoIface;
 	map<string, MAE_View*> iViews;
 	string iTransSrc;
-	map<TRelm, Bva*> iBvas; // Base view agents
+	MAE_Opv* iOpv; // Proxy for base view
+	Ctrl iCtrl; // Controll interface
 };
 
 inline const char *CAE_Object::Type() { return "Object";} 
 
 
-inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
+// Object proxy for base view
+class MAE_Opv
+{
+    public:
+	virtual void SetObj(CAE_Object::Ctrl* aObj) = 0;
+	virtual void Destroy() = 0;
+};
+
 	
+// Provider of CAE elements
+class MAE_Provider
+{
+    public:
+	virtual CAE_StateBase* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const = 0;
+	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const  = 0;
+	virtual CAE_EBase* CreateObjectL(const char *aName) const  = 0;
+	virtual const TTransInfo* GetTransf(const char *aName) const  = 0;
+	virtual void RegisterState(const TStateInfo *aInfo) = 0;
+	virtual void RegisterStates(const TStateInfo **aInfos) = 0;
+	virtual void RegisterTransf(const TTransInfo *aName) = 0;
+	virtual void RegisterTransfs(const TTransInfo **aNames) = 0;
+	virtual const CAE_Formatter* GetFormatter(int aUid) const  = 0;
+	virtual void RegisterFormatter(CAE_Formatter *aForm) = 0;
+	virtual CAE_ChromoBase* CreateChromo() const = 0;
+	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const = 0;
+	virtual MAE_Opv* CreateViewProxy() = 0;
+};
+
+// FAP environment interface
+class MAE_Env
+{
+    public:
+	virtual MAE_Provider *Provider() const = 0;
+	// Getting Cromosome manager
+	virtual MAE_ChroMan *Chman() const = 0;
+	virtual MCAE_LogRec *Logger() = 0;
+	virtual MAE_TranEx *Tranex() = 0;
+};
+
+
 // Bit based authomata 
 class CAE_ObjectBa: public CAE_Object
 {
@@ -1404,5 +1257,7 @@ private:
 inline MCAE_LogRec *CAE_EBase::Logger() { return iMan ? iMan->Logger(): NULL;}
 
 inline MCAE_LogRec *CAE_StateBase::Logger() { return iMan ? iMan->Logger(): NULL;}
+
+inline MCAE_LogRec *CAE_Object::Logger() {return iEnv ? iEnv->Logger(): NULL; }
 
 #endif // __FAP_BASE_H

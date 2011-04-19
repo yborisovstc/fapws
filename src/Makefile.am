@@ -25,6 +25,8 @@ libfapws_la_SOURCES = \
 		       viewgtk.cpp \
 		       fapviewprim.h \
 		       fapviewprim.cpp \
+		       fapopvi.h \
+		       fapopvi.cpp \
 		       deslbase.cpp \
 		       deslbase.h 
 

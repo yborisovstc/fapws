@@ -635,6 +635,10 @@ CAE_TranExBase* CAE_ProviderGen::CreateTranEx(MCAE_LogRec* aLogger) const
     return new CAE_TaDesl(aLogger);
 }
 
+MAE_Opv* CAE_ProviderGen::CreateViewProxy()
+{
+    return NULL;
+}
 
 //*********************************************************
 // Chromosome manager for XML based chromosome
@@ -1023,3 +1027,16 @@ CAE_TranExBase* CAE_Fact::CreateTranEx(MCAE_LogRec* aLogger) const
     GetProviderAt(0)->CreateTranEx(aLogger);
 }
 
+MAE_Opv* CAE_Fact::CreateViewProxy()
+{
+    MAE_Opv* res = NULL;
+    for (TInt i = 0; i < iProviders->size(); i++)
+    {
+	CAE_ProviderBase* prov = GetProviderAt(i);
+	_FAP_ASSERT(prov != NULL);
+	res = prov->CreateViewProxy();
+	if (res != NULL)
+	    break;
+    }
+    return res;
+}

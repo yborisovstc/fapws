@@ -56,40 +56,28 @@ void CAE_Env::ConstructL(const char* aLogSpecFile, const char *aLogFileName)
     iProvider = CAE_Fact::NewL();
     SetActive();
 }
-/*
-void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpec, 
-	const char* aLogSpecFile, const char *aLogFileName)
-{
-    AddChmanXml(aSpec);
-    iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
-    iProvider = CAE_Fact::NewL();
-    if (aSinfos != NULL) {
-	iProvider->RegisterStates(aSinfos);
-    }
-    if (aTinfos != NULL) {
-	iProvider->RegisterTransfs(aTinfos);
-    }
-    void *rootspec = Chman()->GetChild(NULL);
-    iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) rootspec, this);
-    SetActive();
-}
-*/
+
 void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos, const char* aSpec, 
 	const char* aLogSpecFile, const char *aLogFileName)
 {
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
     iTranEx = iProvider->CreateTranEx(Logger());
-    CAE_ChromoBase *spec = iProvider->CreateChromo();
-    spec->Set(aSpec);
+    iSystSpec = aSpec;
     if (aSinfos != NULL) {
 	iProvider->RegisterStates(aSinfos);
     }
     if (aTinfos != NULL) {
 	iProvider->RegisterTransfs(aTinfos);
     }
+}
+
+void CAE_Env::ConstructSystem()
+{
     // Create root system
     // TODO [YB] Potentially the root also can be inherited form parent
+    CAE_ChromoBase *spec = iProvider->CreateChromo();
+    spec->Set(iSystSpec.c_str());
     const CAE_ChromoNode& root = spec->Root();
     iRoot = CAE_Object::NewL(root.Name().c_str(), NULL, this);
     for (CAE_ChromoNode::Const_Iterator imut = root.Begin(); imut != root.End(); imut++) {
@@ -170,3 +158,7 @@ FAPWS_API void CAE_Env::AddChmanXml(const char *aXmlFileName)
     iChroman = CAE_ChroManXFact::CreateChroManX(aXmlFileName);
 }
 
+void CAE_Env::AddProviderL(CAE_ProviderBase* aProv)
+{
+    iProvider->AddProviderL(aProv);
+}

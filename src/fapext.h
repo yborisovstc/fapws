@@ -12,6 +12,8 @@
 
 class CAE_LogCtrl;
 class CAE_ChroManBase;
+class CAE_ProviderBase;
+class CAE_Fact;
 
 class CAE_Env: public CActive, public MAE_Env
 {
@@ -29,6 +31,8 @@ public:
 	FAPWS_API void Step();
 	FAPWS_API void AddChmanXml(const char *aXmlFileName);
 	FAPWS_API inline CAE_Object *Root();
+	void ConstructSystem();
+	void AddProviderL(CAE_ProviderBase* aProv);
 public:
 	// From MAE_Env
 	virtual MAE_Provider *Provider() const;
@@ -48,8 +52,9 @@ private:
 	CAE_LogCtrl* iLogger;
 	TUint32		iStepCount;
 	CAE_ChroManBase *iChroman; // Chromosome manager
-	MAE_Provider *iProvider;
+	CAE_Fact *iProvider;
 	CAE_TranExBase* iTranEx;
+	string iSystSpec;
 };
 
 
