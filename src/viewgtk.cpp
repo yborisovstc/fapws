@@ -172,12 +172,12 @@ CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, cons
     gdk_gc_set_foreground(gc, &clr);
 
     gc = style->bg_gc[GTK_STATE_PRELIGHT];
-    clr = {0, 0, 50000, 0};
+    clr = (GdkColor){0, 0, 50000, 0};
     res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
     gdk_gc_set_foreground(gc, &clr);
 
     gc = style->bg_gc[GTK_STATE_SELECTED];
-    clr = {0, 0, 0, 50000};
+    clr = (GdkColor){0, 0, 0, 50000};
     res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
     gdk_gc_set_foreground(gc, &clr);
 
@@ -185,17 +185,17 @@ CAV_WindowGtk::CAV_WindowGtk(const MAE_View* aView, CAV_WindowGtk* aParent, cons
 
     // Set fg context
     gc = style->fg_gc[GTK_STATE_NORMAL];
-    clr = {0, 10000, 0, 0};
+    clr = (GdkColor){0, 10000, 0, 0};
     res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
     gdk_gc_set_foreground(gc, &clr);
 
     gc = style->fg_gc[GTK_STATE_PRELIGHT];
-    clr = {0, 0, 10000, 0};
+    clr = (GdkColor){0, 0, 10000, 0};
     res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
     gdk_gc_set_foreground(gc, &clr);
 
     gc = style->fg_gc[GTK_STATE_SELECTED];
-    clr = {0, 0, 0, 10000};
+    clr = (GdkColor){0, 0, 0, 10000};
     res = gdk_colormap_alloc_color(cmap, &clr, TRUE, TRUE);
     gdk_gc_set_foreground(gc, &clr);
 
