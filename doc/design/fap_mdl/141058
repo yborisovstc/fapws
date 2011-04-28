@@ -1,6 +1,6 @@
 format 70
 "fap1" // fap1
-  revision 9
+  revision 10
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -1057,6 +1057,84 @@ format 70
       operation 177666 "GetExprs"
 	stereotype "virtual"
 	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+    end
+
+    sequencediagram 167298 "fap1~icd.view_proxy"
+      show_full_operations_definition default write_horizontally default class_drawing_mode default drawing_language default draw_all_relations default shadow default show_stereotype_properties default
+      overlapping_bars size A4
+    end
+
+    class 203394 "__proxy"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 203522 "MAE_ObjCtrl"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "Object's Controlling interface. This interface is for external controlling of object. For instance view proxy can access to object via this iface"
+      operation 184450 "Obj"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 184578 "CompReg"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+    end
+
+    class 203650 "MAE_Opv"
+      abstract visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "Object view proxy interface."
+      operation 184194 "SetObj"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 184322 "Destroy"
+	public explicit_return_type ""
 	nparams 0
 	
 	

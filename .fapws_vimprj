@@ -123,14 +123,39 @@ fap-bvp-gtk=/home/yborisov/projects/fap/git/fap-bvp-gtk CD=. filter="autogen.sh 
  NEWS
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   cagbin.h
+  cagbutton.h
   cagcontainer.h
+  caglabel.h
+  caglayout.h
+  cagmisc.h
   cagproxy.h
+  cagstyle.h
   cagwindow.h
+  capbutton.h
+  capcommon.h
+  capcomp.h
+  capcomphead.h
+  capcp.h
+  capcterm.h
+  capdect.h
+  capsys.h
   widgets.h
   cagbin.cpp
+  cagbutton.cpp
   cagcontainer.cpp
+  caglabel.cpp
+  caglayout.cpp
+  cagmisc.cpp
   cagproxy.cpp
+  cagstyle.cpp
   cagwindow.cpp
+  capbutton.cpp
+  capcomp.cpp
+  capcomphead.cpp
+  capcp.cpp
+  capcterm.cpp
+  capdect.cpp
+  capsys.cpp
   widgets.cpp
   Makefile.am
 } 

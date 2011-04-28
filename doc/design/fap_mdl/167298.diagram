@@ -1,0 +1,7 @@
+format 70
+
+classinstance 128002 class_ref 203650 // MAE_Opv
+  name "proxy"   xyz 68 45 2005 life_line_z 2000
+classinstance 128130 class_ref 203522 // MAE_ObjCtrl
+  name "object"   xyz 231 44 2005 life_line_z 2000
+end

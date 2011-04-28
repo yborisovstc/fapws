@@ -195,7 +195,7 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_02"><title>FAP_UC_VW_02 Client application creates view and adds it to DES interpreter</title>
 	</sect2>
-	<sect2 id="sec_views_02"><title>FAP_UC_VW_06 User specifies base view and see the systems spec</title>
+	<sect2 id="sec_views_06"><title>FAP_UC_VW_06 User specifies base view and see the systems spec</title>
 	    <simpara>User specify that the view of type "base". System displays it's specification in graphic notation.</simpara>
 	    <simpara>System displays the following on the base view: inputs, outputs, transitions, states, components</simpara>
 	</sect2>
@@ -212,14 +212,31 @@ To transform to html:
 	<sect2 id="sec_views_07"><title>FAP_UC_VW_07 User can act to view</title>
 	    <simpara>User acts on view. The system reacts on this and change the view properly.</simpara>
 	</sect2>
-	<sect2 id="sec_views_08"><title>FAP_UC_VW_08 User taps on component</title>
-	    <simpara>User taps on component - system displays component base view</simpara>
-	</sect2>
 	<sect2 id="sec_views_09"><title>FAP_UC_VW_09 User taps on connection id</title>
 	    <simpara>User taps on connecion id - system higlight connection id and all corresponding connection ids</simpara>
 	</sect2>
-	<sect2 id="sec_views_10"><title>FAP_UC_VW_10 USER selects system with state - SYSTEM displays state, showing state elemenst</title>
-	    <simpara>The following elemensts are displayed: trans, init, inputs</simpara>
+	<sect2 id="sec_views_10"><title>FAP_UC_VW_10 USER selects system with state - SYSTEM displays state, showing state elements</title>
+	    <simpara>The following elemensts are displayed: name, type, trans, init, inputs. Name and type are displayed
+	    in header of state.</simpara>
 	</sect2>
+	<sect2 id="sec_views_11"><title>FAP_UC_VW_11 USER selects system with sub-systems - SYSTEM displays sub-systems, showing its elements</title>
+	    <simpara>The following elemensts are displayed: name, parent, inputs, outputs. Name and parent are displayed
+	    in the header of system.</simpara>
+	</sect2>
+	<sect2 id="sec_views_12"><title>FAP_UC_VW_12 USER taps on name in subsystem - SYSTEM displays sub-system view</title>
+	</sect2>
+	<sect2 id="sec_views_13"><title>FAP_UC_VW_13 USER taps on parent in subsystem - SYSTEM displays parent view</title>
+	</sect2>
+	<sect2 id="sec_views_14"><title>FAP_UC_VW_14 SYSTEM allows to open new view in current or new window</title>
+	</sect2>
+	<sect2 id="sec_views_15"><title>FAP_UC_VW_15 SYSTEM allows USER to navigate thru root hierarhy</title>
+	    <simpara>SYSTEM (for instance Client Application) is initialized by some element within system hierarhy. SYSTEM
+		considers this element as a root. SYSTEM allows USER navigation thru hierarhy below this root. </simpara>
+	    <simpara>SYSTEM moves down on USER selects sub-system within current system. SYSTEM moves up on USER selects
+		moving to parent (from menu or toolbar).</simpara>
+	</sect2>
+	<sect2 id="sec_views_16"><title>FAP_UC_VW_16 SYSTEM allows USER to navigate thru the history</title>
+	</sect2>
+
     </sect1>
 </article>

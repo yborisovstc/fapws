@@ -2657,26 +2657,21 @@ void CAE_Object::AddView(MAE_View* aView)
     iOpv->SetObj(&iCtrl);
 }
 
-void CAE_Object::SetBaseViewProxy(MAE_Opv* aProxy)
+void CAE_Object::SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot)
 {
     _FAP_ASSERT (iOpv == 0);
     iOpv = aProxy;
     iOpv->SetObj(&iCtrl);
+    if (aAsRoot) {
+	iOpv->SetRoot(&iCtrl);
+    }
 }
 
-void CAE_Object::MoveBaseViewProxy(MAE_Opv* aProxy, CAE_Object* aObj)
+void CAE_Object::RemoveBaseViewProxy(MAE_Opv* aProxy)
 {
     _FAP_ASSERT (iOpv == aProxy);
+    iOpv->UnsetObj(&iCtrl);
     iOpv = NULL;
-    aObj->SetBaseViewProxy(aProxy);
-    //aProxy->SetObj(&(aObj->iCtrl));
-}
-
-void CAE_Object::MoveBaseViewProxyToMan(MAE_Opv* aProxy)
-{
-    _FAP_ASSERT (iOpv == aProxy);
-    iOpv = NULL;
-    iMan->SetBaseViewProxy(aProxy);
 }
 
 void CAE_Object::OnHeaderPress(const MAE_View* aView)

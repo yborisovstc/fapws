@@ -6,10 +6,8 @@ diagrams
     1003 867 100 4 0 0
   activitydiagram_ref 147714 // fap1.dest.nameresol~actdgm
     1003 867 100 4 240 0
-  classdiagram_ref 154242 // fap1.view~clsdgm
+  active  classdiagram_ref 154242 // fap1.view~clsdgm
     1011 870 100 4 0 0
-  active  classdiagram_ref 160770 // fap1~clsdgm.dest
-    1003 867 100 4 0 0
 end
 show_stereotypes
 selected operation_ref 177666 // GetExprs

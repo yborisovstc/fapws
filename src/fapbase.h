@@ -969,6 +969,7 @@ public:
 		Ctrl(CAE_Object& aOwner): iOwner(aOwner) {}
 		vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
 		CAE_Object& Object() { return iOwner;}
+		CAE_EBase* FindByName(const char* aName) { return iOwner.FindByName(aName);};
 	    public:
 		CAE_Object& iOwner;
 	};
@@ -1018,9 +1019,8 @@ public:
 	       	CSL_ExprBase*>::iterator& aEnd);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
 	void AddView(MAE_View* aView);
-	void SetBaseViewProxy(MAE_Opv* aProxy);
-	void MoveBaseViewProxy(MAE_Opv* aProxy, CAE_Object* aObj);
-	void MoveBaseViewProxyToMan(MAE_Opv* aProxy);
+	void SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot = EFalse);
+	void RemoveBaseViewProxy(MAE_Opv* aProxy);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1077,7 +1077,9 @@ inline const char *CAE_Object::Type() { return "Object";}
 class MAE_Opv
 {
     public:
+	virtual void SetRoot(CAE_Object::Ctrl* aObj) = 0;
 	virtual void SetObj(CAE_Object::Ctrl* aObj) = 0;
+	virtual void UnsetObj(CAE_Object::Ctrl* aObj) = 0;
 	virtual void Destroy() = 0;
 };
 
