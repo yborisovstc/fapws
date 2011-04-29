@@ -278,10 +278,12 @@ class CAE_ConnPointBase: public CAE_Base
 	const string& Name() const { return iName; };
 	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
 	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
+	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
 	const CAE_EBase& Man() const { return *iMan;};
     protected:
 	string iName;
 	vector<CAE_ConnPointBase*> iConns;
+	vector<CAE_ConnPointBase*> iExts;
 	CAE_EBase* iMan;
 };
 
@@ -970,6 +972,7 @@ public:
 		vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const char* aName) { return iOwner.FindByName(aName);};
+		CAE_Object* Mangr() { return iOwner.iMan;};
 	    public:
 		CAE_Object& iOwner;
 	};

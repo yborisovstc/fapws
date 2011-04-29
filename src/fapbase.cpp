@@ -326,6 +326,7 @@ void CAE_ConnPoint::Disconnect()
 
 TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint) 
 {
+    // TODO [YB] This is not conn actually but extention. But contradicts with view proxy logig. To consider
     iConns.push_back(aConnPoint);
     return ETrue;
 }
@@ -383,6 +384,7 @@ TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint)
     TBool res = EFalse;
     if (iRef == NULL) { 
 	iRef = aConnPoint;
+	iExts.push_back(iRef);
        	res = ETrue;
     }
     return res;
@@ -1460,7 +1462,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 		CAE_ConnPointBase* p2 = GetConn(p2_name);
 		if ((p1 != NULL) && (p2 != NULL))
 		{
-		    if (!p1->Extend(p2))
+		    if (!p1->Extend(p2) && !p2->Extend(p1))
 		    {
 			Logger()->WriteFormat("ERROR: Extention [%s] <- [%s]: failure", p1_name, p2_name);
 		    }

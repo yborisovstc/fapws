@@ -237,6 +237,8 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_16"><title>FAP_UC_VW_16 SYSTEM allows USER to navigate thru the history</title>
 	</sect2>
+	<sect2 id="sec_views_17"><title>FAP_UC_VW_17 SYSTEM can filter the connections showing only local of them</title>
+	</sect2>
 
     </sect1>
 </article>
