@@ -54,6 +54,7 @@ void UT_FAP_Emtran::test_Emtran_main()
 
     iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
 
     for (TInt i=0; i<40; i++)
     {
@@ -80,6 +81,7 @@ void UT_FAP_Emtran::test_Emtran_main()
 
     iEnv = CAE_Env::NewL(NULL, tinfos, "ut_emtran_spec_3.xml", 1, NULL, "ut_emtran_log_3.txt");
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
 
     for (TInt i=0; i<18; i++)
     {

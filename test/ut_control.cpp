@@ -200,6 +200,7 @@ void UT_FAP_Contr::setUp()
 {
     iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
 }
 
 void UT_FAP_Contr::tearDown()

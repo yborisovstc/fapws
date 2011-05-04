@@ -31,6 +31,7 @@ public:
 	FAPWS_API void Step();
 	FAPWS_API void AddChmanXml(const char *aXmlFileName);
 	FAPWS_API inline CAE_Object *Root();
+	// Separated from constructor because constr can be followed by second phase - setting providers etc.
 	void ConstructSystem();
 	void AddProviderL(CAE_ProviderBase* aProv);
 public:

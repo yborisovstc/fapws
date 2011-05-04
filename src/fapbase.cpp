@@ -1241,6 +1241,7 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, 
 void CAE_Object::Construct()
 {
     iMut = iEnv->Provider()->CreateChromo();
+    iMut->Init(ENt_Mut);
     iChromo = iEnv->Provider()->CreateChromo();
     iChromo->Init(ENt_Robject);
     CAE_ChromoNode croot = iChromo->Root();
@@ -1739,6 +1740,9 @@ TInt CAE_Object::LsDataFromStr(const char *aStr)
     else return KBaseDa_None;
 }
 
+// TODO [YB] How control state is activated on chromo change? Object doesn't have something like connection in state
+// to know that control state is "connected" to it. Answer: Object should not have connection. Control state itself has
+// this mechanism. So if someone needs to be "connected" to object chromo then it should be connected to control state.
 void CAE_Object::Confirm()
 {
     // Confirm the elements
