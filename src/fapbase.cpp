@@ -30,6 +30,8 @@
 // if we have both of connectin points being connecting. But with given use case we have only connection point that
 // is extended, and this conn point needs to be disconnected from the pair, and then the new conn point needs to be connected to
 // that pair. 
+// TODO [YB] Completely wrong approach for mutation. Mutation should occur while creating new instance. It is not possible
+// just to change the existing one. So mutation shoud be: first - changing of chromo, second - produce new instance.
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2039,6 +2041,22 @@ void CAE_Object::AddExtc(const CAE_ChromoNode& aSpec)
 }
 
 
+void CAE_Object::ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr)
+{
+    NodeType ntype = aSpec.AttrNtype(ENa_Type);
+    string nname = aSpec.Name();
+    TNodeAttr mattr = aSpec.AttrNatype(ENa_MutChgAttr);
+    string mattrs = aSpec.Attr(ENa_MutChgAttr);
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    if (aCurr.AttrExists(mattr)) {
+	aCurr.SetAttr(mattr, mval);
+	// TODO [YB] To update dependent nodes (connections etc.)
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - attr [%s] not found", nname.c_str(), mattrs.c_str());
+    }
+}
+
 void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
     NodeType ntype = aSpec.AttrNtype(ENa_Type);
@@ -2092,6 +2110,25 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
 	else {
 	    Logger()->WriteFormat("ERROR: Changing extention [%s] - not found", nname.c_str());
 	}
+    }
+    else if (ntype == ENt_Object)
+    {
+	CAE_EBase* elem = FindByName(nname.c_str());
+	CAE_Object* obj = elem->GetFbObj(obj);
+	if (obj != NULL) {
+	    if (mattr == ENa_Id) {
+		obj->SetName(mval.c_str());
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName(), mattrs.c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing object [%s] - not found", nname.c_str());
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
     }
 }
 
@@ -2212,6 +2249,7 @@ void CAE_Object::DoMutation()
 		    else {
 			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
 		    }
+		    // Change chromo
 		    chrroot.AddChild(mano);
 		}
 	    }
@@ -2226,6 +2264,7 @@ void CAE_Object::DoMutation()
 			string name = mrno.Name();
 			CAE_ChromoNode::Iterator remit = chrroot.Find(type, name);
 			if (remit != chrroot.End()) {
+			    // Change chromo
 			    chrroot.RmChild(*remit);
 			}
 			else {
@@ -2243,6 +2282,10 @@ void CAE_Object::DoMutation()
 		string name = mno.Name();
 		CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
 		if (curr != chrroot.End()) {
+		    // Change chromo
+		    CAE_ChromoNode currn = *curr;
+		    ChangeChromoAttr(mno, currn);
+		    // Change runtime model
 		    ChangeAttr(mno, *curr);
 		}
 		else {

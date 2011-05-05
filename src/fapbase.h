@@ -1053,6 +1053,7 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
 	void OnHeaderPress(const MAE_View* aView);
 	void OnCompHeaderPress(const MAE_View* aView, const string& aName);
