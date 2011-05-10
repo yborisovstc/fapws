@@ -973,7 +973,9 @@ public:
 	{
 	    public:
 		Ctrl(CAE_Object& aOwner): iOwner(aOwner) {}
-		vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
+		//vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
+		map<string, CAE_Object*>& Comps() { return iOwner.iComps;};
+		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const char* aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};
@@ -996,10 +998,6 @@ public:
 	virtual void Confirm();
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
-	TInt CountCompWithType(const char *aType = NULL);
-	// TODO [YB] To restrict an access to components
-	CAE_Object* GetNextCompByFapType(const char *aType, int* aCtx = NULL) const;
-	CAE_Object* GetNextCompByType(const char *aType, int* aCtx = NULL) const;
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
 	CAE_EBase* FindByName(const char* aName);
 	CAE_ConnPointBase* GetConn(const char *aName);
@@ -1037,7 +1035,6 @@ protected:
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	virtual void DoMutation();
 private:
-	CAE_StateBase* GetStateByName(const char *aName);
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
 	// Get logspec event from string
@@ -1063,7 +1060,9 @@ private:
 	void OnCompHeaderPress(const MAE_View* aView, const string& aName);
 private:
 	// TODO [YB] To migrate to map
-	vector<CAE_EBase*> iCompReg;
+	map<string, CAE_Object*> iComps;
+	map<string, CAE_StateBase*> iStates;
+	//vector<CAE_EBase*> iCompReg;
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;

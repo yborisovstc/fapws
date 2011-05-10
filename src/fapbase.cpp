@@ -1268,10 +1268,19 @@ void CAE_Object::ConstructL(const void* aChrom)
 	ConstructFromChromXL(iChromX);
 }
 
-// TODO [YB] Prevent registering the same comp again. Migrate to map.
 void  CAE_Object::RegisterCompL(CAE_EBase* aComp) 
 { 
-    iCompReg.push_back(aComp); 
+    CAE_Object* comp = aComp->GetFbObj(comp);
+    if (comp != NULL) {
+	_FAP_ASSERT(iComps.count(aComp->InstName()) == 0);
+	iComps.insert(pair<string, CAE_Object*>(comp->InstName(), comp));
+    }
+    else {
+	CAE_StateBase* state = aComp->GetFbObj(state);
+	_FAP_ASSERT(state != NULL);
+	_FAP_ASSERT(iStates.count(aComp->InstName()) == 0);
+	iStates.insert(pair<string, CAE_StateBase*>(state->InstName(), state));
+    }
     aComp->SetMan(this);
     if (aComp->IsUpdated()) SetUpdated();
 };
@@ -1701,14 +1710,8 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 
 FAPWS_API CAE_Object::~CAE_Object()
 {
-	TInt count = iCompReg.size();
-	// Use the revers orders recalling that deleting object cause unregister it from parent
-	for (TInt i = count-1; i >= 0; i-- )
-	{
-		CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
-		delete obj;
-	}
-	iCompReg.clear();
+	iComps.clear();
+	iStates.clear();
 	if (iChromX != NULL) {
 	    delete (char *) iChromX;
 	    iChromX = NULL;
@@ -1752,15 +1755,25 @@ TInt CAE_Object::LsDataFromStr(const char *aStr)
 void CAE_Object::Confirm()
 {
     // Confirm the elements
-    for (TInt i = 0; i < iCompReg.size(); i++ )
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++)
     {
-	CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
+	CAE_Object* obj = it->second;
 	if (obj->IsUpdated() && !obj->IsQuiet())
 	{
 	    obj->Confirm();
 	    obj->ResetUpdated();
 	}
     }
+    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++)
+    {
+	CAE_StateBase* state = it->second;
+	if (state->IsUpdated())
+	{
+	    state->Confirm();
+	    state->ResetUpdated();
+	}
+    }
+
     // Mutate if required
     if (iMut != NULL) {
 	CAE_ChromoNode mut = iMut->Root();
@@ -1774,12 +1787,13 @@ void CAE_Object::Confirm()
 	    }
 	    Mutate();
 	    // Reactivate all the components
-	    for (TInt i = 0; i < iCompReg.size(); i++ )
-	    {
-		CAE_EBase* elem = (CAE_EBase*) iCompReg.at(i);
-		if (elem != NULL) {
-		    elem->SetActive();
-		}
+	    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+		CAE_EBase* elem = it->second;
+		elem->SetActive();
+	    }
+	    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++) {
+		CAE_EBase* elem = it->second;
+		elem->SetActive();
 	    }
 	}
     }
@@ -2079,16 +2093,18 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
     string mval = aSpec.Attr(ENa_MutChgVal);
     if (ntype == ENt_State)
     {
-	// TODO [YB] To do find amongs states only
-	CAE_EBase* elem = FindByName(nname.c_str());
-	CAE_StateBase* state = elem->GetFbObj(state);
-	if (state != NULL) {
+	map<string, CAE_StateBase*>::iterator it = iStates.find(nname);
+	if (it != iStates.end()) {
+	    CAE_StateBase* state = it->second;
 	    if (mattr == ENa_StInit) {
 		state->SetFromStr(mval.c_str());
 		state->Confirm();
 	    }
 	    else if (mattr == ENa_Id) {
+		iStates[nname] = NULL;
+		iStates.erase(it);
 		state->SetName(mval.c_str());
+		iStates[mval] = state;
 	    }
 	    else {
 		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName(), mattrs.c_str());
@@ -2138,11 +2154,14 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
     }
     else if (ntype == ENt_Object)
     {
-	CAE_EBase* elem = FindByName(nname.c_str());
-	CAE_Object* obj = elem->GetFbObj(obj);
-	if (obj != NULL) {
+	map<string, CAE_Object*>::iterator it = iComps.find(nname);
+	if (it != iComps.end()) {
+	    CAE_Object* obj = it->second;
 	    if (mattr == ENa_Id) {
+		iComps[nname] = NULL;
+		iComps.erase(it);
 		obj->SetName(mval.c_str());
+		iComps[mval] = obj;
 	    }
 	    else {
 		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName(), mattrs.c_str());
@@ -2186,6 +2205,12 @@ void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
 	CAE_ChromoNode& chr = iChromo->Root();
 	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
 	if (elemit != chr.End()) {
+	    if (iStates.count(name) != 0) {
+		iStates.erase(name);
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
+	    }
 	}
 	else {
 	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
@@ -2343,91 +2368,58 @@ void CAE_Object::DoMutation()
 
 void CAE_Object::Update()
 {
-    for (TInt i = 0; i < iCompReg.size(); i++ )
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++)
     {
-	CAE_EBase* obj = (CAE_EBase*) iCompReg.at(i);
-	if (obj->IsActive() && !obj->IsQuiet())
+	CAE_EBase* elem = it->second;
+	if (elem->IsActive() && !elem->IsQuiet())
 	{
-	    obj->SetUpdated();
-	    obj->ResetActive();
-	    obj->Update();
+	    elem->SetUpdated();
+	    elem->ResetActive();
+	    elem->Update();
 	}
     }
+    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++)
+    {
+	CAE_EBase* elem = it->second;
+	if (elem->IsActive() && !elem->IsQuiet())
+	{
+	    elem->SetUpdated();
+	    elem->ResetActive();
+	    elem->Update();
+	}
+    }
+
 }
 
 
 void CAE_Object::UnregisterComp(CAE_EBase* aComp)
 {
-    for (TInt i = 0; i < iCompReg.size(); i++ )
-	if (iCompReg.at(i) == aComp) {iCompReg.erase(iCompReg.begin() + i); break; };
+    CAE_Object* obj = aComp->GetFbObj(obj);
+    if (obj != NULL) {
+	map<string, CAE_Object*>::iterator it = iComps.find(obj->InstName());
+	_FAP_ASSERT(it != iComps.end());
+	iComps.erase(it);
+    }
+    else {
+	CAE_StateBase* state = aComp->GetFbObj(state);
+	_FAP_ASSERT(state != NULL);
+	map<string, CAE_StateBase*>::iterator it = iStates.find(obj->InstName());
+	_FAP_ASSERT(it != iStates.end());
+	iStates.erase(it);
+    }
 }
 
-FAPWS_API CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
+CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
 {
-    CAE_Object* res = NULL;
-    for (TInt i = 0; i < iCompReg.size(); i++) {
-	CAE_Object* comp = (CAE_Object*) iCompReg.at(i);
-	if (strcmp(aName, comp->InstName()) == 0) {
-	    res = comp; break;
-	}
-    }
+    CAE_Object* res = iComps[aName];
     if (res == NULL && aGlob) {
-	for (TInt i = 0; i < iCompReg.size() && res == NULL; i++) {
-	    CAE_Object* comp = (CAE_Object*) iCompReg.at(i);
+	for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+	    CAE_Object* comp = it->second;
 	    res = comp->GetComp(aName, ETrue);
 	}
     }
     return res;
 }
-
-FAPWS_API TInt CAE_Object::CountCompWithType(const char *aType)
-{
-    TInt res = 0;
-    if (aType == NULL) {
-	res = iCompReg.size();
-    }
-    else {
-	for (TInt i = 0; i < iCompReg.size(); i++) {
-	    CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	    if ((comp != NULL) && (comp->TypeName() != NULL) && (strcmp(comp->TypeName(), aType) == 0)) {
-		res++;
-	    }
-	}
-    }
-    return res;
-}
-
-// TODO [YB] Type to be supposed as FAP base type. Then what's the sense of this method?
-FAPWS_API CAE_Object* CAE_Object::GetNextCompByFapType(const char *aType, int* aCtx) const
-{
-    CAE_Object *res = NULL, *elem = NULL;
-    for (TInt i = aCtx?*aCtx:0; i < iCompReg.size(); i++)
-    {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	if ((elem = (CAE_Object*) comp->GetFbObj(aType)) != NULL)
-	{
-	    res = elem;
-	    *aCtx = i+1;
-	    break;
-	}
-    }
-    return res;
-}
-
-FAPWS_API CAE_Object* CAE_Object::GetNextCompByType(const char *aType, int* aCtx) const
-{
-    CAE_Object *res = NULL, *elem = NULL;
-    for (TInt i = aCtx?*aCtx:0; i < iCompReg.size(); i++) {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	if ((comp->TypeName() != NULL) && (strcmp(comp->TypeName(), aType) == 0) && (elem = comp->GetFbObj(elem)) != NULL) {
-	    res = elem;
-	    *aCtx = i+1;
-	    break;
-	}
-    }
-    return res;
-}
-
 
 FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 {
@@ -2442,28 +2434,22 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 
 	if (tail == 0x00)
 	{ // Simple name
-	    for (TInt i = 0; i < iCompReg.size(); i++)
-	    {
-		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-		if ((comp->InstName() != NULL) && (strcmp(name, comp->InstName()) == 0))
-		{
-		    res = comp; break;
+	    map<string, CAE_Object*>::iterator it = iComps.find(name);
+	    if (it != iComps.end()) {
+		    res = it->second;
+	    }
+	    else {
+		map<string, CAE_StateBase*>::iterator it = iStates.find(name);
+		if (it != iStates.end()) {
+		    res = it->second;
 		}
 	    }
 	}
 	else
 	{ // Full name
-	    for (TInt i = 0; i < iCompReg.size(); i++)
-	    {
-		CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-		if (comp && strcmp(name, comp->InstName()) == 0)
-		{
-		    CAE_Object* obj = comp->GetFbObj(obj);
-		    if (obj != NULL) {
-			res = obj->FindByName(tail+1); 
-			break;
-		    }
-		}
+	    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end() && res == NULL; it++) {
+		CAE_Object* comp = it->second;
+		res = comp->FindByName(tail+1); 
 	    }
 	}
     }
@@ -2571,23 +2557,6 @@ FAPWS_API void CAE_Object::LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTran
     aInp->SetInputL("_Inp_1", aOut);
 	aInp->SetTrans(TTransInfo(aTrans));
 }
-
-FAPWS_API CAE_StateBase* CAE_Object::GetStateByName(const char *aName)
-{
-    CAE_StateBase* res = NULL;
-    for (TInt i = 0; i < iCompReg.size(); i++)
-    {
-	CAE_EBase* comp = (CAE_EBase*) iCompReg.at(i);
-	CAE_StateBase* state = comp->GetFbObj(state);
-	if (state != NULL && (strcmp(aName, state->InstName()) == 0))
-	{
-	    res = state; 
-	    break;
-	}
-    }
-    return res;
-}
-
 
 TInt CAE_Object::ChromLen(const TUint8* aChrom) const
 {

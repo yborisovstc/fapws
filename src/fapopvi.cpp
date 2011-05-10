@@ -105,8 +105,8 @@ BvaSyst::BvaSyst(Bva* aParent, CAE_Object::Ctrl& aSys, MAE_Window* aOwnedWnd, co
     // Add header bva
     AddBva(new BvaHead(this, iSys, iWnd));
     // Add components bvas
-    for (vector<CAE_EBase*>::iterator it = iSys.CompReg().begin(); it != iSys.CompReg().end(); it++) {
-	CAE_Object* obj = (*it)->GetFbObj(obj);
+    for (map<string, CAE_Object*>::iterator it = iSys.Comps().begin(); it != iSys.Comps().end(); it++) {
+	CAE_Object* obj = it->second;
 	if (obj != NULL) {
 	    AddBva(new BvaComp(this, iSys, iWnd, obj->InstName()));
 	}
@@ -132,8 +132,8 @@ void BvaSyst::Render(CAV_Rect& aRect)
 
     // Render the comps
     CAV_Point comprec_base((rect.iTl.iX + rect.iBr.iX)/2, headrc.iBr.iY + KViewCompGapHight);
-    for (vector<CAE_EBase*>::iterator it = iSys.CompReg().begin(); it != iSys.CompReg().end(); it++) {
-	CAE_Object* obj = (*it)->GetFbObj(obj);
+    for (map<string, CAE_Object*>::iterator it = iSys.Comps().begin(); it != iSys.Comps().end(); it++) {
+	CAE_Object* obj = it->second;
 	if (obj != NULL) {
 	    bva = GetBva(Et_Comp, obj->InstName());
 	    if (bva != NULL) {
