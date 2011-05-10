@@ -273,7 +273,7 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual void Disextend(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
 	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
@@ -327,7 +327,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
-	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	CAE_ConnSlot* Srcs() {return iSrcs;};
@@ -361,7 +361,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
-	virtual void Disextend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
 	CAE_ConnPointBase* Ref() {return iRef;};
@@ -418,7 +418,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
-	virtual void Disextend(CAE_ConnPointBase *aConnPoint) {};
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };
 	static const char *Type() {return "ConnPointExtC";}; 
@@ -544,6 +544,7 @@ public:
 public:
 	const string ValStr() const;
 	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
+	inline MCAE_LogRec *Logger();
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	void ConstructL();
@@ -555,7 +556,6 @@ protected:
 	virtual void DoOperation();
 	void LogUpdate(TInt aLogData);
 	void LogTrans(TInt aLogData);
-	inline MCAE_LogRec *Logger();
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
 		multimap<string, CSL_ExprBase*>::iterator& aEnd);
@@ -787,6 +787,7 @@ class MAE_ChromoMdl
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
+	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec) = 0;
 };
 
 class CAE_ChromoMdlBase: public CAE_Base, public MAE_ChromoMdl
@@ -845,6 +846,7 @@ class CAE_ChromoNode
 	Const_Iterator Find(NodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
 	Iterator FindText() { return Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
 	Const_Iterator FindText() const { return Const_Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
+	void Reset() { iHandle = NULL;};
     public:
 	NodeType Type() { return iMdl.GetType(iHandle); };
 	NodeType Type() const { return iMdl.GetType(iHandle); };
@@ -863,12 +865,14 @@ class CAE_ChromoNode
 	CAE_ChromoMdlBase& Mdl() const { return iMdl;};
 	CAE_ChromoNode AddChild(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
 	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle())); };
+	// Be careful while removing node got from iterator. Iterator is not cleaned thus it returns wrong node on ++
 	void RmChild(const CAE_ChromoNode& aChild) { iMdl.RmChild(iHandle, aChild.iHandle); };
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
 	void SetAttr(TNodeAttr aType, NodeType aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	void SetAttr(TNodeAttr aType, TNodeAttr aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal);
+	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
     private :
 	CAE_ChromoMdlBase& iMdl;
 	void* iHandle;

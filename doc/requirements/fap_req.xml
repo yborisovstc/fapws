@@ -172,21 +172,30 @@ To transform to html:
     </sect1>
 
     <sect1 id="sec_conn"><title>Connections</title>
-	<sect3 id="sec_conn_02"><title>UC_CONN_02 Object has its own input that represent input of some internal state</title>
+	<sect2 id="sec_conn_02"><title>UC_CONN_02 Object has its own input that represent input of some internal state</title>
 	    <simpara> It allows to has the unified interface for states and objects. Morover it solves the problem with access to the object.
 		All access to the object shall be done via objects connection point.  </simpara> 
 	    <simpara>Let's use term "extention" for that. So system connection point is actually an extender. It extends the internal
 		connection point</simpara>
-	</sect3>
-	<sect3 id="sec_conn_03"><title>UC_CONN_03 Connection point can be connected to many connection points</title>
+	</sect2>
+	<sect2 id="sec_conn_03"><title>UC_CONN_03 Connection point can be connected to many connection points</title>
 	    <simpara>An example is state output that can be connected to many state inputs. The alternative way could be to have many 
 		connection points for output</simpara> 
-	</sect3>
-	<sect3 id="sec_conn_05"><title>UC_CONN_05 Subsystem connections set can be state of system.</title>
+	</sect2>
+	<sect2 id="sec_conn_05"><title>UC_CONN_05 Subsystem connections set can be state of system.</title>
 	    <simpara>System controls the structure of subsystem (connections set, transition function). The structure
 		is represented as state - it can be connected to other states, thus the change of structure will cause the activation
 		of dependent states</simpara>
-	</sect3>
+	</sect2>
+	<sect2 id="sec_conn_06"><title>UC_CONN_06 USER removes internal sub-system, SYSTEM disextend connection points of subsystem</title>
+	    <itemizedlist>
+		<listitem>Initial conditions: There is system with internal subsystem; system has extention that
+		extend connection point of this subsystem.</listitem>
+	    <listitem>USER request removing internal subsystem</listitem>
+	    <listitem>SYSTEM automatically disextend extention from subsystem</listitem>
+	    <listitem>SYSTEM removes systems's subsystem as component.</listitem>
+	    </itemizedlist>
+	</sect2>
     </sect1>
 
     <sect1 id="sec_views"><title>Views</title>
@@ -239,6 +248,28 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_17"><title>FAP_UC_VW_17 SYSTEM can filter the connections showing only local of them</title>
 	</sect2>
-
+	<sect2 id="sec_views_18"><title>FAP_UC_VW_18 USER adds new component</title>
+	    <simpara>New component has no parent and becomes some initial name. USER can create more new components, 
+		the names of components are generated uniquely.</simpara>
+	</sect2>
+	<sect2 id="sec_views_19"><title>FAP_UC_VW_19 USER changes the name of component</title>
+	</sect2>
+	<sect2 id="sec_views_20"><title>FAP_UC_VW_20 USER changes the name of system</title>
+	</sect2>
+	<sect2 id="sec_views_21"><title>FAP_UC_VW_21 USER adds new state</title>
+	    <simpara>New component has of default type and becomes some initial name. USER can create more new states, 
+		the names of them are generated uniquely.</simpara>
+	</sect2>
+	<sect2 id="sec_views_22"><title>FAP_UC_VW_22 USER removes a state.</title>
+	</sect2>
+    </sect1>
+    <sect1 id="sec_studio"><title>Studio application</title>
+	<sect2 id="sec_studio_01"><title>FAP_UC_ST_01 USER creates new project</title>
+	    <simpara>STUDIO initially manage DES environment, that provides system ticks. 
+		STUDIO also provides some predefined projects template. One of them is default template with empty root only.  </simpara>
+	    <simpara>USER asks STUDIO to create new project. STUDIO displays to user the list of projects templates available. USER
+		selects the proper template. STUDIO creates the new project from the template.
+	    </simpara>
+	</sect2>
     </sect1>
 </article>

@@ -80,6 +80,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
+	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec);
     public:
 	int GetAttrInt(void *aHandle, const char *aName);
 	void* Set(const char* aFileName);
@@ -378,6 +379,12 @@ void CAE_ChromoMdlX::RmChild(void* aParent, void* aChild)
     xmlFreeNode(child);
 }
 
+void CAE_ChromoMdlX::Dump(void* aNode, MCAE_LogRec* aLogRec)
+{
+    xmlBufferPtr bufp = xmlBufferCreate();	
+    int	res = xmlNodeDump(bufp, iDoc, (xmlNodePtr) aNode, 0, 0);
+    aLogRec->WriteFormat("%s", xmlBufferContent(bufp));
+}
 
 //*********************************************************
 // XML based chromo

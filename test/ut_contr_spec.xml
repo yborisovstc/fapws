@@ -37,6 +37,7 @@
 					<out id="togetup_3"/>
 					
 					<logspec  event="cre"> <logdata id="new"/> </logspec>
+					<logspec event="upd"> <logdata id="new"/> </logspec> 
 					<!-- Terminator of storage elements -->
 					<iobject type="none" id="Terminal" quiet="yes"> 
 					    <mut node="self"> 
@@ -154,6 +155,7 @@
 			    <!-- State that controls Storage -->
 			    <state type="StContr" id="S_Controller" transf="trans_controller" init="Storage"> 
 				<logspec event="upd"> <logdata id="new"/> </logspec> 
+				<logspec event="tran"> <logdata id="new"/> </logspec> 
 				<inp id="subj_req"/> 
 				<inp id="pos"/> <!-- Position pointed by Storage's output -->
 			    </state>

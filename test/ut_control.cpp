@@ -101,6 +101,11 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
     CAE_ChromoNode croot = cpx->Chr().Root();
     CAE_ChromoNode smut = cpx->Mut().Root();
 
+    TInt logdata = aState->GetLogSpecData(KBaseLe_Trans);
+    if (logdata != KBaseDa_None) {
+	aState->Logger()->WriteFormat("Transition [%s.%s.%s]:", aState->MansName(1), aState->MansName(0), aState->InstName());
+    }
+
     // TODO [YB] Consider different method - to check if pair is subj or its upper neighbour and update the pair
     // Update position
     // Update position #1: find the subject under given position
@@ -112,10 +117,18 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
 	    string nextconnid = (*nexti).Name();
 	    outname = nextconnid.substr(0, nextconnid.find("."));
 	}
+	else {
+	    CPPUNIT_ASSERT_MESSAGE("Subject not found for given position", 0);
+	}
     }
+    if (logdata != KBaseDa_None) {
+	aState->Logger()->WriteFormat("Phase #1: Subj [%s] found for pos [%d]", outname.c_str(), pos);
+    }
+    
     // Update position #2: check if the pair for Storage output has been changed
     CAE_ChromoNode::Iterator stor_outp = croot.Find(ENt_Cext, "output"); 
     string stor_outp_pair = (*stor_outp).Attr(ENa_ConnPair);
+
     // Update position #3: specify mutation to change output connection
     if (stor_outp_pair.compare(outname + ".output") != 0) 
     {

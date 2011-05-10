@@ -328,13 +328,14 @@ void CAE_ConnPoint::Disconnect()
 
 TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint) 
 {
-    // TODO [YB] This is not conn actually but extention. But contradicts with view proxy logig. To consider
-    iConns.push_back(aConnPoint);
-    return ETrue;
+    _FAP_ASSERT(0);
+    return EFalse;
 }
 
-void CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint)
+TBool CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint)
 {
+    _FAP_ASSERT(0);
+    return EFalse;
 }
 
 
@@ -404,12 +405,15 @@ void CAE_ConnPointExt::DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair,
     }
 }
 
-void CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint)
+TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint)
 {
+    TBool res = EFalse;
     if (iRef == aConnPoint) { 
 	aConnPoint->Disconnect();
 	iRef = NULL;
+       	res = ETrue;
     }
+    return res;
 }
 
 
@@ -1762,6 +1766,12 @@ void CAE_Object::Confirm()
 	CAE_ChromoNode mut = iMut->Root();
 	if (mut.Begin() != mut.End())
 	{
+	    // Log muta spec
+	    TInt logdata = GetLogSpecData(KBaseLe_Updated);
+	    if (logdata != KBaseDa_None) {
+		Logger()->WriteFormat("Updated object [%s.%s.%s]:", MansName(1), MansName(0), iInstName);
+		iMut->Root().Dump(Logger());
+	    }
 	    Mutate();
 	    // Reactivate all the components
 	    for (TInt i = 0; i < iCompReg.size(); i++ )
@@ -1957,7 +1967,10 @@ void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
 	CAE_ConnPointBase* p2 = GetConn(p2_name);
 	if ((p1 != NULL) && (p2 != NULL))
 	{
-	    if (!p1->Extend(p2) || !(p2->Extend(p1)))
+	    // Extention is one way only!
+	    // TODO [YB] Do we need some ref from entended cp to extender. Look at usecase
+	    // UC_CONN_06 USER removes internal sub-system, SYSTEM disextend connection points
+	    if (!p1->Extend(p2))
 	    {
 		Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: failure", p1_name, p2_name);
 	    }
@@ -2074,6 +2087,9 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
 		state->SetFromStr(mval.c_str());
 		state->Confirm();
 	    }
+	    else if (mattr == ENa_Id) {
+		state->SetName(mval.c_str());
+	    }
 	    else {
 		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName(), mattrs.c_str());
 	    }
@@ -2090,13 +2106,22 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
 		string cpair_name = aCurr.Attr(ENa_ConnPair);
 		CAE_ConnPointBase* cpair = GetConn(cpair_name.c_str());
 		if (cpair != NULL) {
-		    ext->Disextend(cpair);
-		    CAE_ConnPointBase* npair = GetConn(mval.c_str());
-		    if (npair != NULL) {
-			ext->Extend(npair);
+		    TBool res = ext->Disextend(cpair);
+		    if (res) {
+			CAE_ConnPointBase* npair = GetConn(mval.c_str());
+			if (npair != NULL) {
+			    res = ext->Extend(npair);
+			    if (!res) {
+				Logger()->WriteFormat("ERROR: Changing extention [%s] - re-extention to [%s] failed", nname.c_str(), 
+					cpair_name.c_str());
+			    }
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Changing extention [%s] - new pair [%s] not found", nname.c_str(), mval.c_str());
+			}
 		    }
 		    else {
-			Logger()->WriteFormat("ERROR: Changing extention [%s] - new pair [%s] not found", nname.c_str(), mval.c_str());
+			Logger()->WriteFormat("ERROR: Changing extention [%s] - disextention from [%s] failed", nname.c_str(), cpair_name.c_str());
 		    }
 		}
 		else {
@@ -2157,8 +2182,18 @@ void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
 	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), name.c_str());
 	}
     }
+    else if (type == ENt_State) {
+	CAE_ChromoNode& chr = iChromo->Root();
+	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
+	if (elemit != chr.End()) {
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
+	}
+
+    }
     else {
-	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupportd element type for deletion", InstName());
+	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName());
     }
 }
 
@@ -2167,9 +2202,11 @@ void CAE_Object::Mutate()
     DoMutation();
     // Clear mutation
     CAE_ChromoNode& root = iMut->Root();
-    for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End(); mit++)
+    for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End();)
     {
-	root.RmChild(*mit);
+	CAE_ChromoNode node = *mit;
+	mit++; // It is required because removing node by iterator breakes iterator itself
+	root.RmChild(node);
     }
 }
 
@@ -2282,11 +2319,11 @@ void CAE_Object::DoMutation()
 		string name = mno.Name();
 		CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
 		if (curr != chrroot.End()) {
+		    // Change runtime model
+		    ChangeAttr(mno, *curr);
 		    // Change chromo
 		    CAE_ChromoNode currn = *curr;
 		    ChangeChromoAttr(mno, currn);
-		    // Change runtime model
-		    ChangeAttr(mno, *curr);
 		}
 		else {
 		    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName(), name.c_str());
