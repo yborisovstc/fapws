@@ -72,6 +72,119 @@ format 70
       end
     end
 
+    class 203778 "CAE_Object_v1"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      attribute 163842 "iCompReg"
+	private explicit_type ""
+	cpp_decl ""
+	java_decl ""
+	php_decl ""
+	python_decl ""
+	idl_decl ""
+      end
+
+      operation 184706 "GetComp"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 184834 "GetNextCompByType"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 184962 "FindByName"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 185090 "GetInput"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 185218 "GetOutput"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      classrelation 190466 // <unidirectional association>
+	relation 190466 --->
+	  a role_name "" private
+	    classrelation_ref 190466 // <unidirectional association>
+	  b parent class_ref 141826 // CAE_State
+      end
+
+      classrelation 190594 // <generalisation>
+	relation 190594 ---|>
+	  a public
+	    classrelation_ref 190594 // <generalisation>
+	  b parent class_ref 141442 // CAE_Base
+      end
+
+      operation 185346 "CreateNewL"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 185474 "SetBaseViewProxy"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+
+      operation 185858 "RemoveBaseViewProxy"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
+    end
+
     classdiagram 141058 "fap1~clsdgm"
       draw_all_relations no hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
       size A4
@@ -1111,6 +1224,16 @@ format 70
 	
 	
       end
+
+      operation 185730 "FindObj"
+	abstract cpp_virtual public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
+      end
     end
 
     class 203650 "MAE_Opv"
@@ -1142,6 +1265,28 @@ format 70
 	
 	
       end
+    end
+
+    class 203906 "__SYSTEM"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 204034 "__USER"
+      visibility package 
+      cpp_decl ""
+      java_decl ""
+      php_decl ""
+      python_2_2 python_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
     end
   end
 end

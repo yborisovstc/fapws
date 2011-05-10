@@ -1,6 +1,6 @@
 format 70
 "fap" // fap
-  revision 2
+  revision 3
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -535,6 +535,16 @@ format 70
 	  a role_name "" private
 	    classrelation_ref 142594 // <unidirectional association>
 	  b parent class_ref 134786 // CAE_Fact
+      end
+
+      operation 185602 "Root"
+	public explicit_return_type ""
+	nparams 0
+	
+	
+	
+	
+	
       end
     end
 

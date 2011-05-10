@@ -121,40 +121,61 @@ fap-bvp-gtk=/home/yborisov/projects/fap/git/fap-bvp-gtk CD=. filter="autogen.sh 
  ChangeLog
  README
  NEWS
+ etc=etc CD=. filter="*" {
+  cag_proxy.rc
+ }
 src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   cagbin.h
+  cagbox.h
   cagbutton.h
   cagcontainer.h
+  cagentry.h
+  cagimage.h
   caglabel.h
   caglayout.h
+  cagmenu.h
   cagmisc.h
+  cagprov.h
   cagproxy.h
   cagstyle.h
+  cagtextview.h
+  cagtoolbar.h
   cagwindow.h
   capbutton.h
   capcommon.h
   capcomp.h
-  capcomphead.h
   capcp.h
   capcterm.h
   capdect.h
+  capmiscwid.h
+  capopwnd.h
+  capstate.h
   capsys.h
   widgets.h
   cagbin.cpp
+  cagbox.cpp
   cagbutton.cpp
   cagcontainer.cpp
+  cagentry.cpp
+  cagimage.cpp
   caglabel.cpp
   caglayout.cpp
+  cagmenu.cpp
   cagmisc.cpp
+  cagprov.cpp
   cagproxy.cpp
   cagstyle.cpp
+  cagtextview.cpp
+  cagtoolbar.cpp
   cagwindow.cpp
   capbutton.cpp
   capcomp.cpp
-  capcomphead.cpp
   capcp.cpp
   capcterm.cpp
   capdect.cpp
+  capmiscwid.cpp
+  capopwnd.cpp
+  capstate.cpp
   capsys.cpp
   widgets.cpp
   Makefile.am
@@ -166,11 +187,12 @@ fap-tias=/home/yborisov/projects/fap/git/fap-tias CD=. filter="README *.ac *.am"
  README
  configure.ac
  Makefile.am
- src=src CD=. filter="*.cpp *.h *.xml *.am" {
+ src=src CD=. filter="*.cpp *.h *.xml *.am *.rc" {
   main.cpp
   ut_emtran_spec_2.xml
   ut_emtran_spec_3.xml
   Makefile.am
+  cag_proxy.rc
  }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {
@@ -252,4 +274,119 @@ gravityqt=/home/yborisov/projects/fap/michael/ver1/gravity CD=. filter="*.cpp *.
   ui_ObjectPropDlg.h
   GravityWindow.ui
   ObjectPropDlg.ui
-{
+}
+ tmp=/home/yborisov/projects/fap/tmp CD=. filter="*" {
+  fapws=fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS *.in {
+   autogen.sh
+   Makefile.am
+   configure.ac
+   AUTHORS
+   COPYING
+   ChangeLog
+   README
+   NEWS
+   Makefile.in
+   libfapws.pc.in
+   src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
+    deslbase.h
+     fapbase.h
+     fapext.h
+     fapfact.h
+     faplogger.h
+     fapopvi.h
+     fapplat.h
+     fapstext.h
+     faptran.h
+     fapview.h
+     fapviewprim.h
+     fapws.h
+     panics.h
+     tadesl.h
+     viewgtk.h
+     deslbase.cpp
+     fapbase.cpp
+     fapext.cpp
+     fapfact.cpp
+     faplogger.cpp
+     fapopvi.cpp
+     fapstext.cpp
+     fapviewprim.cpp
+     fapws.cpp
+     tadesl.cpp
+     viewgtk.cpp
+     objspec.dtd
+     Makefile.am
+   } 
+  debian=debian CD=. filter="*" {
+   README.Debian
+    changelog
+    compat
+    control
+    copyright
+    dirs
+    docs
+    fapws-dev.install
+    fapws-dev.substvars
+    fapws.install
+    fapws.postinst.debhelper
+    fapws.postrm.debhelper
+    fapws.substvars
+    files
+    rules
+    fapws-dev.debhelper.log
+    fapws.debhelper.log
+  }
+  trag=trag CD=. filter="*" {
+   Makefile.am
+    tadesl=tadesl CD=. filter="*.cpp *.h *.am Makefile" {
+     tadesl.cpp
+      tadesl.h
+      Makefile.am
+      Makefile
+    }
+  }
+  doc=doc CD=. filter="*" {
+   requirements=requirements CD=. filter="*" {
+    fap_req.xml
+     index.html
+   }
+   design=design CD=. filter="*" {
+    fap_design.xml
+   }
+  }
+  test=test CD=. filter="*" {
+   Makefile
+    Makefile.am
+    Makefile.in
+    ut-fapws-lib
+    ut_conn.cpp
+    ut_conn_spec.xml
+    ut_contr_spec.xml
+    ut_control.cpp
+    ut_emtran.cpp
+    ut_emtran_spec.xml
+    ut_emtran_spec_2.xml
+    ut_emtran_spec_3.xml
+    ut_ext_mut.cpp
+    ut_fapws_main.cpp
+    ut_game_xo.cpp
+    ut_game_xo.h
+    ut_simple_increase.cpp
+    ut_simple_increase.h
+    ut_spec_creat.cpp
+    ut_spec_creat.h
+    ut_spec_creat_1.xml
+    ut_spec_ext_mut.xml
+    ut_fapws_lib-ut_conn.o
+    ut_fapws_lib-ut_control.o
+    ut_fapws_lib-ut_emtran.o
+    ut_fapws_lib-ut_ext_mut.o
+    ut_fapws_lib-ut_fapws_main.o
+    ut_fapws_lib-ut_simple_increase.o
+    ut_fapws_lib-ut_spec_creat.o
+    libs=.libs CD=. filter="*" {
+     ut-fapws-lib
+    }
+  }
+ }
+ }
