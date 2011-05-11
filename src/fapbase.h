@@ -1055,7 +1055,6 @@ private:
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(const CAE_ChromoNode& aSpec);
-	void AddStateInp(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);

@@ -2192,6 +2192,17 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	    }
 	}
     }
+    else if (ntype == ENt_Trans)
+    {
+	CAE_StateBase* state = aNode->GetFbObj(state);
+	if (state != NULL) {
+	    state->SetTrans(TTransInfo(mval));
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing trans [%s] - node type is not supported", aNode->InstName());
+	}
+
+    }
     else {
 	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
     }
@@ -2282,32 +2293,6 @@ void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
     AddLogSpec(event, ldata);
 }
 
-// TODO [YB] CAE_Object::AddStateInp is obsolete, to remove
-void CAE_Object::AddStateInp(const CAE_ChromoNode& aSpec)
-{
-    string nname = aSpec.Name();
-    if (iStates.count(nname) != 0) {
-	for (CAE_ChromoNode::Const_Iterator stelemit = aSpec.Begin(); stelemit != aSpec.End(); stelemit++) {
-	    const CAE_ChromoNode stelem = *stelemit;
-	    string stelemname = stelem.Name();
-	    if (stelem.Type() == ENt_Stinp) {
-		if (stelemname.empty())
-		    Logger()->WriteFormat("ERROR: Adding state [%s] input: empty input name", nname);
-		else {
-		    CAE_StateBase* state = iStates[nname];
-		    CreateStateInp(stelem, state);
-		}
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Unknown type [%d] of [%s]", stelem.Type(), stelemname.c_str());
-	    }
-	}
-    }
-    else {
-	Logger()->WriteFormat("ERROR: Adding state inp - cannot find state [%s] to change", nname.c_str());
-    }
-}
-
 // TODO [YB] To carefully consider the concept:
 // 1. We use FindByName - not sure it should have an access to all nodes
 void CAE_Object::DoMutation()
@@ -2366,10 +2351,6 @@ void CAE_Object::DoMutation()
 		    }
 		    else if (mano.Type() == ENt_Logspec) {
 			AddLogspec(mano);
-		    }
-		    // TODO [YB] ENt_MutAddStInp is obsolete, to remove
-		    else if (mano.Type() == ENt_MutAddStInp) {
-			AddStateInp(mano);
 		    }
 		    else {
 			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
