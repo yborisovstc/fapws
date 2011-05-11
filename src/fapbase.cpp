@@ -2084,7 +2084,7 @@ void CAE_Object::ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& a
     }
 }
 
-void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
+void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
     NodeType ntype = aSpec.AttrNtype(ENa_Type);
     string nname = aSpec.Name();
@@ -2169,6 +2169,27 @@ void CAE_Object::ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& a
 	}
 	else {
 	    Logger()->WriteFormat("ERROR: Changing object [%s] - not found", nname.c_str());
+	}
+    }
+    else if (ntype == ENt_Stinp)
+    {
+	CAE_StateBase* state = aNode->GetFbObj(state);
+	map<string, CAE_ConnPointBase*>& inputs = state->Inputs();
+	if (state != NULL) {
+	    map<string, CAE_ConnPointBase*>::iterator it = inputs.find(nname);
+	    if (it != inputs.end()) {
+		CAE_ConnPointBase* cp = it->second;
+		if (mattr == ENa_Id) {
+		    inputs[nname] = NULL;
+		    inputs.erase(it);
+		    cp->SetName(mval.c_str());
+		    inputs[mval] = cp;
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->InstName(), nname.c_str());
+		}
+
+	    }
 	}
     }
     else {
@@ -2261,6 +2282,32 @@ void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
     AddLogSpec(event, ldata);
 }
 
+// TODO [YB] CAE_Object::AddStateInp is obsolete, to remove
+void CAE_Object::AddStateInp(const CAE_ChromoNode& aSpec)
+{
+    string nname = aSpec.Name();
+    if (iStates.count(nname) != 0) {
+	for (CAE_ChromoNode::Const_Iterator stelemit = aSpec.Begin(); stelemit != aSpec.End(); stelemit++) {
+	    const CAE_ChromoNode stelem = *stelemit;
+	    string stelemname = stelem.Name();
+	    if (stelem.Type() == ENt_Stinp) {
+		if (stelemname.empty())
+		    Logger()->WriteFormat("ERROR: Adding state [%s] input: empty input name", nname);
+		else {
+		    CAE_StateBase* state = iStates[nname];
+		    CreateStateInp(stelem, state);
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Unknown type [%d] of [%s]", stelem.Type(), stelemname.c_str());
+	    }
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Adding state inp - cannot find state [%s] to change", nname.c_str());
+    }
+}
+
 // TODO [YB] To carefully consider the concept:
 // 1. We use FindByName - not sure it should have an access to all nodes
 void CAE_Object::DoMutation()
@@ -2285,7 +2332,19 @@ void CAE_Object::DoMutation()
 			AddObject(mano);
 		    }
 		    else if (mano.Type() == ENt_Stinp) {
-			AddConn(mano, iInputs);
+			CAE_Object* obj = node->GetFbObj(obj);
+			if (obj != NULL) {
+			    AddConn(mano, obj->iInputs);
+			}
+			else {
+			    CAE_StateBase* state = node->GetFbObj(state);
+			    if (state != NULL) {
+				AddConn(mano, state->iInputs);
+			    }
+			    else {
+				Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
+			    }
+			}
 		    }
 		    else if (mano.Type() == ENt_Soutp) {
 			AddConn(mano, iOutputs);
@@ -2307,6 +2366,10 @@ void CAE_Object::DoMutation()
 		    }
 		    else if (mano.Type() == ENt_Logspec) {
 			AddLogspec(mano);
+		    }
+		    // TODO [YB] ENt_MutAddStInp is obsolete, to remove
+		    else if (mano.Type() == ENt_MutAddStInp) {
+			AddStateInp(mano);
 		    }
 		    else {
 			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
@@ -2345,7 +2408,7 @@ void CAE_Object::DoMutation()
 		CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
 		if (curr != chrroot.End()) {
 		    // Change runtime model
-		    ChangeAttr(mno, *curr);
+		    ChangeAttr(node, mno, *curr);
 		    // Change chromo
 		    CAE_ChromoNode currn = *curr;
 		    ChangeChromoAttr(mno, currn);

@@ -22,7 +22,7 @@
 <!-- 
      Mutation - addition
 -->
-<!ELEMENT add (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*)>
+<!ELEMENT add (inp*, out*, logspec*, trans*, iobject* , state*, state_inp*, conn*, ext*, extc*)>
 
 <!-- 
      Mutation - removal
@@ -38,6 +38,12 @@
      Node
 -->
 <!ELEMENT node EMPTY>
+
+<!-- 
+     Mutation of type "add" - adding state input
+-->
+<!ELEMENT state_inp (inp+)>
+
 
 <!ELEMENT state (logspec*, inp*, trans*)>
 
@@ -251,6 +257,13 @@
    id CDATA #REQUIRED
    attr CDATA #REQUIRED
    val CDATA #REQUIRED
+>
+
+<!-- Attributes of mutation of adding state input:
+     id - state name,
+     -->
+<!ATTLIST state_inp
+   id CDATA #REQUIRED
 >
 
 <!-- Environment attr -->

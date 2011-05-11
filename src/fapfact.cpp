@@ -123,6 +123,7 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["node"] = ENt_Node;
 	KNodeTypes["chnode"] = ENt_ChNode;
 	KNodeTypes["trans"] = ENt_Trans;
+	KNodeTypes["state_inp"] = ENt_MutAddStInp;
 
 	for (map<string, NodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
 	    KNodeTypesNames[it->second] = it->first;

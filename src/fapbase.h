@@ -214,6 +214,7 @@ protected:
 
 /** Base class for FAP elements - updatable, managed, logged
  */
+// TODO [YB] To move inputs and outputs to CAE_EBase
 class CAE_EBase: public CAE_Base
 {
 public:
@@ -276,6 +277,7 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
+	void SetName(const string& aName) { iName = aName;};
 	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
 	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
 	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
@@ -745,6 +747,7 @@ enum NodeType
     ENt_Node = 21, // Node spec (i.e in remove mutation)
     ENt_ChNode = 22, // Change of node
     ENt_Trans = 23, // Transtion function of state
+    ENt_MutAddStInp = 24,  // Mutation - addition of state input
 };
 
 enum TNodeAttr
@@ -1052,8 +1055,9 @@ private:
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(const CAE_ChromoNode& aSpec);
+	void AddStateInp(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
-	void ChangeAttr(const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
 	void OnHeaderPress(const MAE_View* aView);
