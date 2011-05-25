@@ -775,6 +775,8 @@ class MAE_ChromoMdl
 {
     public:
 	virtual NodeType GetType(const void* aHandle) = 0;
+	virtual NodeType GetType(const string& aId) = 0;
+	virtual string GetTypeId(NodeType aType) = 0;
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
 	virtual void* NextText(const void* aHandle) = 0;
 	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
@@ -874,10 +876,14 @@ class CAE_ChromoNode
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
 	void SetAttr(TNodeAttr aType, NodeType aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	void SetAttr(TNodeAttr aType, TNodeAttr aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
+	CAE_ChromoNode::Iterator Find(const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
+	void ParseTname(const string& aTname, NodeType& aType, string& aName);
+	string GetName(const string& aTname);
+	string GetTName(NodeType aType, const string& aName);
     private :
 	CAE_ChromoMdlBase& iMdl;
 	void* iHandle;

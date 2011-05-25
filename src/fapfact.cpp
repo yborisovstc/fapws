@@ -62,7 +62,9 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
     public:
 	CAE_ChromoMdlX();
     public:
+	virtual NodeType GetType(const string& aId);
 	virtual NodeType GetType(const void* aHandle);
+	virtual string GetTypeId(NodeType aType);
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
 	virtual void* NextText(const void* aHandle);
 	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
@@ -193,6 +195,16 @@ void* CAE_ChromoMdlX::Set(CAE_ChromoMdlX& aMdl, const void* aNode)
     iDoc = aMdl.Doc();
     xmlNodePtr node = xmlDocCopyNode((xmlNodePtr) aNode, iDoc, 1);
     return node;
+}
+
+NodeType CAE_ChromoMdlX::GetType(const string& aId)
+{
+    return (KNodeTypes.count(aId) == 0) ? ENt_Unknown: KNodeTypes[aId];
+}
+
+string CAE_ChromoMdlX::GetTypeId(NodeType aType)
+{
+    return (aType == ENt_Unknown) ? "" : KNodeTypesNames[aType];
 }
 
 NodeType CAE_ChromoMdlX::GetType(const void* aHandle)

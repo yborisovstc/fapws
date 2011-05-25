@@ -261,7 +261,24 @@ To transform to html:
 		the names of them are generated uniquely.</simpara>
 	</sect2>
 	<sect2 id="sec_views_22"><title>FAP_UC_VW_22 USER removes a state.</title>
+	    <simpara>All connection from/to this state are deleted correspondingly</simpara>
 	</sect2>
+	<sect2 id="sec_views_23"><title>FAP_UC_VW_23 USER selects type of state.</title>
+	</sect2>
+	<sect2 id="sec_views_24"><title>FAP_UC_VW_24 USER adds inputs to state.</title>
+	</sect2>
+	<sect2 id="sec_views_25"><title>FAP_UC_VW_25 USER renames input of state.</title>
+	</sect2>
+	<sect2 id="sec_views_26"><title>FAP_UC_VW_26 USER changes transition of state.</title>
+	</sect2>
+	<sect2 id="sec_views_27"><title>FAP_UC_VW_27 USER adds connection</title>
+	    <simpara>The connection is added between connection points (not to extender)</simpara>
+	</sect2>
+	<sect2 id="sec_views_28"><title>FAP_UC_VW_28 USER removes connection</title>
+	</sect2>
+	<sect2 id="sec_views_29"><title>FAP_UC_VW_29 USER adds transition into system</title>
+	</sect2>
+
     </sect1>
     <sect1 id="sec_studio"><title>Studio application</title>
 	<sect2 id="sec_studio_01"><title>FAP_UC_ST_01 USER creates new project</title>
@@ -270,6 +287,8 @@ To transform to html:
 	    <simpara>USER asks STUDIO to create new project. STUDIO displays to user the list of projects templates available. USER
 		selects the proper template. STUDIO creates the new project from the template.
 	    </simpara>
+	</sect2>
+	<sect2 id="sec_studio_02"><title>FAP_UC_ST_02 USER saves the system specification.</title>
 	</sect2>
     </sect1>
 </article>

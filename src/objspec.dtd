@@ -227,8 +227,10 @@
 >
 
 <!-- Mutation attributes:
-  node - identification of mutation subject
-  TODO [YB] Just node id is not enough here, the type of node may be required
+  node - mutated node
+  TODO [YB] Just node Id may not be enough here, because of nou unique ~ [YB] It should be unique, other solution,
+  for instance using type + id is not correct because as node some path can be used. The solution would be to use
+  full qualified path, where for each path element the type can be specified. ~ [YB] Done
   -->
 <!ATTLIST mut 
     node CDATA #IMPLIED

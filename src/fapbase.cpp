@@ -1168,6 +1168,55 @@ TBool CAE_ChromoNode::AttrBool(TNodeAttr aAttr) const
     return (attr == "yes"); 
 };
 
+void CAE_ChromoNode::ParseTname(const string& aTname, NodeType& aType, string& aName)
+{
+    size_t tpos = aTname.find("%");
+    if (tpos != string::npos) {
+	string tid = aTname.substr(0, tpos);
+	aType = iMdl.GetType(tid);
+	aName = aTname.substr(tpos+1);
+    }
+    else {
+	aType = ENt_Object;
+	aName = aTname;
+    }
+}
+
+string CAE_ChromoNode::GetName(const string& aTname)
+{
+    size_t tpos = aTname.find("%");
+    return (tpos != string::npos) ? aTname.substr(tpos+1) : aTname;
+}
+
+string CAE_ChromoNode::GetTName(NodeType aType, const string& aName)
+{
+    if (aType == ENt_Object) {
+	return aName;
+    }
+    else {
+	return iMdl.GetTypeId(aType) + "%" + aName;
+    }
+}
+
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName) 
+{ 
+    CAE_ChromoNode::Iterator res = End();
+    NodeType type = ENt_Unknown;
+    size_t pos = aName.find(".");
+    string tname = aName.substr(0, pos);
+    string name;
+    ParseTname(tname, type, name);
+    for (CAE_ChromoNode::Iterator it = Begin(); it != End(); it++) {
+	if (((*it).Type() == type) && (name.compare((*it).Name()) == 0)) {
+	    res = it;  break;
+	}
+    }
+    if ((res != End()) &&  (pos != string::npos)) {
+	res = (*res).Find(aName.substr(pos + 1));	
+    }
+    return res;
+};
+
 // TODO [YB] Node name should not contain ".". Reconsider nodes "conn" etc.
 // TODO [YB] Unclear logic of find. We find recursivelly here, but what is type in this case. Acc to logic all the 
 // hierarhy level should be same type. What is sence of that?
@@ -2324,12 +2373,12 @@ void CAE_Object::DoMutation()
     CAE_EBase* node = this;
     CAE_ChromoNode mnode = chrroot;
     if (!selfnode) {
-	node = FindByName(mnoden.c_str());
-	CAE_ChromoNode::Iterator mnodeit = chrroot.Find(ENt_Object, mnoden);
+	CAE_ChromoNode::Iterator mnodeit = chrroot.Find(mnoden);
 	if (mnodeit != chrroot.End()) {
 	    mnode = *mnodeit;
+	    // TODO [YB] To migrate to FindByName getting full name (with types id)
+	    node = FindByName(mnode.Name().c_str());
 	}
-	_FAP_ASSERT(node == NULL || mnodeit != chrroot.End());
     }
     if (node != NULL)
     {
@@ -2423,7 +2472,7 @@ void CAE_Object::DoMutation()
 	    {
 		NodeType type = mno.AttrNtype(ENa_Type);
 		string name = mno.Name();
-		CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
+		CAE_ChromoNode::Iterator curr = mnode.Find(type, name);
 		if (curr != chrroot.End()) {
 		    // Change runtime model
 		    ChangeAttr(node, mno, *curr);
