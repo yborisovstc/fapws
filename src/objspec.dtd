@@ -184,7 +184,7 @@
 >
 
 <!-- Connections
-   id - subject of connection
+   id - subject of connection, input of state or subsystem
    pair - object of connection
      -->
 <!ATTLIST conn 
@@ -228,18 +228,25 @@
 
 <!-- Mutation attributes:
   node - identification of mutation subject
+  TODO [YB] Just node id is not enough here, the type of node may be required
   -->
 <!ATTLIST mut 
     node CDATA #IMPLIED
 >
 
 <!-- Node  attributes:
+     Node is identified by type + id. In case if it is not enough additional attribute can be used
+     by specifying attr type (attr) and value (value)
      type - node type (object, state etc.),
      id - node name,
+     attr - type of extra identifier
+     value - value of extra identifier
      -->
 <!ATTLIST node 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
+   attr CDATA #IMPLIED
+   val CDATA #IMPLIED
 >
 
 <!-- Change  attributes:

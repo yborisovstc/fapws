@@ -284,6 +284,7 @@ class CAE_ConnPointBase: public CAE_Base
 	const CAE_EBase& Man() const { return *iMan;};
     protected:
 	string iName;
+	// TODO [YB] To migrate from vector to map
 	vector<CAE_ConnPointBase*> iConns;
 	vector<CAE_ConnPointBase*> iExts;
 	CAE_EBase* iMan;
@@ -875,6 +876,7 @@ class CAE_ChromoNode
 	void SetAttr(TNodeAttr aType, TNodeAttr aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal);
+	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
     private :
 	CAE_ChromoMdlBase& iMdl;
@@ -979,6 +981,7 @@ public:
 		//vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
 		map<string, CAE_Object*>& Comps() { return iOwner.iComps;};
 		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
+		const string& Trans() const { return iOwner.iTransSrc;};
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const char* aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};

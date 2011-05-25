@@ -292,6 +292,11 @@ void CAE_ConnPoint::DisconnectConnPoint(CAE_ConnPoint *aConnPoint)
 		    srce->SetActive();
 		}
 		dest.Pins()[did] = NULL;
+		for (vector<CAE_ConnPointBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+		    if ((*it) == aConnPoint) {
+			iConns.erase(it); break;
+		    }
+		}
 	    }
 	}
     }
@@ -1164,6 +1169,8 @@ TBool CAE_ChromoNode::AttrBool(TNodeAttr aAttr) const
 };
 
 // TODO [YB] Node name should not contain ".". Reconsider nodes "conn" etc.
+// TODO [YB] Unclear logic of find. We find recursivelly here, but what is type in this case. Acc to logic all the 
+// hierarhy level should be same type. What is sence of that?
 CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aName) 
 { 
     CAE_ChromoNode::Iterator res = End();
@@ -1189,8 +1196,20 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, TNodeAttr aAttr, c
 	}
     }
     return res;
-
 };
+
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal)
+{
+    CAE_ChromoNode::Iterator res = End();
+    for (CAE_ChromoNode::Iterator it = Begin(); it != End(); it++) {
+	const CAE_ChromoNode& node = (*it);
+	if ((node.Type() == aType)  && (aName.compare(node.Name()) == 0) && node.AttrExists(aAttr) && (aAttrVal.compare(node.Attr(aAttr)) == 0)) {
+	    res = it;  break;
+	}
+    }
+    return res;
+};
+
 
 
 //*********************************************************
@@ -2299,15 +2318,25 @@ void CAE_Object::DoMutation()
 {
     CAE_ChromoNode& root = iMut->Root();
     TBool emnode = root.AttrExists(ENa_MutNode);
-    string mnode = root.Attr(ENa_MutNode);
-    CAE_EBase* node = (!emnode || (mnode.compare("self") == 0)) ? this: FindByName(mnode.c_str());
+    string mnoden = root.Attr(ENa_MutNode);
+    TBool selfnode = (!emnode || (mnoden.compare("self") == 0));
     CAE_ChromoNode& chrroot = iChromo->Root();
-    // Handling mutations
-    for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End(); mit++)
+    CAE_EBase* node = this;
+    CAE_ChromoNode mnode = chrroot;
+    if (!selfnode) {
+	node = FindByName(mnoden.c_str());
+	CAE_ChromoNode::Iterator mnodeit = chrroot.Find(ENt_Object, mnoden);
+	if (mnodeit != chrroot.End()) {
+	    mnode = *mnodeit;
+	}
+	_FAP_ASSERT(node == NULL || mnodeit != chrroot.End());
+    }
+    if (node != NULL)
     {
-	CAE_ChromoNode mno = (*mit);
-	if (node != NULL)
+	// Handling mutations
+	for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End(); mit++)
 	{
+	    CAE_ChromoNode mno = (*mit);
 	    if (mno.Type() == ENt_MutAdd) 
 	    {
 		for (CAE_ChromoNode::Iterator mait = mno.Begin(); mait != mno.End(); mait++)
@@ -2324,7 +2353,7 @@ void CAE_Object::DoMutation()
 			else {
 			    CAE_StateBase* state = node->GetFbObj(state);
 			    if (state != NULL) {
-				AddConn(mano, state->iInputs);
+				CreateStateInp(mano, state);
 			    }
 			    else {
 				Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
@@ -2365,11 +2394,19 @@ void CAE_Object::DoMutation()
 		{
 		    CAE_ChromoNode mrno = *mrmit;
 		    if (mrno.Type() == ENt_Node) {
-			RemoveElem(mrno);
 			NodeType type = mrno.AttrNtype(ENa_Type);
 			string name = mrno.Name();
-			CAE_ChromoNode::Iterator remit = chrroot.Find(type, name);
+			CAE_ChromoNode::Iterator remit = chrroot.End();
+			if (mrno.AttrExists(ENa_MutChgAttr)) {
+			    TNodeAttr mattr = mrno.AttrNatype(ENa_MutChgAttr);
+			    string attval = mrno.Attr(ENa_MutChgVal);
+			    remit = chrroot.Find(type, name, mattr, attval);
+			}
+			else {
+			    remit = chrroot.Find(type, name);
+			}
 			if (remit != chrroot.End()) {
+			    RemoveElem(mrno);
 			    // Change chromo
 			    chrroot.RmChild(*remit);
 			}
@@ -2403,10 +2440,10 @@ void CAE_Object::DoMutation()
 		Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName());
 	    }
 	}
-	else
-	{
-	    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node to be mutated", InstName(), mnode.c_str());
-	}
+    }
+    else
+    {
+	Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName(), mnoden.c_str());
     }
 }
 
@@ -2480,7 +2517,7 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
 	{ // Simple name
 	    map<string, CAE_Object*>::iterator it = iComps.find(name);
 	    if (it != iComps.end()) {
-		    res = it->second;
+		res = it->second;
 	    }
 	    else {
 		map<string, CAE_StateBase*>::iterator it = iStates.find(name);
