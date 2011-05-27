@@ -794,6 +794,7 @@ class MAE_ChromoMdl
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec) = 0;
+	virtual void Save(const string& aFileName) const = 0;
 };
 
 class CAE_ChromoMdlBase: public CAE_Base, public MAE_ChromoMdl
@@ -900,6 +901,7 @@ class MAE_Chromo
 	virtual void Set(const CAE_ChromoNode& aRoot) = 0;
 	virtual void Init(NodeType aRootType) = 0;
 	virtual void Reset() = 0;
+	virtual void Save(const string& aFileName) const = 0;
 };
 
 class CAE_ChromoBase: public MAE_Chromo
@@ -1099,6 +1101,7 @@ class MAE_Opv
 	virtual void SetRoot(CAE_Object::Ctrl* aObj) = 0;
 	virtual void SetObj(CAE_Object::Ctrl* aObj) = 0;
 	virtual void UnsetObj(CAE_Object::Ctrl* aObj) = 0;
+	virtual void UnsetRoot(CAE_Object* aObj) = 0;
 	virtual void Destroy() = 0;
 };
 

@@ -83,6 +83,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec);
+	virtual void Save(const string& aFileName) const;
     public:
 	int GetAttrInt(void *aHandle, const char *aName);
 	void* Set(const char* aFileName);
@@ -183,9 +184,10 @@ void* CAE_ChromoMdlX::Set(const char *aFileName)
     iDoc = xmlReadFile(aFileName, NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID);
     _FAP_ASSERT(iDoc != NULL);
     // Get the node of environment, not used for now
-    sEnv = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Env);
-    _FAP_ASSERT(sEnv != NULL);
-    sRoot = (xmlNodePtr) GetFirstChild((void *) sEnv, ENt_Object);
+//    sEnv = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Env);
+//    _FAP_ASSERT(sEnv != NULL);
+//    sRoot = (xmlNodePtr) GetFirstChild((void *) sEnv, ENt_Object);
+    sRoot = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Object);
     iDocOwned = EFalse;
     return sRoot;
 }
@@ -399,6 +401,12 @@ void CAE_ChromoMdlX::Dump(void* aNode, MCAE_LogRec* aLogRec)
     aLogRec->WriteFormat("%s", xmlBufferContent(bufp));
 }
 
+void CAE_ChromoMdlX::Save(const string& aFileName) const
+{
+    int res = xmlSaveFile(aFileName.c_str(), iDoc);
+}
+
+
 //*********************************************************
 // XML based chromo
 //*********************************************************
@@ -416,6 +424,7 @@ class CAE_ChromoX: public CAE_ChromoBase
 	virtual void Set(const CAE_ChromoNode& aRoot);
 	virtual void Init(NodeType aRootType);
 	virtual void Reset();
+	virtual void Save(const string& aFileName) const;
     private:
 	CAE_ChromoMdlX iMdl;
 	CAE_ChromoNode iRootNode;
@@ -464,6 +473,12 @@ void CAE_ChromoX::Init(NodeType aRootType)
     void *root = iMdl.Init(aRootType);
     iRootNode = CAE_ChromoNode(iMdl, root);
 }
+
+void CAE_ChromoX::Save(const string& aFileName) const
+{
+    iMdl.Save(aFileName);
+}
+
 
 //*********************************************************
 // Base class of provider implementation

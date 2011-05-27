@@ -1200,7 +1200,7 @@ string CAE_ChromoNode::GetTName(NodeType aType, const string& aName)
 
 CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName) 
 { 
-    CAE_ChromoNode::Iterator res = End();
+    Iterator res = End();
     NodeType type = ENt_Unknown;
     size_t pos = aName.find(".");
     string tname = aName.substr(0, pos);
@@ -1214,7 +1214,9 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName)
     if ((res != End()) &&  (pos != string::npos)) {
 	res = (*res).Find(aName.substr(pos + 1));	
     }
-    return res;
+    // TODO [YB] Return of "res" directly doesn't work, why ??
+    //return res;
+    return Iterator(res);
 };
 
 // TODO [YB] Node name should not contain ".". Reconsider nodes "conn" etc.
@@ -1983,7 +1985,7 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 	    else if (stelem.Type() == ENt_Trans) {
 		// Embedded transition
 		CAE_ChromoNode::Const_Iterator nodetxt = stelem.FindText();
-		TTransInfo tinfo((*nodetxt).Content());
+		TTransInfo tinfo((nodetxt == stelem.End()) ? "" : (*nodetxt).Content());
 		state->SetTrans(tinfo);
 	    }
 	    else
@@ -2370,9 +2372,12 @@ void CAE_Object::DoMutation()
     string mnoden = root.Attr(ENa_MutNode);
     TBool selfnode = (!emnode || (mnoden.compare("self") == 0));
     CAE_ChromoNode& chrroot = iChromo->Root();
-    CAE_EBase* node = this;
+    CAE_EBase* node = NULL;
     CAE_ChromoNode mnode = chrroot;
-    if (!selfnode) {
+    if (selfnode) {
+	node = this;
+    }
+    else if (!selfnode) {
 	CAE_ChromoNode::Iterator mnodeit = chrroot.Find(mnoden);
 	if (mnodeit != chrroot.End()) {
 	    mnode = *mnodeit;

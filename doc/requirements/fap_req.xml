@@ -276,7 +276,7 @@ To transform to html:
 	</sect2>
 	<sect2 id="sec_views_28"><title>FAP_UC_VW_28 USER removes connection</title>
 	</sect2>
-	<sect2 id="sec_views_29"><title>FAP_UC_VW_29 USER adds transition into system</title>
+	<sect2 id="sec_views_29"><title>FAP_UC_VW_29 USER changes transtition of system.</title>
 	</sect2>
 
     </sect1>
@@ -289,6 +289,11 @@ To transform to html:
 	    </simpara>
 	</sect2>
 	<sect2 id="sec_studio_02"><title>FAP_UC_ST_02 USER saves the system specification.</title>
+	</sect2>
+	<sect2 id="sec_studio_03"><title>FAP_UC_ST_03 USER opens system spec from file on local filesystem.</title>
+	    <simpara>STUDIO initially manages DES environment, that provides system ticks (creates root system).  </simpara>
+	    <simpara>USER asks STUDIO to open system spec stored as the file on local file system. 
+		STUDIO allows USER to select file on filesystem, create system from the spec and add it to the root.  </simpara>
 	</sect2>
     </sect1>
 </article>

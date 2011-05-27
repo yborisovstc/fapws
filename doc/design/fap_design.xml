@@ -136,7 +136,8 @@ To transform to html:
 	</sect2>
 	<sect2><title>Two approaches for chromo change: direct change and mutation</title>
 	    <sect3><title>Mutation</title>
-		<simpara>Whth this approach the system is unchangeable. The only way to change the system is to produce it's heir with mutation required
+		<simpara>Whth this approach the system is unchangeable. 
+		    The only way to change the system is to produce it's heir with mutation required
 		    and then maybe kill system itself. So each change is done via new attempt of chromo.</simpara>
 		<simpara>The question here is that the system most probably updated it's state variables (it is not chromo). But it is
 		    common use case when system wish to change it's sybsystem not touching the variables (for instance use case of sorting).</simpara>
@@ -240,5 +241,19 @@ To transform to html:
 	    in its input connection point (ref <xref linkend="sec_conn"/>) in order that connecting state have access to Update API only.</simpara>
     </sect1>
 
+    <sect1 id="sec_studio"><title>Studio</title>
+	<sect2 id="sec_studio_intro"><title>Introduction</title>
+	    <simpara>This section describes design for UI aspects of DES. It covers of how to visually represent
+	    system, and how to manage visual modelling of system.</simpara>
+	<simpara>Currently studio role is to visualize system, own environment, and drive the system within the environment.</simpara>
+	<simpara>Studio model is of multiple window.</simpara>
+	</sect2>
+	<sect2 id="sec_studio_proxy"><title>Proxy</title>
+	    <simpara>There was approach of "fap proxy" introduced. Proxy is visual representation of system. </simpara>
+	</sect2>
+	<sect2><title>Role of main studio window - approaches</title>
+	    <simpara>Main window contains menu and toolbar that are shared between all windows.</simpara>
+	</sect2>
+    </sect1>
 
 </article>

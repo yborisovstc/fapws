@@ -67,8 +67,9 @@
 
 <!-- Object Producing spec -->
 <!ELEMENT prod EMPTY >
-
+<!--
 <!ELEMENT caeenv (iobject*)>
+-->
 
 <!-- Output -->
 <!ELEMENT out (src*, dest*)>

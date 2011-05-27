@@ -151,6 +151,7 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   capopwnd.h
   capstate.h
   capsys.h
+  mainwndiface.h
   widgets.h
   cagbin.cpp
   cagbox.cpp
@@ -193,6 +194,20 @@ fap-tias=/home/yborisov/projects/fap/git/fap-tias CD=. filter="README *.ac *.am"
   ut_emtran_spec_3.xml
   Makefile.am
   cag_proxy.rc
+ }
+}
+fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="*" {
+ Makefile.am
+ NEWS
+ README
+ configure.ac
+ src=src CD=. filter="*.cpp *.h *.xml *.am *.rc" {
+  app.cpp
+  main.cpp
+  mainwnd.cpp
+  app.h
+  mainwnd.h
+  Makefile.am
  }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {

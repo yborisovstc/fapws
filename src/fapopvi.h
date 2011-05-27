@@ -19,6 +19,7 @@ class CPV_Opvi: public MAE_Opv
 	virtual void SetRoot(CAE_Object::Ctrl* aObj) {};
 	virtual void SetObj(CAE_Object::Ctrl* aObj);
 	virtual void UnsetObj(CAE_Object::Ctrl* aObj) {};
+	virtual void UnsetRoot(CAE_Object* aObj) {};
     private:
 	CAE_Object::Ctrl* iSys;
 	Bva* iSystBva; // Base view agent for system
