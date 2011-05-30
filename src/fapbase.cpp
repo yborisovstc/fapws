@@ -1317,10 +1317,13 @@ FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, 
 void CAE_Object::Construct()
 {
     iMut = iEnv->Provider()->CreateChromo();
-    iMut->Init(ENt_Mut);
+    iMut->Init(ENt_Object);
     iChromo = iEnv->Provider()->CreateChromo();
-    iChromo->Init(ENt_Robject);
+    //iChromo->Init(ENt_Robject);
+    iChromo->Init(ENt_Object);
     CAE_ChromoNode croot = iChromo->Root();
+    croot.SetAttr(ENa_Id, iInstName);
+    croot.SetAttr(ENa_Type, "none");
 }
 
 // On construction phase object is created from given chromosome
@@ -1903,13 +1906,9 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	if (squiet) {
 	    Logger()->WriteFormat("ATTENTION: Object [%s] created as quiet", sname.c_str());
 	}
-	// Mutate object if needed
-	for (CAE_ChromoNode::Const_Iterator imut = aNode.Begin(); imut != aNode.End(); imut++) {
-	    if ((*imut).Type() == ENt_Mut) {
-		obj->SetMutation(*imut);
-		obj->Mutate();
-	    }
-	}
+	// Mutate object 
+	obj->SetMutation(aNode);
+	obj->Mutate();
     }
 }
 
@@ -2367,137 +2366,180 @@ void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
 // 1. We use FindByName - not sure it should have an access to all nodes
 void CAE_Object::DoMutation()
 {
-    CAE_ChromoNode& root = iMut->Root();
-    TBool emnode = root.AttrExists(ENa_MutNode);
-    string mnoden = root.Attr(ENa_MutNode);
-    TBool selfnode = (!emnode || (mnoden.compare("self") == 0));
+    CAE_ChromoNode& mroot = iMut->Root();
     CAE_ChromoNode& chrroot = iChromo->Root();
-    CAE_EBase* node = NULL;
-    CAE_ChromoNode mnode = chrroot;
-    if (selfnode) {
-	node = this;
-    }
-    else if (!selfnode) {
-	CAE_ChromoNode::Iterator mnodeit = chrroot.Find(mnoden);
-	if (mnodeit != chrroot.End()) {
-	    mnode = *mnodeit;
-	    // TODO [YB] To migrate to FindByName getting full name (with types id)
-	    node = FindByName(mnode.Name().c_str());
-	}
-    }
-    if (node != NULL)
+    for (CAE_ChromoNode::Iterator rit = mroot.Begin(); rit != mroot.End(); rit++)
     {
-	// Handling mutations
-	for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End(); mit++)
-	{
-	    CAE_ChromoNode mno = (*mit);
-	    if (mno.Type() == ENt_MutAdd) 
+	CAE_ChromoNode rno = (*rit);
+	NodeType rnotype = rno.Type();
+	if (rnotype == ENt_Object) {
+	    AddObject(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Stinp) {
+	    AddConn(rno, iInputs);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Soutp) {
+	    AddConn(rno, iOutputs);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_State) {
+	    AddState(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Conn) {
+	    AddConn(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Cext) {
+	    AddExt(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Cextc) {
+	    AddExtc(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Trans) {
+	    AddTrans(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Logspec) {
+	    AddLogspec(rno);
+	    chrroot.AddChild(rno);
+	}
+	else if (rnotype == ENt_Mut) {
+	    TBool emnode = rno.AttrExists(ENa_MutNode);
+	    string mnoden = rno.Attr(ENa_MutNode);
+	    TBool selfnode = (!emnode || (mnoden.compare("self") == 0));
+	    CAE_EBase* node = this;
+	    CAE_ChromoNode mnode = chrroot;
+	    if (!selfnode) {
+		node = FindByName(mnoden.c_str());
+		CAE_ChromoNode::Iterator mnodeit = chrroot.Find(ENt_Object, mnoden);
+		if (mnodeit != chrroot.End()) {
+		    mnode = *mnodeit;
+		}
+		_FAP_ASSERT(node == NULL || mnodeit != chrroot.End());
+	    }
+	    if (node != NULL)
 	    {
-		for (CAE_ChromoNode::Iterator mait = mno.Begin(); mait != mno.End(); mait++)
+		// Handling mutations
+		for (CAE_ChromoNode::Iterator mit = rno.Begin(); mit != rno.End(); mit++)
 		{
-		    CAE_ChromoNode mano = (*mait);
-		    if (mano.Type() == ENt_Object) {
-			AddObject(mano);
-		    }
-		    else if (mano.Type() == ENt_Stinp) {
-			CAE_Object* obj = node->GetFbObj(obj);
-			if (obj != NULL) {
-			    AddConn(mano, obj->iInputs);
-			}
-			else {
-			    CAE_StateBase* state = node->GetFbObj(state);
-			    if (state != NULL) {
-				CreateStateInp(mano, state);
+		    CAE_ChromoNode mno = (*mit);
+		    if (mno.Type() == ENt_MutAdd) 
+		    {
+			for (CAE_ChromoNode::Iterator mait = mno.Begin(); mait != mno.End(); mait++)
+			{
+			    CAE_ChromoNode mano = (*mait);
+			    if (mano.Type() == ENt_Object) {
+				AddObject(mano);
+			    }
+			    else if (mano.Type() == ENt_Stinp) {
+				CAE_Object* obj = node->GetFbObj(obj);
+				if (obj != NULL) {
+				    AddConn(mano, obj->iInputs);
+				}
+				else {
+				    CAE_StateBase* state = node->GetFbObj(state);
+				    if (state != NULL) {
+					CreateStateInp(mano, state);
+				    }
+				    else {
+					Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
+				    }
+				}
+			    }
+			    else if (mano.Type() == ENt_Soutp) {
+				AddConn(mano, iOutputs);
+			    }
+			    else if (mano.Type() == ENt_State) {
+				AddState(mano);
+			    }
+			    else if (mano.Type() == ENt_Conn) {
+				AddConn(mano);
+			    }
+			    else if (mano.Type() == ENt_Cext) {
+				AddExt(mano);
+			    }
+			    else if (mano.Type() == ENt_Cextc) {
+				AddExtc(mano);
+			    }
+			    else if (mano.Type() == ENt_Trans) {
+				AddTrans(mano);
+			    }
+			    else if (mano.Type() == ENt_Logspec) {
+				AddLogspec(mano);
 			    }
 			    else {
-				Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
+				Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
+			    }
+			    // Change chromo
+			    chrroot.AddChild(mano);
+			}
+		    }
+		    else if (mno.Type() == ENt_MutRm) 
+		    {
+			for (CAE_ChromoNode::Iterator mrmit = mno.Begin(); mrmit != mno.End(); mrmit++)
+			{
+			    CAE_ChromoNode mrno = *mrmit;
+			    if (mrno.Type() == ENt_Node) {
+				NodeType type = mrno.AttrNtype(ENa_Type);
+				string name = mrno.Name();
+				CAE_ChromoNode::Iterator remit = chrroot.End();
+				if (mrno.AttrExists(ENa_MutChgAttr)) {
+				    TNodeAttr mattr = mrno.AttrNatype(ENa_MutChgAttr);
+				    string attval = mrno.Attr(ENa_MutChgVal);
+				    remit = chrroot.Find(type, name, mattr, attval);
+				}
+				else {
+				    remit = chrroot.Find(type, name);
+				}
+				if (remit != chrroot.End()) {
+				    RemoveElem(mrno);
+				    // Change chromo
+				    chrroot.RmChild(*remit);
+				}
+				else {
+				    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
+				}
+			    }
+			    else {
+				Logger()->WriteFormat("ERROR: Mutating object [%s] - wrong node to be removed", InstName());
 			    }
 			}
 		    }
-		    else if (mano.Type() == ENt_Soutp) {
-			AddConn(mano, iOutputs);
-		    }
-		    else if (mano.Type() == ENt_State) {
-			AddState(mano);
-		    }
-		    else if (mano.Type() == ENt_Conn) {
-			AddConn(mano);
-		    }
-		    else if (mano.Type() == ENt_Cext) {
-			AddExt(mano);
-		    }
-		    else if (mano.Type() == ENt_Cextc) {
-			AddExtc(mano);
-		    }
-		    else if (mano.Type() == ENt_Trans) {
-			AddTrans(mano);
-		    }
-		    else if (mano.Type() == ENt_Logspec) {
-			AddLogspec(mano);
-		    }
-		    else {
-			Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
-		    }
-		    // Change chromo
-		    chrroot.AddChild(mano);
-		}
-	    }
-	    else if (mno.Type() == ENt_MutRm) 
-	    {
-		for (CAE_ChromoNode::Iterator mrmit = mno.Begin(); mrmit != mno.End(); mrmit++)
-		{
-		    CAE_ChromoNode mrno = *mrmit;
-		    if (mrno.Type() == ENt_Node) {
-			NodeType type = mrno.AttrNtype(ENa_Type);
-			string name = mrno.Name();
-			CAE_ChromoNode::Iterator remit = chrroot.End();
-			if (mrno.AttrExists(ENa_MutChgAttr)) {
-			    TNodeAttr mattr = mrno.AttrNatype(ENa_MutChgAttr);
-			    string attval = mrno.Attr(ENa_MutChgVal);
-			    remit = chrroot.Find(type, name, mattr, attval);
-			}
-			else {
-			    remit = chrroot.Find(type, name);
-			}
-			if (remit != chrroot.End()) {
-			    RemoveElem(mrno);
+		    else if (mno.Type() == ENt_MutChange) 
+		    {
+			NodeType type = mno.AttrNtype(ENa_Type);
+			string name = mno.Name();
+			CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
+			if (curr != chrroot.End()) {
+			    // Change runtime model
+			    ChangeAttr(node, mno, *curr);
 			    // Change chromo
-			    chrroot.RmChild(*remit);
+			    CAE_ChromoNode currn = *curr;
+			    ChangeChromoAttr(mno, currn);
 			}
 			else {
-			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
+			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName(), name.c_str());
 			}
 		    }
-		    else {
-			Logger()->WriteFormat("ERROR: Mutating object [%s] - wrong node to be removed", InstName());
+		    else
+		    {
+			Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName());
 		    }
-		}
-	    }
-	    else if (mno.Type() == ENt_MutChange) 
-	    {
-		NodeType type = mno.AttrNtype(ENa_Type);
-		string name = mno.Name();
-		CAE_ChromoNode::Iterator curr = mnode.Find(type, name);
-		if (curr != chrroot.End()) {
-		    // Change runtime model
-		    ChangeAttr(node, mno, *curr);
-		    // Change chromo
-		    CAE_ChromoNode currn = *curr;
-		    ChangeChromoAttr(mno, currn);
-		}
-		else {
-		    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName(), name.c_str());
 		}
 	    }
 	    else
 	    {
-		Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName());
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName(), mnoden.c_str());
 	    }
 	}
-    }
-    else
-    {
-	Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName(), mnoden.c_str());
+	else {
+	    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", InstName(), rnotype);
+	}
     }
 }
 
@@ -2731,16 +2773,8 @@ CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
     heir->SetType(InstName());
     heir->Construct();
     // Mutate bare child with original parent chromo
-    MAE_Chromo& mut = heir->Mut();
-    mut.Init(ENt_Mut);
-    CAE_ChromoNode mroot = mut.Root();
-    mroot.SetAttr(ENa_MutNode, "self");
-    CAE_ChromoNode madd = mroot.AddChild(ENt_MutAdd);
-    const CAE_ChromoNode croot = iChromo->Root();
-    for (CAE_ChromoNode::Const_Iterator it = croot.Begin(); it != croot.End(); it++) {
-	CAE_ChromoNode elem = *it;
-	madd.AddChild(elem);
-    }
+    CAE_ChromoNode root = iChromo->Root();
+    heir->SetMutation(root);
     heir->Mutate();
     return heir;
 }

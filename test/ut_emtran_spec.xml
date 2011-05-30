@@ -8,12 +8,12 @@
 
 <caeenv>
     <iobject type="none" id="Test">
-	<mut node="self">
+	<mut>
 	    <add>
 		<logspec  event="cre"> <logdata id="new"/> </logspec>
 
 		<iobject type="none" id="Incrementer">
-		    <mut node="self">
+		    <mut>
 			<add>
 			    <out id="output"/>
 

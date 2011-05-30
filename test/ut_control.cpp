@@ -99,7 +99,8 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
     CAE_Object::ChromoPx* cpx = self.Ref()->GetFbObj(cpx);
     _FAP_ASSERT(cpx != NULL);
     CAE_ChromoNode croot = cpx->Chr().Root();
-    CAE_ChromoNode smut = cpx->Mut().Root();
+    CAE_ChromoNode smutroot = cpx->Mut().Root();
+    CAE_ChromoNode smut = smutroot.AddChild(ENt_Mut);
 
     TInt logdata = aState->GetLogSpecData(KBaseLe_Trans);
     if (logdata != KBaseDa_None) {

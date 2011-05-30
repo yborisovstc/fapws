@@ -209,6 +209,9 @@ fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="*" {
   mainwnd.h
   Makefile.am
  }
+ files=files CD=. filter="*" {
+  empty.xml
+ }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {
  configure.ac

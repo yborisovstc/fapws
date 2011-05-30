@@ -15,20 +15,19 @@
 
      -->
 
-<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
-<caeenv>
     <iobject type="none" id="Test">
-	<mut node="self">
+	<mut>
 	    <add>
 		<logspec  event="cre"> <logdata id="new"/> </logspec>
 
 		<iobject type="none" id="Order">
-		    <mut node="self">
+		    <mut>
 			<add>
 			    <out id="output"/>
 			    <iobject type="none" id="Storage"> 
-				<mut node="self">
+				<mut>
 				    <add>
 					<!-- Output of subject on given position -->
 					<out id="output"/>
@@ -40,7 +39,7 @@
 					<logspec event="upd"> <logdata id="new"/> </logspec> 
 					<!-- Terminator of storage elements -->
 					<iobject type="none" id="Terminal" quiet="yes"> 
-					    <mut node="self"> 
+					    <mut> 
 						<add>
 						    <inp id="input"/>
 						    <out id="output"/>
@@ -60,7 +59,7 @@
 
 					<!-- Subject of ordering -->
 					<iobject type="none" id="Subject" quiet="yes"> 
-					    <mut node="self"> 
+					    <mut> 
 						<add>
 						    <inp id="input"/>
 						    <out id="output"/>
@@ -112,7 +111,7 @@
 			    </iobject> <!-- Storage -->
 
 			    <iobject type="none" id="Timer"> <!-- Timer (not used here) -->
-				<mut node="self">
+				<mut>
 				    <add>
 					<inp id="event"/>
 					<out id="output"/>
@@ -183,5 +182,4 @@
 	    </add>
 	</mut>
     </iobject> <!-- Test -->
-</caeenv>
 

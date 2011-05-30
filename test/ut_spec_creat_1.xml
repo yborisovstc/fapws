@@ -2,14 +2,13 @@
 
 <!-- Specification of FAP environment for unit test ut_spec_creat -->
 
-<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
-<caeenv>
     <iobject type="none" id="main_test">
-	<mut node="self">
+	<mut>
 	    <add>
 		<iobject type="none" id="generator" quiet="yes"> 
-		    <mut node="self">
+		    <mut>
 			<add>
 			    <inp id="enable"/>
 
@@ -51,5 +50,4 @@
 	    </add>
 	</mut>
     </iobject> <!-- test -->
-</caeenv>
 

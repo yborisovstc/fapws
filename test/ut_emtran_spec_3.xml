@@ -6,11 +6,10 @@
      The model is the rock that is being throwing with initial velocity, than it flies, and breaks
      -->
 
-<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
-<caeenv>
     <iobject type="none" id="main_test">
-	<mut node="self">
+	<mut>
 	    <add>
 		<out id="rock">
 		    <src id="coord"/> <src id="mass"/> 
@@ -45,7 +44,7 @@
 		<!-- That is because add evaluated with "*" req type -->
 
 		<iobject type="none" id="Rock" quiet="yes"> 
-		    <mut node="self">
+		    <mut>
 			<add>
 			    <out id="coord"/>
 			    <out id="mass"/>
@@ -92,12 +91,11 @@
 
 		</iobject> <!-- Rock -->
 
-		<iobject type="Rock" id="rock_1" > <mut node="self"> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
+		<iobject type="Rock" id="rock_1" > <mut> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
 
 		<extc id="rock"> <srcext id="coord" pair="rock_1.coord"/> <srcext id="mass" pair="rock_1.mass"/> </extc>
 
 	    </add>
 	</mut>
     </iobject> <!-- test -->
-</caeenv>
 

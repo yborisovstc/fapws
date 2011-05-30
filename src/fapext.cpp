@@ -80,12 +80,8 @@ void CAE_Env::ConstructSystem()
     spec->Set(iSystSpec.c_str());
     const CAE_ChromoNode& root = spec->Root();
     iRoot = CAE_Object::NewL(root.Name().c_str(), NULL, this);
-    for (CAE_ChromoNode::Const_Iterator imut = root.Begin(); imut != root.End(); imut++) {
-	if ((*imut).Type() == ENt_Mut) {
-	    iRoot->SetMutation(*imut);
-	    iRoot->Mutate();
-	}
-    }
+    iRoot->SetMutation(root);
+    iRoot->Mutate();
     SetActive();
 }
 

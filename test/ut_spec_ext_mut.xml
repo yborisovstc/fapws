@@ -8,14 +8,13 @@
      The snail that falls behind gets less food and thus loosing its mass
      -->
 
-<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
 
-<caeenv>
     <iobject type="none" id="main_test">
-	<mut node="self">
+	<mut>
 	    <add>
 		<iobject type="none" id="snail" quiet="yes"> 
-		    <mut node="self">
+		    <mut>
 			<add>
 			    <inp id="coord_others"/>
 			    <out id="coord"/>
@@ -42,9 +41,9 @@
 
 		</iobject> <!-- snail -->
 
-		<iobject type="snail" id="snail_1" > <mut node="self"> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
-		<iobject type="snail" id="snail_2" > <mut node="self"> <change type="state" id="mass" attr="init" val="3"/> </mut>  </iobject>
-		<iobject type="snail" id="snail_3" > <mut node="self"> <change type="state" id="mass" attr="init" val="16"/> </mut> </iobject>
+		<iobject type="snail" id="snail_1" > <mut> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_2" > <mut> <change type="state" id="mass" attr="init" val="3"/> </mut>  </iobject>
+		<iobject type="snail" id="snail_3" > <mut> <change type="state" id="mass" attr="init" val="16"/> </mut> </iobject>
 
 		<conn id="snail_1.coord_others" pair="snail_2.coord"/><conn id="snail_1.coord_others" pair="snail_3.coord"/>
 		<conn id="snail_2.coord_others" pair="snail_1.coord"/> <conn id="snail_2.coord_others" pair="snail_3.coord"/>
@@ -53,5 +52,4 @@
 	    </add>
 	</mut>
     </iobject> <!-- test -->
-</caeenv>
 
