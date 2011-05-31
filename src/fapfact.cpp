@@ -77,7 +77,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
 	virtual void* AddChild(void* aParent, NodeType aNode);
-	virtual void* AddChild(void* aParent, const void* aHandle);
+	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue);
 	virtual void RmChild(void* aParent, void* aChild);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
@@ -360,9 +360,9 @@ void* CAE_ChromoMdlX::AddChild(void* aParent, NodeType aNode)
     return xmlAddChild((xmlNodePtr) aParent, node);
 }
 
-void* CAE_ChromoMdlX::AddChild(void* aParent, const void* aHandle)
+void* CAE_ChromoMdlX::AddChild(void* aParent, const void* aHandle, TBool aCopy)
 {
-    xmlNodePtr node = xmlCopyNode((xmlNodePtr) aHandle, 1);
+    xmlNodePtr node = aCopy ? xmlCopyNode((xmlNodePtr) aHandle, 1) : (xmlNodePtr) aHandle;
     return xmlAddChild((xmlNodePtr) aParent, node);
 }
 
@@ -403,7 +403,7 @@ void CAE_ChromoMdlX::Dump(void* aNode, MCAE_LogRec* aLogRec)
 
 void CAE_ChromoMdlX::Save(const string& aFileName) const
 {
-    int res = xmlSaveFile(aFileName.c_str(), iDoc);
+    int res = xmlSaveFormatFile(aFileName.c_str(), iDoc, 4);
 }
 
 

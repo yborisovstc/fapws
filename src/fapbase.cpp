@@ -1319,7 +1319,6 @@ void CAE_Object::Construct()
     iMut = iEnv->Provider()->CreateChromo();
     iMut->Init(ENt_Object);
     iChromo = iEnv->Provider()->CreateChromo();
-    //iChromo->Init(ENt_Robject);
     iChromo->Init(ENt_Object);
     CAE_ChromoNode croot = iChromo->Root();
     croot.SetAttr(ENa_Id, iInstName);
@@ -1877,6 +1876,7 @@ void CAE_Object::SetMutation(const CAE_ChromoNode& aMuta)
     iMut->Set(aMuta);
 }
 
+// TODO [YB] To consider creating from chromo but not via mut
 void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 {
     string sparent = aNode.Attr(ENa_Type);
@@ -2374,7 +2374,10 @@ void CAE_Object::DoMutation()
 	NodeType rnotype = rno.Type();
 	if (rnotype == ENt_Object) {
 	    AddObject(rno);
-	    chrroot.AddChild(rno);
+	    if (iComps.count(rno.Name()) > 0) {
+		CAE_Object* comp = iComps[rno.Name()];
+		chrroot.AddChild(comp->iChromo->Root(), EFalse);
+	    }
 	}
 	else if (rnotype == ENt_Stinp) {
 	    AddConn(rno, iInputs);
@@ -2598,36 +2601,31 @@ CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
     return res;
 }
 
-FAPWS_API CAE_EBase* CAE_Object::FindByName(const char* aName)
+// TODO [YB] To move FindByName to CAE_EBase
+FAPWS_API CAE_EBase* CAE_Object::FindByName(const string& aName)
 {
     CAE_EBase* res = NULL;
-    char name[KNameMaxLen];
-    const char* tail = strchr(aName, KNameSeparator);
-    TInt namelen = tail?tail - aName:strlen(aName);
-    if (namelen < KNameMaxLen)
-    {
-	strncpy(name, aName, namelen);
-	name[namelen] = 0x00;
-
-	if (tail == 0x00)
-	{ // Simple name
-	    map<string, CAE_Object*>::iterator it = iComps.find(name);
-	    if (it != iComps.end()) {
-		res = it->second;
-	    }
-	    else {
-		map<string, CAE_StateBase*>::iterator it = iStates.find(name);
-		if (it != iStates.end()) {
-		    res = it->second;
-		}
-	    }
+    size_t pos = aName.find(KNameSeparator);
+    string tname = aName.substr(0, pos);
+    NodeType type = ENt_Unknown;
+    string name;
+    iChromo->Root().ParseTname(tname, type, name);
+    if (type == ENt_Object) {
+	map<string, CAE_Object*>::iterator it = iComps.find(name);
+	if (it != iComps.end()) {
+	    res = it->second;
 	}
-	else
-	{ // Full name
-	    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end() && res == NULL; it++) {
-		CAE_Object* comp = it->second;
-		res = comp->FindByName(tail+1); 
-	    }
+    }
+    else if (type == ENt_State) {
+	map<string, CAE_StateBase*>::iterator it = iStates.find(name);
+	if (it != iStates.end()) {
+	    res = it->second;
+	}
+    }
+    if ((res != NULL) &&  (pos != string::npos)) {
+	CAE_Object* obj = res->GetFbObj(obj);
+	if (obj != NULL) {
+	    res = obj->FindByName(aName.substr(pos + 1)); 
 	}
     }
     return res;

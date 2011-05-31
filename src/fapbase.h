@@ -788,7 +788,7 @@ class MAE_ChromoMdl
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual void* AddChild(void* aParent, NodeType aType) = 0;
-	virtual void* AddChild(void* aParent, const void* aHandle) = 0;
+	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void RmChild(void* aParent, void* aChild) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
@@ -871,7 +871,8 @@ class CAE_ChromoNode
 	const void* Handle() const { return iHandle;};
 	CAE_ChromoMdlBase& Mdl() const { return iMdl;};
 	CAE_ChromoNode AddChild(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
-	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle())); };
+	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
+	    CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle(), aCopy)); };
 	// Be careful while removing node got from iterator. Iterator is not cleaned thus it returns wrong node on ++
 	void RmChild(const CAE_ChromoNode& aChild) { iMdl.RmChild(iHandle, aChild.iHandle); };
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
@@ -991,7 +992,7 @@ public:
 		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
 		const string& Trans() const { return iOwner.iTransSrc;};
 		CAE_Object& Object() { return iOwner;}
-		CAE_EBase* FindByName(const char* aName) { return iOwner.FindByName(aName);};
+		CAE_EBase* FindByName(const string& aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};
 	    public:
 		CAE_Object& iOwner;
@@ -1013,7 +1014,7 @@ public:
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
-	CAE_EBase* FindByName(const char* aName);
+	CAE_EBase* FindByName(const string& aName);
 	CAE_ConnPointBase* GetConn(const char *aName);
 	CAE_ConnPointBase* GetInpN(const char *aName);
 	CAE_ConnPointBase* GetOutpN(const char *aName);
