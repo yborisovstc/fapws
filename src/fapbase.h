@@ -282,6 +282,7 @@ class CAE_ConnPointBase: public CAE_Base
 	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
 	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
 	const CAE_EBase& Man() const { return *iMan;};
+	CAE_EBase& Man() { return *iMan;};
     protected:
 	string iName;
 	// TODO [YB] To migrate from vector to map
@@ -761,7 +762,6 @@ enum TNodeAttr
     ENa_StInit = 5,
     ENa_Logevent = 6,
     ENa_StLen = 7,
-    ENa_PinType = 8,
     ENa_ConnPair = 9,
     ENa_MutNode = 10,
     ENa_MutChgAttr = 11,
@@ -776,7 +776,6 @@ class MAE_ChromoMdl
     public:
 	virtual NodeType GetType(const void* aHandle) = 0;
 	virtual NodeType GetType(const string& aId) = 0;
-	virtual string GetTypeId(NodeType aType) = 0;
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
 	virtual void* NextText(const void* aHandle) = 0;
 	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
@@ -784,6 +783,7 @@ class MAE_ChromoMdl
 	virtual void* GetFirstTextChild(const void* aHandle) = 0;
 	virtual char* GetAttr(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual char* GetContent(const void* aHandle) = 0;
+	virtual void  SetContent(const void* aHandle, const string& aContent) = 0;
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
@@ -862,6 +862,7 @@ class CAE_ChromoNode
 	const string Attr(TNodeAttr aAttr);
 	const string Attr(TNodeAttr aAttr) const;
 	const string Content() { return iMdl.GetContent(iHandle);};
+	void  SetContent(const string& aContent) { return iMdl.SetContent(iHandle, aContent);};
 	TInt AttrInt(TNodeAttr aAttr) const;
 	TBool AttrExists(TNodeAttr aAttr) const { return iMdl.AttrExists(iHandle, aAttr);};
 	TBool AttrBool(TNodeAttr aAttr) const;
@@ -885,7 +886,6 @@ class CAE_ChromoNode
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
 	void ParseTname(const string& aTname, NodeType& aType, string& aName);
 	string GetName(const string& aTname);
-	string GetTName(NodeType aType, const string& aName);
     private :
 	CAE_ChromoMdlBase& iMdl;
 	void* iHandle;
@@ -903,6 +903,8 @@ class MAE_Chromo
 	virtual void Init(NodeType aRootType) = 0;
 	virtual void Reset() = 0;
 	virtual void Save(const string& aFileName) const = 0;
+	static string GetTypeId(NodeType aType);
+	static string GetTName(NodeType aType, const string& aName);
 };
 
 class CAE_ChromoBase: public MAE_Chromo

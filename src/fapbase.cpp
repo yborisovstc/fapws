@@ -1188,16 +1188,6 @@ string CAE_ChromoNode::GetName(const string& aTname)
     return (tpos != string::npos) ? aTname.substr(tpos+1) : aTname;
 }
 
-string CAE_ChromoNode::GetTName(NodeType aType, const string& aName)
-{
-    if (aType == ENt_Object) {
-	return aName;
-    }
-    else {
-	return iMdl.GetTypeId(aType) + "%" + aName;
-    }
-}
-
 CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName) 
 { 
     Iterator res = End();
@@ -1691,7 +1681,7 @@ void CAE_Object::CreateStateInp(const CAE_ChromoNode& aSpec, CAE_StateBase *aSta
 	    {
 		const string sname = elem.Name();
 		const char *name = sname.c_str(); 
-		const string stype = elem.Attr(ENa_PinType);
+		const string stype = elem.Attr(ENa_Type);
 		const char *type = stype.c_str(); 
 		// Create default templ if type isnt specified
 		dt[name] = type ? type: "State";
@@ -2175,6 +2165,9 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 		state->SetName(mval.c_str());
 		iStates[mval] = state;
 	    }
+	    else if (mattr == ENa_Type) {
+		state->SetType(mval.c_str());
+	    }
 	    else {
 		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName(), mattrs.c_str());
 	    }
@@ -2240,25 +2233,30 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	    Logger()->WriteFormat("ERROR: Changing object [%s] - not found", nname.c_str());
 	}
     }
-    else if (ntype == ENt_Stinp)
+    else if (ntype == ENt_Stinp || ntype == ENt_Soutp)
     {
 	CAE_StateBase* state = aNode->GetFbObj(state);
-	map<string, CAE_ConnPointBase*>& inputs = state->Inputs();
-	if (state != NULL) {
-	    map<string, CAE_ConnPointBase*>::iterator it = inputs.find(nname);
-	    if (it != inputs.end()) {
+	CAE_Object* obj = aNode->GetFbObj(obj);
+	if (state != NULL && ntype == ENt_Stinp || obj != NULL) {
+	    map<string, CAE_ConnPointBase*>& cps = 
+		(ntype == ENt_Soutp) ? (obj->Outputs()) : (state != NULL ? state->Inputs() : obj->Inputs());
+	    map<string, CAE_ConnPointBase*>::iterator it = cps.find(nname);
+	    if (it != cps.end()) {
 		CAE_ConnPointBase* cp = it->second;
 		if (mattr == ENa_Id) {
-		    inputs[nname] = NULL;
-		    inputs.erase(it);
+		    cps[nname] = NULL;
+		    cps.erase(it);
 		    cp->SetName(mval.c_str());
-		    inputs[mval] = cp;
+		    cps[mval] = cp;
 		}
 		else {
 		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->InstName(), nname.c_str());
 		}
 
 	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->InstName());
 	}
     }
     else if (ntype == ENt_Trans)
@@ -2418,8 +2416,8 @@ void CAE_Object::DoMutation()
 	    CAE_EBase* node = this;
 	    CAE_ChromoNode mnode = chrroot;
 	    if (!selfnode) {
-		node = FindByName(mnoden.c_str());
-		CAE_ChromoNode::Iterator mnodeit = chrroot.Find(ENt_Object, mnoden);
+		node = FindByName(mnoden);
+		CAE_ChromoNode::Iterator mnodeit = chrroot.Find(mnoden);
 		if (mnodeit != chrroot.End()) {
 		    mnode = *mnodeit;
 		}
@@ -2479,7 +2477,7 @@ void CAE_Object::DoMutation()
 				Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
 			    }
 			    // Change chromo
-			    chrroot.AddChild(mano);
+			    mnode.AddChild(mano);
 			}
 		    }
 		    else if (mno.Type() == ENt_MutRm) 
@@ -2490,19 +2488,19 @@ void CAE_Object::DoMutation()
 			    if (mrno.Type() == ENt_Node) {
 				NodeType type = mrno.AttrNtype(ENa_Type);
 				string name = mrno.Name();
-				CAE_ChromoNode::Iterator remit = chrroot.End();
+				CAE_ChromoNode::Iterator remit = mnode.End();
 				if (mrno.AttrExists(ENa_MutChgAttr)) {
 				    TNodeAttr mattr = mrno.AttrNatype(ENa_MutChgAttr);
 				    string attval = mrno.Attr(ENa_MutChgVal);
-				    remit = chrroot.Find(type, name, mattr, attval);
+				    remit = mnode.Find(type, name, mattr, attval);
 				}
 				else {
-				    remit = chrroot.Find(type, name);
+				    remit = mnode.Find(type, name);
 				}
-				if (remit != chrroot.End()) {
+				if (remit != mnode.End()) {
 				    RemoveElem(mrno);
 				    // Change chromo
-				    chrroot.RmChild(*remit);
+				    mnode.RmChild(*remit);
 				}
 				else {
 				    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
@@ -2517,8 +2515,8 @@ void CAE_Object::DoMutation()
 		    {
 			NodeType type = mno.AttrNtype(ENa_Type);
 			string name = mno.Name();
-			CAE_ChromoNode::Iterator curr = chrroot.Find(type, name);
-			if (curr != chrroot.End()) {
+			CAE_ChromoNode::Iterator curr = mnode.Find(type, name);
+			if (curr != mnode.End()) {
 			    // Change runtime model
 			    ChangeAttr(node, mno, *curr);
 			    // Change chromo

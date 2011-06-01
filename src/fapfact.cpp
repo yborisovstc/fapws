@@ -64,7 +64,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
     public:
 	virtual NodeType GetType(const string& aId);
 	virtual NodeType GetType(const void* aHandle);
-	virtual string GetTypeId(NodeType aType);
+//	virtual string GetTypeId(NodeType aType);
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
 	virtual void* NextText(const void* aHandle);
 	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
@@ -73,6 +73,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void* GetFirstTextChild(const void* aHandle);
 	virtual char *GetAttr(const void* aHandle, TNodeAttr aAttr);
 	virtual char* GetContent(const void* aHandle);
+	virtual void  SetContent(const void* aHandle, const string& aContent);
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr);
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
@@ -141,7 +142,6 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeAttrsNames[ENa_StInit] = "init";
 	KNodeAttrsNames[ENa_StLen] = "len";
 	KNodeAttrsNames[ENa_Logevent] = "event";
-	KNodeAttrsNames[ENa_PinType] = "type";
 	KNodeAttrsNames[ENa_ConnPair] = "pair";
 	KNodeAttrsNames[ENa_MutNode] = "node";
 	KNodeAttrsNames[ENa_MutChgAttr] = "attr";
@@ -203,11 +203,12 @@ NodeType CAE_ChromoMdlX::GetType(const string& aId)
 {
     return (KNodeTypes.count(aId) == 0) ? ENt_Unknown: KNodeTypes[aId];
 }
-
+/*
 string CAE_ChromoMdlX::GetTypeId(NodeType aType)
 {
     return (aType == ENt_Unknown) ? "" : KNodeTypesNames[aType];
 }
+*/
 
 NodeType CAE_ChromoMdlX::GetType(const void* aHandle)
 {
@@ -316,6 +317,13 @@ char* CAE_ChromoMdlX::GetContent(const void* aHandle)
     xmlNodePtr node = (xmlNodePtr) aHandle;
     xmlChar *cont = xmlNodeGetContent(node);
     return (char *) cont;
+}
+
+void  CAE_ChromoMdlX::SetContent(const void* aHandle, const string& aContent)
+{
+    _FAP_ASSERT(aHandle != NULL);
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    xmlNodeSetContent(node, (const xmlChar*) aContent.c_str());
 }
 
 int CAE_ChromoMdlX::GetAttrInt(void *aHandle, const char *aName)
@@ -430,6 +438,20 @@ class CAE_ChromoX: public CAE_ChromoBase
 	CAE_ChromoNode iRootNode;
 };
 
+string MAE_Chromo::GetTypeId(NodeType aType)
+{
+    return (aType == ENt_Unknown) ? "" : KNodeTypesNames[aType];
+}
+
+string MAE_Chromo::GetTName(NodeType aType, const string& aName)
+{
+    if (aType == ENt_Object) {
+	return aName;
+    }
+    else {
+	return GetTypeId(aType) + "%" + aName;
+    }
+}
 
 CAE_ChromoX::CAE_ChromoX(): iRootNode(iMdl, NULL)
 {

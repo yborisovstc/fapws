@@ -813,7 +813,9 @@ void CSL_Interpr::EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, 
 	// Select keyword
 	size_t kwpe = line.find(' ');
 	string kw = line.substr(0, kwpe);
-	if (kw.compare("let") == 0) {
+	if (kw.compare("rem") == 0) {
+	}
+	else if (kw.compare("let") == 0) {
 	    // Definition
 	    size_t nmpb, nmpe;
 	    nmpb = line.find_first_not_of(' ', kwpe + 1);
