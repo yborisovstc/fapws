@@ -750,6 +750,7 @@ enum NodeType
     ENt_ChNode = 22, // Change of node
     ENt_Trans = 23, // Transtion function of state
     ENt_MutAddStInp = 24,  // Mutation - addition of state input
+    ENt_MutChangeCont = 25, // Mutation - change of content
 };
 
 enum TNodeAttr
@@ -1071,7 +1072,9 @@ private:
 	void AddLogspec(const CAE_ChromoNode& aSpec);
 	void RemoveElem(const CAE_ChromoNode& aSpec);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
+	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
 	void OnHeaderPress(const MAE_View* aView);
 	void OnCompHeaderPress(const MAE_View* aView, const string& aName);

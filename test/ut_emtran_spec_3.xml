@@ -78,13 +78,13 @@
 				</trans>
 			    </state>
 
-			    <conn id="coord.self" pair="coord.output"/> 
-			    <conn id="coord.velocity" pair="velocity.output"/> 
-			    <conn id="velocity.coord" pair="coord.output"/> 
-			    <conn id="velocity.self" pair="velocity.output"/> 
+			    <conn id="state%coord.self" pair="state%coord.output"/> 
+			    <conn id="state%coord.velocity" pair="state%velocity.output"/> 
+			    <conn id="state%velocity.coord" pair="state%coord.output"/> 
+			    <conn id="state%velocity.self" pair="state%velocity.output"/> 
 
-			    <ext id="coord" pair="coord.output"/>
-			    <ext id="mass" pair="mass.output"/>
+			    <ext id="coord" pair="state%coord.output"/>
+			    <ext id="mass" pair="state%mass.output"/>
 
 			</add>
 		    </mut>

@@ -58,21 +58,21 @@
 				<inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
 			    </state>
 
-			    <conn id="mass.coord_self" pair="coord.output"/> 
-			    <conn id="mass.frugal" pair="frugal.output"/> 
-			    <conn id="coord.self" pair="coord.output"/> 
-			    <conn id="coord.mass" pair="mass.output"/>
-			    <conn id="frugal.self" pair="frugal.output"/>
-			    <conn id="frugal.coord" pair="coord.output"/>
+			    <conn id="state%mass.coord_self" pair="state%coord.output"/> 
+			    <conn id="state%mass.frugal" pair="state%frugal.output"/> 
+			    <conn id="state%coord.self" pair="state%coord.output"/> 
+			    <conn id="state%coord.mass" pair="state%mass.output"/>
+			    <conn id="state%frugal.self" pair="state%frugal.output"/>
+			    <conn id="state%frugal.coord" pair="state%coord.output"/>
 
-			    <ext id="neighbor" pair="mass.neighbor"/>
-			    <ext id="coord" pair="coord.output"/>
+			    <ext id="neighbor" pair="state%mass.neighbor"/>
+			    <ext id="coord" pair="state%coord.output"/>
 			    <extc id="outp">
-				<srcext id="coord" pair="coord.output"/>
-				<srcext id="frugal" pair="frugal.output"/>
+				<srcext id="coord" pair="state%coord.output"/>
+				<srcext id="frugal" pair="state%frugal.output"/>
 			    </extc>
 			    <extc id="neighbor">
-				<dstext id="coord" pair="frugal.coord_other"/>
+				<dstext id="state%coord" pair="state%frugal.coord_other"/>
 			    </extc>
 
 			</add>

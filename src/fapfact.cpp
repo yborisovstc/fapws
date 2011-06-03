@@ -124,6 +124,7 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["add"] = ENt_MutAdd;
 	KNodeTypes["rm"] = ENt_MutRm;
 	KNodeTypes["change"] = ENt_MutChange;
+	KNodeTypes["changecont"] = ENt_MutChangeCont;
 	KNodeTypes["node"] = ENt_Node;
 	KNodeTypes["chnode"] = ENt_ChNode;
 	KNodeTypes["trans"] = ENt_Trans;

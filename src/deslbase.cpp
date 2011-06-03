@@ -265,12 +265,15 @@ TBool CSL_ExprBase::ParseTerm(const string& aData, size_t& aPos, vector<string>&
 	pe = aData.find_first_of(')', pbb);
 	aPos = (pe == string::npos) ? pe, res = EFalse : pe + 1;
     }
-    else {
+    else if (pb != string::npos) {
 	pe = aData.find_first_of(" )", pb);
 	aPos = (pe == string::npos) ? pe : (aData[pe] == ')' ? pe: pe + 1);
 	pe = (pe == string::npos) ? aData.size() : pe;
 	string elem = aData.substr(pb, pe-pb);
 	aRes.push_back(elem);
+    }
+    else {
+	res = EFalse;
     }
     aPos = (aPos == aData.size()) ? string::npos : aPos;
     return res;
@@ -750,7 +753,7 @@ void CSL_EfCount::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>
 
 static map<string, string> KStateDataTypes;
 
-CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this)
+CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this), iContext(NULL)
 {
     iRootExpr = new CSL_ExprBase();
     // Register embedded function
@@ -872,10 +875,12 @@ void CSL_Interpr::EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, 
 	    if (state_dtype.empty()) {
 		Logger()->WriteFormat("Couldn't get state data type");
 	    }
+	    /*
 	    size_t tpb, tpe;
 	    tpb = line.find_first_not_of(' ', kwpe + 1);
 	    tpe = line.find('\n', tpb);
 	    string data = line.substr(tpb, tpe-tpb);
+	    */
 	    vector<string> args;
 	    CSL_ExprBase::ParseTerms(line, args);
 	    vector<string>::iterator argsrest = args.begin();
@@ -913,7 +918,7 @@ CSL_ExprBase* CSL_Interpr::GetExpr(const string& aName, const string& aRtype)
 	    res = it->second;
 	}
     }
-    return (res != NULL) ? res : iContext->GetExpr(aName, aRtype);
+    return (res != NULL) ? res : ((iContext != NULL) ? iContext->GetExpr(aName, aRtype) : res);
 }
 
 multimap<string, CSL_ExprBase*>::iterator CSL_Interpr::GetExprs(const string& aName, const string& aRtype, 

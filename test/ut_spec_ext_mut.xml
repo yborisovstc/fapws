@@ -30,12 +30,12 @@
 				<inp id="self"/> <inp id="mass"/> 
 			    </state>
 
-			    <conn id="mass.coord_self" pair="coord.output"/> 
-			    <conn id="coord.self" pair="coord.output"/> 
-			    <conn id="coord.mass" pair="mass.output"/>
+			    <conn id="state%mass.coord_self" pair="state%coord.output"/> 
+			    <conn id="state%coord.self" pair="state%coord.output"/> 
+			    <conn id="state%coord.mass" pair="state%mass.output"/>
 
-			    <ext id="coord_others" pair="mass.coord_others"/>
-			    <ext id="coord" pair="coord.output"/>
+			    <ext id="coord_others" pair="state%mass.coord_others"/>
+			    <ext id="coord" pair="state%coord.output"/>
 			</add>
 		    </mut>
 

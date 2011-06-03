@@ -17,7 +17,7 @@
 <!-- 
      Mutation
 -->
-<!ELEMENT mut (add*, remove*, change*)>
+<!ELEMENT mut (add*, remove*, change*, changecont*)>
 
 <!-- 
      Mutation - addition
@@ -33,6 +33,12 @@
      Mutation - change (attribute)
 -->
 <!ELEMENT change EMPTY>
+
+<!-- 
+     Mutation - change content
+-->
+<!ELEMENT changecont EMPTY>
+
 
 <!-- 
      Node
@@ -264,6 +270,16 @@
    attr CDATA #REQUIRED
    val CDATA #REQUIRED
 >
+
+<!-- Change content attributes:
+     node - changed node
+     val - new value,
+     -->
+<!ATTLIST changecont
+   node CDATA #REQUIRED
+   val CDATA #REQUIRED
+>
+
 
 <!-- Environment attr -->
 <!--

@@ -2143,6 +2143,35 @@ void CAE_Object::ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& a
     }
 }
 
+void CAE_Object::ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr)
+{
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    aCurr.SetContent(mval);
+}
+
+void CAE_Object::ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
+{
+    string tname = aSpec.Attr(ENa_MutNode);
+    NodeType ntype = ENt_Unknown;
+    string nname;
+    iChromo->Root().ParseTname(tname, ntype, nname);
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    if (ntype == ENt_Trans)
+    {
+	CAE_StateBase* state = aNode->GetFbObj(state);
+	CAE_Object* obj = aNode->GetFbObj(obj);
+	if (state != NULL) {
+	    state->SetTrans(TTransInfo(mval));
+	}
+	else if (obj != NULL) {
+	    obj->SetTrans(mval);
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
+    }
+}
+
 void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
     NodeType ntype = aSpec.AttrNtype(ENa_Type);
@@ -2261,14 +2290,11 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
     }
     else if (ntype == ENt_Trans)
     {
-	CAE_StateBase* state = aNode->GetFbObj(state);
-	if (state != NULL) {
-	    state->SetTrans(TTransInfo(mval));
+	if (EFalse) {
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Changing trans [%s] - node type is not supported", aNode->InstName());
+	    Logger()->WriteFormat("ERROR: Changing trans - changing attr [%s] not supported", mattrs.c_str());
 	}
-
     }
     else {
 	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
@@ -2280,8 +2306,8 @@ void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
 {
     NodeType type = aSpec.AttrNtype(ENa_Type);
     string name = aSpec.Name();
+    CAE_ChromoNode& chr = iChromo->Root();
     if (type == ENt_Conn) {
-	CAE_ChromoNode& chr = iChromo->Root();
 	CAE_ChromoNode::Iterator conni = chr.Find(type, name);
 	if (conni != chr.End()) {
 	    // TODO [YB] There can be several connections with the same origin point, needs to have unique id of conn.
@@ -2301,7 +2327,6 @@ void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
 	}
     }
     else if (type == ENt_State) {
-	CAE_ChromoNode& chr = iChromo->Root();
 	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
 	if (elemit != chr.End()) {
 	    if (iStates.count(name) != 0) {
@@ -2315,6 +2340,11 @@ void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
 	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
 	}
 
+    }
+    else if (type == ENt_Trans) {
+	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
+	if (elemit != chr.End()) {
+	}
     }
     else {
 	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName());
@@ -2525,6 +2555,18 @@ void CAE_Object::DoMutation()
 			}
 			else {
 			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName(), name.c_str());
+			}
+		    }
+		    else if (mno.Type() == ENt_MutChangeCont) 
+		    {
+			string chnodename = mno.Attr(ENa_MutNode);
+			CAE_ChromoNode::Iterator curr = mnode.Find(chnodename);
+			if (curr != mnode.End()) {
+			    // Change runtime model
+			    ChangeCont(node, mno, *curr);
+			    // Change chromo
+			    CAE_ChromoNode currn = *curr;
+			    ChangeChromoCont(mno, currn);
 			}
 		    }
 		    else
@@ -2866,6 +2908,7 @@ CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)
 
 void CAE_Object::SetTrans(const string& aTrans)
 {
+    iTransSrc.erase();
     TTransInfo::FormatEtrans(aTrans, iTransSrc);
 }
 

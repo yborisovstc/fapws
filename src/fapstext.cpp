@@ -331,7 +331,7 @@ CAE_StateEx::CAE_StateEx(const string& aType, const string& aInstName, CAE_Objec
 	iNew = expr->Clone();
     }
     else {
-	Logger()->WriteFormat("Creating state [%s] of type [%s]: type constr not found", InstName(), TypeName());
+	Logger()->WriteFormat("ERROR: Creating state [%s] of type [%s]: type constr not found", InstName(), TypeName());
     }
 }
 
@@ -374,7 +374,7 @@ void CAE_StateEx::DoSetFromStr(const char *aStr)
 
 void CAE_StateEx::Confirm()
 {
-    if (!(*iCurr == *iNew)) {
+    if (iCurr != NULL && iNew != NULL && !(*iCurr == *iNew)) {
 	CAE_ConnPoint *outp = iOutput->GetFbObj(outp);
 	_FAP_ASSERT(outp != NULL);
 	for (TInt i = 0; i < outp->Dests().size(); i++) {

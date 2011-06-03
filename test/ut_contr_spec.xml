@@ -80,11 +80,11 @@
 							<inp id="data_up"/> 
 						    </state>
 
-						    <conn id="S_Up.data" pair="mass.output"/> 
+						    <conn id="state%S_Up.data" pair="state%mass.output"/> 
 
-						    <ext id="input" pair="S_Up.data_up"/>
-						    <ext id="output" pair="mass.output"/>
-						    <ext id="up" pair="S_Up.output"/>
+						    <ext id="input" pair="state%S_Up.data_up"/>
+						    <ext id="output" pair="state%mass.output"/>
+						    <ext id="up" pair="state%S_Up.output"/>
 						</add> 
 					    </mut>
 					</iobject> <!-- Subject -->
@@ -137,14 +137,14 @@
 					    <inp id="start"/> 
 					</state>
 
-					<conn id="S_Start.stop" pair="S_Stop.output"/> 
-					<conn id="S_Count.start" pair="S_Start.output"/> 
-					<conn id="S_Count.self" pair="S_Count.output"/> 
-					<conn id="S_Stop.count" pair="S_Count.output"/> 
-					<conn id="S_Stop.start" pair="S_Start.output"/> 
+					<conn id="state%S_Start.stop" pair="state%S_Stop.output"/> 
+					<conn id="state%S_Count.start" pair="state%S_Start.output"/> 
+					<conn id="state%S_Count.self" pair="state%S_Count.output"/> 
+					<conn id="state%S_Stop.count" pair="state%S_Count.output"/> 
+					<conn id="state%S_Stop.start" pair="state%S_Start.output"/> 
 
-					<ext id="event" pair="S_Start.start"/>
-					<ext id="output" pair="S_Start.start"/>
+					<ext id="event" pair="state%S_Start.start"/>
+					<ext id="output" pair="state%S_Start.start"/>
 
 				    </add>
 				</mut>
@@ -163,11 +163,11 @@
 			    </state>
 
 
-			    <conn id="S_Controller.subj_req" pair="Storage.togetup_1"/> 
-			    <conn id="S_Controller.subj_req" pair="Storage.togetup_2"/> 
-			    <conn id="S_Controller.subj_req" pair="Storage.togetup_3"/> 
+			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_1"/> 
+			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_2"/> 
+			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_3"/> 
 
-			    <conn id="S_Controller.pos" pair="S_Pos.output"/> 
+			    <conn id="state%S_Controller.pos" pair="state%S_Pos.output"/> 
 
 
 			    <conn id="Timer.event" pair="S_Controller.output"/> 
