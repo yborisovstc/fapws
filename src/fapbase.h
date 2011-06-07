@@ -237,6 +237,7 @@ public:
 	const char* TypeName() const { return iTypeName;};
 	const char* MansName(TInt aLevel) const;
 	void AddLogSpec(TInt aEvent, TInt aData);
+	void RemLogSpec();
 	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
 	static inline const char *Type(); 
 	inline MCAE_LogRec* Logger();
@@ -746,8 +747,6 @@ enum NodeType
     ENt_MutRm = 18,   // Mutation - removal
     ENt_MutChange = 19, // Mutation - change
     ENt_Robject = 20, // Root of object
-    ENt_Node = 21, // Node spec (i.e in remove mutation)
-    ENt_ChNode = 22, // Change of node
     ENt_Trans = 23, // Transtion function of state
     ENt_MutAddStInp = 24,  // Mutation - addition of state input
     ENt_MutChangeCont = 25, // Mutation - change of content
@@ -790,6 +789,8 @@ class MAE_ChromoMdl
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual void* AddChild(void* aParent, NodeType aType) = 0;
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
+	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
+	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void RmChild(void* aParent, void* aChild) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
@@ -875,6 +876,10 @@ class CAE_ChromoNode
 	CAE_ChromoNode AddChild(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
 	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
 	    CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle(), aCopy)); };
+	CAE_ChromoNode AddChildDef(const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
+	    CAE_ChromoNode(iMdl, iMdl.AddChildDef(iHandle, aNode.Handle(), aCopy)); };
+	CAE_ChromoNode AddNext(const CAE_ChromoNode& aPrev, const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
+	    CAE_ChromoNode(iMdl, iMdl.AddNext(aPrev.Handle(), aNode.Handle(), aCopy)); };
 	// Be careful while removing node got from iterator. Iterator is not cleaned thus it returns wrong node on ++
 	void RmChild(const CAE_ChromoNode& aChild) { iMdl.RmChild(iHandle, aChild.iHandle); };
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
@@ -905,6 +910,7 @@ class MAE_Chromo
 	virtual void Reset() = 0;
 	virtual void Save(const string& aFileName) const = 0;
 	static string GetTypeId(NodeType aType);
+	static string GetAttrId(TNodeAttr aType);
 	static string GetTName(NodeType aType, const string& aName);
 };
 
@@ -1069,8 +1075,8 @@ private:
 	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
-	void AddLogspec(const CAE_ChromoNode& aSpec);
-	void RemoveElem(const CAE_ChromoNode& aSpec);
+	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
+	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);

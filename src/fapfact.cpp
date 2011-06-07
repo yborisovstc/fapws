@@ -48,6 +48,8 @@ static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StIn
     &KSinfo_Point, &KSinfo_PointF, &KSinfo_VectF, &KSinfo_Rect, &KSinfo_Contr, 
     NULL};
 
+const char* KChromoSystemId = "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd";
+
 //*********************************************************
 // Model of XML based chromo
 //*********************************************************
@@ -79,6 +81,8 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
 	virtual void* AddChild(void* aParent, NodeType aNode);
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue);
+	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue);
+	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue);
 	virtual void RmChild(void* aParent, void* aChild);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
@@ -95,6 +99,13 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	void Reset();
     protected:
 	virtual void *DoGetFbObj(const char *aName);
+    private:
+	xmlElementPtr GetElementDecl(void* aHandle);
+	xmlElementContent* GetFirstEldeclSecCont(xmlElementPtr aElem);
+	xmlElementContent* FindEldeclSecCont(xmlNodePtr aParent, xmlNodePtr aNode);
+	xmlElementContent* GetNextEldeclSecCont(xmlElementContent* aContent);
+	xmlElementContent* GetPrevEldeclSecCont(xmlElementContent* aContent);
+	xmlNodePtr FindNodeEnterigPos(xmlNodePtr aParent, xmlNodePtr aNode);
     private:
 	xmlDoc *iDoc;	// XML document
 	TBool iDocOwned;
@@ -125,8 +136,6 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["rm"] = ENt_MutRm;
 	KNodeTypes["change"] = ENt_MutChange;
 	KNodeTypes["changecont"] = ENt_MutChangeCont;
-	KNodeTypes["node"] = ENt_Node;
-	KNodeTypes["chnode"] = ENt_ChNode;
 	KNodeTypes["trans"] = ENt_Trans;
 	KNodeTypes["state_inp"] = ENt_MutAddStInp;
 
@@ -166,6 +175,9 @@ void* CAE_ChromoMdlX::Init(NodeType aRootType)
     string sroottype = KNodeTypesNames[aRootType];
     xmlNodePtr root = xmlNewNode(NULL, (const xmlChar *) sroottype.c_str());
     xmlDocSetRootElement(iDoc, root);
+    //xmlDtdPtr dtd = xmlNewDtd(iDoc, (const xmlChar*) "iobject", (const xmlChar*) KChromoSystemId, (const xmlChar*) KChromoSystemId);
+    xmlDtdPtr dtd = xmlParseDTD(NULL, (const xmlChar*) KChromoSystemId );
+    iDoc->extSubset = dtd;
     return root;
 }
 
@@ -287,9 +299,11 @@ void *CAE_ChromoMdlX::Prev(const void *aHandle, NodeType aType)
 {
     _FAP_ASSERT(aHandle!= NULL);
     xmlNodePtr res = ((xmlNodePtr) aHandle)->prev;
-    NodeType type = GetType((void*) res);
-    while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown))))
-       	res = res->prev;
+    if (res != NULL) {
+	NodeType type = GetType((void*) res);
+	while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown))))
+	    res = res->prev;
+    }
     return res;
 }
 
@@ -375,6 +389,32 @@ void* CAE_ChromoMdlX::AddChild(void* aParent, const void* aHandle, TBool aCopy)
     return xmlAddChild((xmlNodePtr) aParent, node);
 }
 
+void* CAE_ChromoMdlX::AddChildDef(void* aParent, const void* aHandle, TBool aCopy)
+{
+    xmlNodePtr res = NULL;
+    xmlNodePtr parent = (xmlNodePtr) aParent;
+    xmlNodePtr node = aCopy ? xmlCopyNode((xmlNodePtr) aHandle, 1) : (xmlNodePtr) aHandle;
+    xmlNodePtr pnode = FindNodeEnterigPos(parent, node);
+    if (pnode != NULL) {
+	res = xmlAddNextSibling(pnode, node);
+    }
+    else {
+	if (parent->children != NULL) {
+	    res = xmlAddPrevSibling(parent->children, node);
+	}
+	else {
+	    res = xmlAddChild(parent, node);
+	}
+    }
+    return res;
+}
+
+void* CAE_ChromoMdlX::AddNext(const void* aPrev, const void* aHandle, TBool aCopy)
+{
+    xmlNodePtr node = aCopy ? xmlCopyNode((xmlNodePtr) aHandle, 1) : (xmlNodePtr) aHandle;
+    return xmlAddNextSibling((xmlNodePtr) aPrev, node);
+}
+
 void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, const char* aVal)
 {
     string name = KNodeAttrsNames[aType];
@@ -415,6 +455,61 @@ void CAE_ChromoMdlX::Save(const string& aFileName) const
     int res = xmlSaveFormatFile(aFileName.c_str(), iDoc, 4);
 }
 
+xmlElementPtr CAE_ChromoMdlX::GetElementDecl(void* aHandle)
+{
+    xmlNodePtr node = (xmlNodePtr) aHandle;
+    struct _xmlDtd* dtd = iDoc->extSubset;
+    const char* nname = (const char*) node->name;
+    _FAP_ASSERT(dtd != NULL);
+    xmlNodePtr res = dtd->children;
+    while ((res != NULL) && !((res->type == XML_ELEMENT_DECL) && strcmp((const char*) res->name, nname) == 0))
+       	res = res->next;
+    return (xmlElementPtr) res;
+}
+
+xmlElementContent* CAE_ChromoMdlX::GetFirstEldeclSecCont(xmlElementPtr aElem)
+{
+    xmlElementContent* res = aElem->content->c1;
+    return res;
+}
+
+xmlElementContent* CAE_ChromoMdlX::FindEldeclSecCont(xmlNodePtr aParent, xmlNodePtr aNode)
+{
+    xmlElementPtr elemdecl = GetElementDecl(aParent);
+    const char* nname = (const char*) aNode->name;
+    xmlElementContent* res = GetFirstEldeclSecCont(elemdecl); 
+    while ((res != NULL) && !(strcmp((const char*) res->name, nname) == 0))
+       	res = GetNextEldeclSecCont(res);
+    return res;
+}
+
+// Gets next element within element decl content of type SEC
+xmlElementContent* CAE_ChromoMdlX::GetNextEldeclSecCont(xmlElementContent* aContent)
+{
+    xmlElementContent* res = aContent->parent->c2->c1;
+    return res;
+}
+
+xmlElementContent* CAE_ChromoMdlX::GetPrevEldeclSecCont(xmlElementContent* aContent)
+{
+    xmlElementContent* p1 = aContent->parent->parent;
+    xmlElementContent* res = (p1 != NULL  && p1 != (xmlElementContent*) 1) ?  p1->c1 : NULL;
+    return res;
+}
+
+xmlNodePtr CAE_ChromoMdlX::FindNodeEnterigPos(xmlNodePtr aParent, xmlNodePtr aNode)
+{
+    xmlNodePtr res = NULL;
+    xmlElementContent* contc = FindEldeclSecCont(aParent, aNode);
+    xmlElementContent* contp = GetPrevEldeclSecCont(contc);
+    if (contp != NULL) {  
+	res = (xmlNodePtr) GetLastChild(aParent, KNodeTypes[(const char*) contp->name]);
+	while ((res == NULL) && (contp != NULL))
+	    contp = GetPrevEldeclSecCont(contp);
+    }
+    return res;
+}
+
 
 //*********************************************************
 // XML based chromo
@@ -452,6 +547,11 @@ string MAE_Chromo::GetTName(NodeType aType, const string& aName)
     else {
 	return GetTypeId(aType) + "%" + aName;
     }
+}
+
+string MAE_Chromo::GetAttrId(TNodeAttr aType)
+{
+    return (aType == ENa_Unknown) ? "" : KNodeAttrsNames[aType];
 }
 
 CAE_ChromoX::CAE_ChromoX(): iRootNode(iMdl, NULL)

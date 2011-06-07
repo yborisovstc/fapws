@@ -160,14 +160,13 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
 	    string lower_f = conn_lower.Name();
 	    string lower_name = lower_f.substr(0, lower_f.find("."));
 	    // #2 Remove connections
-	    CAE_ChromoNode rm = smut.AddChild(ENt_MutRm);
-	    CAE_ChromoNode rm_subj = rm.AddChild(ENt_Node);
+	    CAE_ChromoNode rm_subj = smut.AddChild(ENt_MutRm);
 	    rm_subj.SetAttr(ENa_Type, ENt_Conn);
 	    rm_subj.SetAttr(ENa_Id, conn_subj.Name());
-	    CAE_ChromoNode rm_upper = rm.AddChild(ENt_Node);
+	    CAE_ChromoNode rm_upper = smut.AddChild(ENt_MutRm);
 	    rm_upper.SetAttr(ENa_Id, conn_upper.Name());
 	    rm_upper.SetAttr(ENa_Type, ENt_Conn);
-	    CAE_ChromoNode rm_lower = rm.AddChild(ENt_Node);
+	    CAE_ChromoNode rm_lower = smut.AddChild(ENt_MutRm);
 	    rm_lower.SetAttr(ENa_Id, conn_lower.Name());
 	    rm_lower.SetAttr(ENa_Type, ENt_Conn);
 	    // #3 Add new connections

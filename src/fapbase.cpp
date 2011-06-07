@@ -600,6 +600,12 @@ void CAE_EBase::AddLogSpec(TInt aEvent, TInt aData)
     iLogSpec->push_back(TLogSpecBase(aEvent, aData));
 }
 
+void CAE_EBase::RemLogSpec()
+{
+    _FAP_ASSERT (iLogSpec != NULL);
+    iLogSpec->clear();
+}
+
 TInt CAE_EBase::GetLogSpecData(TInt aEvent) const
 {	
     TInt res = KBaseDa_None;
@@ -2302,49 +2308,39 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 }
 
 // TODO [YB] To consider keeping connection as object's elem (id required). It would simplilify handling of conn.
-void CAE_Object::RemoveElem(const CAE_ChromoNode& aSpec)
+void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
-    NodeType type = aSpec.AttrNtype(ENa_Type);
-    string name = aSpec.Name();
+    NodeType type = aCurr.Type();
+    string name = aCurr.Name();
     CAE_ChromoNode& chr = iChromo->Root();
     if (type == ENt_Conn) {
-	CAE_ChromoNode::Iterator conni = chr.Find(type, name);
-	if (conni != chr.End()) {
-	    // TODO [YB] There can be several connections with the same origin point, needs to have unique id of conn.
-	    string pairname = (*conni).Attr(ENa_ConnPair);
-	    CAE_ConnPointBase* conn = GetConn(name.c_str());
-	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
-	    if (conn != NULL) {
-		conn->Disconnect(pair);
-		pair->Disconnect(conn);
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), name.c_str());
-	    }
+	// TODO [YB] There can be several connections with the same origin point, needs to have unique id of conn.
+	string pairname = aCurr.Attr(ENa_ConnPair);
+	CAE_ConnPointBase* conn = GetConn(name.c_str());
+	CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	if (conn != NULL) {
+	    conn->Disconnect(pair);
+	    pair->Disconnect(conn);
 	}
 	else {
 	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), name.c_str());
 	}
     }
     else if (type == ENt_State) {
-	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
-	if (elemit != chr.End()) {
-	    if (iStates.count(name) != 0) {
-		iStates.erase(name);
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
-	    }
+	if (iStates.count(name) != 0) {
+	    iStates.erase(name);
 	}
 	else {
 	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
 	}
-
     }
     else if (type == ENt_Trans) {
 	CAE_ChromoNode::Iterator elemit = chr.Find(type, name);
 	if (elemit != chr.End()) {
 	}
+    }
+    else if (type == ENt_Logspec) {
+	aNode->RemLogSpec();
     }
     else {
 	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName());
@@ -2364,7 +2360,7 @@ void CAE_Object::Mutate()
     }
 }
 
-void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
+void CAE_Object::AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
     // Set logspec 
     string aevnet = aSpec.Attr(ENa_Logevent);
@@ -2387,7 +2383,7 @@ void CAE_Object::AddLogspec(const CAE_ChromoNode& aSpec)
 	    Logger()->WriteFormat("ERROR: Unknown type [%s]", aname.c_str());
 	}
     }
-    AddLogSpec(event, ldata);
+    aNode->AddLogSpec(event, ldata);
 }
 
 // TODO [YB] To carefully consider the concept:
@@ -2433,10 +2429,10 @@ void CAE_Object::DoMutation()
 	}
 	else if (rnotype == ENt_Trans) {
 	    AddTrans(rno);
-	    chrroot.AddChild(rno);
+	    chrroot.AddChildDef(rno);
 	}
 	else if (rnotype == ENt_Logspec) {
-	    AddLogspec(rno);
+	    AddLogspec(this, rno);
 	    chrroot.AddChild(rno);
 	}
 	else if (rnotype == ENt_Mut) {
@@ -2501,7 +2497,7 @@ void CAE_Object::DoMutation()
 				AddTrans(mano);
 			    }
 			    else if (mano.Type() == ENt_Logspec) {
-				AddLogspec(mano);
+				AddLogspec(node, mano);
 			    }
 			    else {
 				Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
@@ -2512,33 +2508,24 @@ void CAE_Object::DoMutation()
 		    }
 		    else if (mno.Type() == ENt_MutRm) 
 		    {
-			for (CAE_ChromoNode::Iterator mrmit = mno.Begin(); mrmit != mno.End(); mrmit++)
-			{
-			    CAE_ChromoNode mrno = *mrmit;
-			    if (mrno.Type() == ENt_Node) {
-				NodeType type = mrno.AttrNtype(ENa_Type);
-				string name = mrno.Name();
-				CAE_ChromoNode::Iterator remit = mnode.End();
-				if (mrno.AttrExists(ENa_MutChgAttr)) {
-				    TNodeAttr mattr = mrno.AttrNatype(ENa_MutChgAttr);
-				    string attval = mrno.Attr(ENa_MutChgVal);
-				    remit = mnode.Find(type, name, mattr, attval);
-				}
-				else {
-				    remit = mnode.Find(type, name);
-				}
-				if (remit != mnode.End()) {
-				    RemoveElem(mrno);
-				    // Change chromo
-				    mnode.RmChild(*remit);
-				}
-				else {
-				    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
-				}
-			    }
-			    else {
-				Logger()->WriteFormat("ERROR: Mutating object [%s] - wrong node to be removed", InstName());
-			    }
+			NodeType type = mno.AttrNtype(ENa_Type);
+			string name = mno.Name();
+			CAE_ChromoNode::Iterator remit = mnode.End();
+			if (mno.AttrExists(ENa_MutChgAttr)) {
+			    TNodeAttr mattr = mno.AttrNatype(ENa_MutChgAttr);
+			    string attval = mno.Attr(ENa_MutChgVal);
+			    remit = mnode.Find(type, name, mattr, attval);
+			}
+			else {
+			    remit = mnode.Find(type, name);
+			}
+			if (remit != mnode.End()) {
+			    RemoveElem(node, mno, *remit);
+			    // Change chromo
+			    mnode.RmChild(*remit);
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
 			}
 		    }
 		    else if (mno.Type() == ENt_MutChange) 

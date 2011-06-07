@@ -27,7 +27,7 @@
 <!-- 
      Mutation - removal
 -->
-<!ELEMENT remove (node*)>
+<!ELEMENT remove EMPTY>
 
 <!-- 
      Mutation - change (attribute)
@@ -245,7 +245,7 @@
     node CDATA #IMPLIED
 >
 
-<!-- Node  attributes:
+<!-- Node  remove attributes:
      Node is identified by type + id. In case if it is not enough additional attribute can be used
      by specifying attr type (attr) and value (value)
      type - node type (object, state etc.),
@@ -253,7 +253,7 @@
      attr - type of extra identifier
      value - value of extra identifier
      -->
-<!ATTLIST node 
+<!ATTLIST remove 
    type CDATA #REQUIRED
    id CDATA #REQUIRED
    attr CDATA #IMPLIED

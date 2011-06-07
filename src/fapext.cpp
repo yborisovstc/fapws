@@ -13,7 +13,7 @@
 const char* KRootName = "Root";
 
 CAE_Env::CAE_Env(TInt aPriority, TInt aLoad): CActive(aPriority),
-	iLoad(aLoad), iLogger(NULL), iStepCount(0), iChroman(NULL)
+	iLoad(aLoad), iLogger(NULL), iStepCount(0), iChroman(NULL), iTranEx(NULL)
 {
 }
 

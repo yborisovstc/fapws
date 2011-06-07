@@ -127,7 +127,7 @@ void CSL_ExprBase::EvalArgs(MSL_ExprEnv& aEnv, const string& aReqType, vector<st
 		    }
 		    */
 		    else {
-			aEnv.Logger()->WriteFormat("Evaluating [%s ...]: Constructor [%s<-%s] not found", argn.c_str(), aReqType.c_str(), 
+			aEnv.Logger()->WriteFormat("ERROR: Evaluating [%s ...]: Constructor [%s<-%s] not found", argn.c_str(), aReqType.c_str(), 
 				evalres->RType().c_str());
 		    }
 		}
