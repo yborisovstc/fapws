@@ -48,7 +48,7 @@ static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StIn
     &KSinfo_Point, &KSinfo_PointF, &KSinfo_VectF, &KSinfo_Rect, &KSinfo_Contr, 
     NULL};
 
-const char* KChromoSystemId = "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd";
+const char* KChromoSystemId = "/usr/share/fapws/conf/objspec.dtd";
 
 //*********************************************************
 // Model of XML based chromo

@@ -137,14 +137,7 @@ TInt CAE_LogRec::CreateLog()
     }
     return ret;
 #endif
-    const char *home_dir = getenv("HOME");
-    // TODO [YB] To avoid home as the base of logfile path
-    char *logfile = (char *) malloc(strlen(home_dir) + strlen(iLogFileName) + 1);
-    strcpy(logfile, home_dir);
-    strcat(logfile, "/");
-    strcat(logfile, iLogFileName);
-//    iLogFile = open(logfile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-    iLogFile = fopen(logfile, "w+");
+    iLogFile = fopen(iLogFileName, "w+");
     return (iLogFile != NULL);
 }
 

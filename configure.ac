@@ -1,5 +1,5 @@
 
-AC_INIT([fapws], [0.1], [Yuri.Borisov@teleca.com])
+AC_INIT([fapws], [0.1], [yuri.borisov.v@gmail.com])
 
 AM_INIT_AUTOMAKE([-Wall])
 
