@@ -15,50 +15,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-const char* KOldFileExtension = ".old";
-const char* KTimeFormat = "%02d.%02d:%02d:%06d ";
-const char* KTextFormat = "%S\015\012";
 
-const TUint8 KFullStopChar='.';
-const TUint8 KTabChar='\t';
-const TUint8 KCarriageReturnChar='\n';
-const TUint8 KLineFeedChar='\r';
-
-#if defined (_PLAT_WIN32_)  // Windows platform
-const char* KLogFileName = "C:\\LOGS\\FAP\\FAPLOG.TXT";
-const char* KLogDirName = "C:\\LOGS\\FAP";
-#endif // _PLAT_WIN32_ 
-
-#if defined (_PLAT_LINUX_)  // Linux  platform
 const char* KLogFileName = "faplog.txt";
-const char* KLogDirName = "/tmp/LOGS/FAP";
-#endif  // Linux
 
-const TInt KLogFileNameLen = 200;
-const TInt KLogFileNameDriveLen = 3;
-const TInt KLogFileNameDirLen = 120;
-const TInt KLogFileNameNameLen = 120;
-const TInt KLogFileNameExtLen = 5;
-
-const TInt KSpecsGranularity = 3;
 const TInt KStateFormattedLen = 100;
 const TInt KSpecFileBufLen = 400;
 
 const char* KLogSpecElementSeparator =  ",";
 const TInt KLogSpecElementSeparatorLen = 1;
-
-const char K_Char_CR = 0x0d;
-const char K_Path_Sep = '/';
-
-#if (0)
-void _splitpath(const char* path, char* drive, char* dir, char* fname, char* ext)
-{
-	char* pch = NULL;
-	pch = strtok(path, K_Path_Sep);
-	if (pch != NULL)
-		strcpy(pch, drive);
-}
-#endif
 
 
 // CAE_LogRec
@@ -86,19 +50,9 @@ void CAE_LogRec::ConstructL(const char* aLogFileName)
 {
     iLogFileName = strdup(aLogFileName);
     TInt ret= 0;
-    if (CreateLog() == 0)
+    //if (CreateLog() == 0)
+    if (1)
     {
-	char drive[KLogFileNameDriveLen];
-	char dir[KLogFileNameDirLen];
-	char fname[KLogFileNameNameLen];
-	char ext[KLogFileNameExtLen];
-	char oldname[KLogFileNameLen];
-	//!! [YB] 12-Dec-08 - this functionality needs to be ported further
-	// It's just removed temporarily 
-	//		_splitpath(iLogFileName, drive, dir, fname, ext);
-	//		_makepath( oldname, drive, dir, fname, KOldFileExtension);
-	//		remove(oldname);
-	//		rename(iLogFileName, oldname);
 	remove(iLogFileName); //!! [YB] added instead of storing to old file
 	iLogFile = fopen(iLogFileName, "w+");
 	if(iLogFile)
@@ -116,27 +70,6 @@ void CAE_LogRec::ConstructL(const char* aLogFileName)
 
 TInt CAE_LogRec::CreateLog()
 {
-//!! [YB] - temporarily removed creation of catalogue 
-#if (0)
-    TInt ret = -1;
-    char drive[KLogFileNameDriveLen];
-    char dir[KLogFileNameDirLen];
-    char fname[KLogFileNameNameLen];
-    char ext[KLogFileNameExtLen];
-    char path[KLogFileNameLen];
-
-    _splitpath(iLogFileName, drive, dir, fname, ext);
-    _makepath( path, drive, dir, NULL, NULL);
-    TInt plen = strlen(path);
-    if (path[plen-1] == '\\')
-	path[plen-1] = 0x00;
-    ret = _access(path, 0x00);
-    if (ret == -1)
-    {
-	ret = mkdir(path);
-    }
-    return ret;
-#endif
     iLogFile = fopen(iLogFileName, "w+");
     return (iLogFile != NULL);
 }

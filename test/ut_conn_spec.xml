@@ -20,7 +20,7 @@
  frugal - if the snail is frugal
  neighbor - status of other snails: coordinate and sign of frugality -->
 
-<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
     <iobject type="none" id="main_test">
 	<mut>

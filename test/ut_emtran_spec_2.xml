@@ -8,7 +8,7 @@
      The snail that falls behind gets less food and thus loosing its mass
      -->
 
-<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
     <iobject type="none" id="main_test">
 	<mut>

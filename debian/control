@@ -9,7 +9,7 @@ Package: fapws
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Finite Automata programming framework
- <insert long description, indented with spaces>
+ Framework for running Finite Automata (FA) and Discrete Events Systems (DES)
 
 Package: fapws-dev
 Architecture: any

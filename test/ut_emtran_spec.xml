@@ -4,7 +4,7 @@
 <!--
      -->
 
-<!DOCTYPE  caeenv SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  caeenv SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
 <caeenv>
     <iobject type="none" id="Test">

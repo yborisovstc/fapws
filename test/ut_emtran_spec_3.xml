@@ -6,7 +6,7 @@
      The model is the rock that is being throwing with initial velocity, than it flies, and breaks
      -->
 
-<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
     <iobject type="none" id="main_test">
 	<mut>

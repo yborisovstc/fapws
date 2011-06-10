@@ -37,9 +37,11 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapws.cpp
   tadesl.cpp
   viewgtk.cpp
-  objspec.dtd
   Makefile.am
 } 
+etc=etc CD=. filter="*" {
+  objspec.dtd
+}
 debian=debian CD=. filter="*" {
   README.Debian
   changelog
@@ -77,50 +79,45 @@ doc=doc CD=. filter="*" {
   fap_design.xml
  }
 }
-test=test CD=. filter="*" {
-  Makefile
-  Makefile.am
-  Makefile.in
-  ut-fapws-lib
+test=test CD=. filter="*.cpp *.h *.xml *.am" {
   ut_conn.cpp
-  ut_conn_spec.xml
-  ut_contr_spec.xml
   ut_control.cpp
   ut_emtran.cpp
-  ut_emtran_spec.xml
-  ut_emtran_spec_2.xml
-  ut_emtran_spec_3.xml
   ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
-  ut_game_xo.h
   ut_simple_increase.cpp
-  ut_simple_increase.h
   ut_spec_creat.cpp
+  ut_game_xo.h
+  ut_simple_increase.h
   ut_spec_creat.h
+  ut_conn_spec.xml
+  ut_contr_spec.xml
+  ut_emtran_spec.xml
+  ut_emtran_spec_2.xml
+  ut_emtran_spec_3.xml
   ut_spec_creat_1.xml
   ut_spec_ext_mut.xml
-  ut_fapws_lib-ut_conn.o
-  ut_fapws_lib-ut_control.o
-  ut_fapws_lib-ut_emtran.o
-  ut_fapws_lib-ut_ext_mut.o
-  ut_fapws_lib-ut_fapws_main.o
-  ut_fapws_lib-ut_simple_increase.o
-  ut_fapws_lib-ut_spec_creat.o
+  Makefile.am
   libs=.libs CD=. filter="*" {
    ut-fapws-lib
   }
 }
 }
-fap-bvp-gtk=/home/yborisov/projects/fap/git/fap-bvp-gtk CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS *.in {
+fap-bvp-gtk=/home/yborisov/projects/fap/git/fap-bvp-gtk CD=. filter="autogen.sh Makefile *.am *.ac *.in AUTHORS COPYING ChangeLog README NEWS" {
  autogen.sh
+ Makefile
  Makefile.am
  configure.ac
+ Makefile.in
+ libfapbvpgtk.pc.in
  AUTHORS
  COPYING
  ChangeLog
  README
  NEWS
+ Makefile.in
+ libfapbvpgtk.pc.in
  etc=etc CD=. filter="*" {
   cag_proxy.rc
  }
@@ -129,12 +126,14 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   cagbox.h
   cagbutton.h
   cagcontainer.h
+  cagdialog.h
   cagentry.h
   cagimage.h
   caglabel.h
   caglayout.h
   cagmenu.h
   cagmisc.h
+  cagpaned.h
   cagprov.h
   cagproxy.h
   cagstyle.h
@@ -147,6 +146,7 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   capcp.h
   capcterm.h
   capdect.h
+  caplogdlg.h
   capmiscwid.h
   capopwnd.h
   capstate.h
@@ -157,12 +157,14 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   cagbox.cpp
   cagbutton.cpp
   cagcontainer.cpp
+  cagdialog.cpp
   cagentry.cpp
   cagimage.cpp
   caglabel.cpp
   caglayout.cpp
   cagmenu.cpp
   cagmisc.cpp
+  cagpaned.cpp
   cagprov.cpp
   cagproxy.cpp
   cagstyle.cpp
@@ -174,6 +176,7 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   capcp.cpp
   capcterm.cpp
   capdect.cpp
+  caplogdlg.cpp
   capmiscwid.cpp
   capopwnd.cpp
   capstate.cpp
@@ -182,7 +185,21 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   Makefile.am
 } 
 debian=debian CD=. filter="*" {
+  changelog
+  control
+  copyright
+  fap-bvp-gtk-dev.install
+  fap-bvp-gtk.install
+  rules
 }
+ img=img CD=. filter="*" {
+  dect_btn_less.png
+  dect_btn_more.png
+  tbar_btn_inp.png
+  tbar_btn_state.png
+  tbar_btn_syst.png
+  tbar_btn_trans.png
+ }
 }
 fap-tias=/home/yborisov/projects/fap/git/fap-tias CD=. filter="README *.ac *.am" {
  README
@@ -196,11 +213,29 @@ fap-tias=/home/yborisov/projects/fap/git/fap-tias CD=. filter="README *.ac *.am"
   cag_proxy.rc
  }
 }
-fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="*" {
+fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="autogen.sh Makefile *.am *.ac *.in AUTHORS COPYING ChangeLog README NEWS" {
+ AUTHORS
+ COPYING
+ ChangeLog
+ INSTALL
+ Makefile
  Makefile.am
+ Makefile.in
  NEWS
  README
+ aclocal.m4
+ autogen.sh
+ config.guess
+ config.status
+ config.sub
+ configure
  configure.ac
+ depcomp
+ install-sh
+ libtool
+ ltmain.sh
+ missing
+ config.log
  src=src CD=. filter="*.cpp *.h *.xml *.am *.rc" {
   app.cpp
   main.cpp
@@ -211,6 +246,7 @@ fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="*" {
  }
  files=files CD=. filter="*" {
   empty.xml
+  ut_emtran_spec_2.xml
  }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {
@@ -295,16 +331,15 @@ gravityqt=/home/yborisov/projects/fap/michael/ver1/gravity CD=. filter="*.cpp *.
 }
  tmp=/home/yborisov/projects/fap/tmp CD=. filter="*" {
   fapws=fapws CD=. filter="autogen.sh Makefile.am configure.ac AUTHORS COPYING ChangeLog README NEWS *.in {
-   autogen.sh
-   Makefile.am
-   configure.ac
-   AUTHORS
-   COPYING
-   ChangeLog
-   README
-   NEWS
-   Makefile.in
-   libfapws.pc.in
+  autogen.sh
+  Makefile.am
+  configure.ac
+  AUTHORS
+  COPYING
+  ChangeLog
+  README
+  NEWS
+  libfapws.pc.in
    src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
     deslbase.h
      fapbase.h

@@ -2,7 +2,7 @@
 
 <!-- Specification of FAP environment for unit test ut_spec_creat -->
 
-<!DOCTYPE  iobject SYSTEM "/home/yborisov/projects/fap/git/fapws/src/objspec.dtd"> 
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
     <iobject type="none" id="main_test">
 	<mut>
