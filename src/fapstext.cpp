@@ -161,8 +161,8 @@ template<> void CAE_TState<TInt>::DataFromStr(const char* aStr, void *aData) con
 template<> char *CAE_TState<TInt>::DataToStr(TBool aCurr) const
 {
     TInt data = *((TInt *) (aCurr ? iCurr : iNew));
-    char* buf = (char *) malloc(10);
-    memset(buf, 0, 10);
+    char* buf = (char *) malloc(20);
+    memset(buf, 0, 20);
     sprintf(buf, "%d ", data);
     return buf;
 }

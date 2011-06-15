@@ -275,6 +275,8 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
+	// Extention is directed relation
+	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
@@ -288,6 +290,7 @@ class CAE_ConnPointBase: public CAE_Base
 	string iName;
 	// TODO [YB] To migrate from vector to map
 	vector<CAE_ConnPointBase*> iConns;
+	// References to extending cp only, not extended
 	vector<CAE_ConnPointBase*> iExts;
 	CAE_EBase* iMan;
 };
@@ -332,6 +335,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
@@ -366,6 +370,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
@@ -423,6 +428,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };

@@ -3,12 +3,6 @@
 <!DOCTYPE article SYSTEM "/usr/share/sgml/docbook/dtd/xml/4.5/docbookx.dtd">
 
 
-<!--
-To transform to html:
-!xsltproc /usr/share/xml/docbook/stylesheet/nwalsh/html/onechunk.xsl fap_req.xml
--->
-
-
 <article status="draft" class="specification"> <title>Discrete Events System framework. Requirements.</title>
 
     <articleinfo>
@@ -49,13 +43,10 @@ To transform to html:
     </bibliolist>
 
     
-    <sect1> <title>General</title>
+    <sect1 id="sec_gen"> <title>General</title>
 	<sect2 id="req_gen_01"><title>FAP_REQ_GEN_01 Creating object from specfication</title>
 	    <simpara>Framework shall support creation object from specfication</simpara>
 	</sect2>
-    </sect1>
-
-    <sect1><title>Use cases</title>
 	<sect2><title>FAP_UC_001 Making changes in the object</title>
 	    <simplelist>
 		<member>There was a spec for object creation provided.</member>
@@ -96,13 +87,20 @@ To transform to html:
 		<listitem>This case is quite often in environments with many identical objects that connects all together.</listitem>
 	    </itemizedlist>
 	</sect2>
+	<sect2 id="sec_gen_uc4"><title>FAP_UC_004 USER resets system</title>
+	    <simpara>User creates system, runs it and then reset. System goes into initial state.</simpara>
+	    <simpara>NOTE: Currently this use-case seems not fully valid because system's chromo can be chanded 
+		during the run process (for instance by system's controller). So, no any information of initial state can be presented.
+		Seems we need to reconsider the concept of controlling of system that controller initial data should be 
+		controlled system's chromo.</simpara>
+	</sect2>
     </sect1>
 
     <sect1><title>States</title>
 	<sect2 id = "req_sta_01"><title> FAP_REQ_STA_01 Transition by default </title>
 	    <simpara>If no transion function nor operation is specified for the state then there shall the following default transition be done:</simpara>
-	     <itemizedlist>
-		 <listitem>Copying the first input current value if it is compatible to state.</listitem>
+	    <itemizedlist>
+		<listitem>Copying the first input current value if it is compatible to state.</listitem>
 	    </itemizedlist>
 	    <simpara>NOTE: Earlier one more default transition was used: copying current value of the state to new value. Denied currently.</simpara>
 	</sect2>

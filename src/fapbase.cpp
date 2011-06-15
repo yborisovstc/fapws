@@ -337,10 +337,21 @@ TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint)
     return EFalse;
 }
 
+TBool CAE_ConnPoint::SetExtended(CAE_ConnPointBase *aConnPoint)
+{
+    iExts.push_back(aConnPoint);
+    return ETrue;
+}
+
 TBool CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint)
 {
-    _FAP_ASSERT(0);
-    return EFalse;
+    TBool res = EFalse;
+    for (vector<CAE_ConnPointBase*>::iterator it = iExts.begin(); it != iExts.end(); it++) {
+	if ((*it) == aConnPoint) {
+	    iExts.erase(it); res = ETrue; break;
+	}
+    }
+    return res;
 }
 
 
@@ -392,7 +403,6 @@ TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint)
     TBool res = EFalse;
     if (iRef == NULL) { 
 	iRef = aConnPoint;
-	iExts.push_back(iRef);
        	res = ETrue;
     }
     return res;
@@ -408,6 +418,12 @@ void CAE_ConnPointExt::DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair,
     if (iRef == NULL) { 
 	iRef->DisconnectPin(aPin, aPair, aPairPin);
     }
+}
+
+TBool CAE_ConnPointExt::SetExtended(CAE_ConnPointBase *aConnPoint)
+{
+    iExts.push_back(aConnPoint);
+    return ETrue;
 }
 
 TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint)
@@ -520,6 +536,12 @@ TBool CAE_ConnPointExtC::Extend(CAE_ConnPointBase *aConnPoint)
     Slots().push_back(slot);
     res = ETrue;
     return res;
+}
+
+TBool CAE_ConnPointExtC::SetExtended(CAE_ConnPointBase *aConnPoint)
+{
+    iExts.push_back(aConnPoint);
+    return ETrue;
 }
 
 void *CAE_ConnPointExtC::DoGetFbObj(const char *aName)
@@ -2049,7 +2071,7 @@ void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
 	    // Extention is one way only!
 	    // TODO [YB] Do we need some ref from entended cp to extender. Look at usecase
 	    // UC_CONN_06 USER removes internal sub-system, SYSTEM disextend connection points
-	    if (!p1->Extend(p2))
+	    if (!p1->Extend(p2) || !p2->SetExtended(p1))
 	    {
 		Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: failure", p1_name, p2_name);
 	    }
@@ -2324,6 +2346,20 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	}
 	else {
 	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), name.c_str());
+	}
+    }
+    else if (type == ENt_Cext) {
+	string pairname = aCurr.Attr(ENa_ConnPair);
+	CAE_ConnPointBase* ext = GetConn(name.c_str());
+	CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	if (ext != NULL && pair != NULL) {
+	    if (!ext->Disextend(pair) || !pair->Disextend(ext)) {
+		Logger()->WriteFormat("ERROR: Deleting extention from  [%s - %s] - failed", name.c_str(), pairname.c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), 
+		    (ext == NULL ? name : pairname).c_str());
 	}
     }
     else if (type == ENt_State) {
