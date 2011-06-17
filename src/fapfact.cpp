@@ -67,6 +67,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual NodeType GetType(const string& aId);
 	virtual NodeType GetType(const void* aHandle);
 //	virtual string GetTypeId(NodeType aType);
+	virtual void* Parent(const void* aHandle);
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
 	virtual void* NextText(const void* aHandle);
 	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
@@ -83,7 +84,9 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue);
 	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue);
 	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue);
+	virtual void* AddNext(const void* aPrev, NodeType aNode);
 	virtual void RmChild(void* aParent, void* aChild);
+	virtual void Rm(void* aNode);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
@@ -268,6 +271,11 @@ void* CAE_ChromoMdlX::GetFirstTextChild(const void* aHandle)
     return res;
 }
 
+void* CAE_ChromoMdlX::Parent(const void* aHandle)
+{
+    return ((xmlNodePtr) aHandle)->parent;
+}
+
 void *CAE_ChromoMdlX::Next(const void *aHandle, NodeType aType)
 {
     _FAP_ASSERT(aHandle!= NULL);
@@ -415,6 +423,13 @@ void* CAE_ChromoMdlX::AddNext(const void* aPrev, const void* aHandle, TBool aCop
     return xmlAddNextSibling((xmlNodePtr) aPrev, node);
 }
 
+void* CAE_ChromoMdlX::AddNext(const void* aPrev, NodeType aNode)
+{
+    string name = KNodeTypesNames[aNode];
+    xmlNodePtr node = xmlNewNode(NULL, (const xmlChar*) name.c_str());
+    return xmlAddNextSibling((xmlNodePtr) aPrev, node);
+}
+
 void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, const char* aVal)
 {
     string name = KNodeAttrsNames[aType];
@@ -441,6 +456,13 @@ void CAE_ChromoMdlX::RmChild(void* aParent, void* aChild)
     xmlNodePtr child = (xmlNodePtr) aChild;
     xmlUnlinkNode(child);
     xmlFreeNode(child);
+}
+
+void CAE_ChromoMdlX::Rm(void* aNode)
+{
+    xmlNodePtr node = (xmlNodePtr) aNode;
+    xmlUnlinkNode(node);
+    xmlFreeNode(node);
 }
 
 void CAE_ChromoMdlX::Dump(void* aNode, MCAE_LogRec* aLogRec)

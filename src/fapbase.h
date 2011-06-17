@@ -275,9 +275,10 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
-	// Extention is directed relation
-	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
+	// Extention is directed relation, so use separate methods for "slave"
+	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint) = 0;
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
 	void SetName(const string& aName) { iName = aName;};
@@ -336,6 +337,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
@@ -371,6 +373,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
@@ -429,6 +432,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };
@@ -782,6 +786,7 @@ class MAE_ChromoMdl
     public:
 	virtual NodeType GetType(const void* aHandle) = 0;
 	virtual NodeType GetType(const string& aId) = 0;
+	virtual void* Parent(const void* aHandle) = 0;
 	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
 	virtual void* NextText(const void* aHandle) = 0;
 	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
@@ -797,7 +802,9 @@ class MAE_ChromoMdl
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue) = 0;
+	virtual void* AddNext(const void* aPrev, NodeType aNode) = 0;
 	virtual void RmChild(void* aParent, void* aChild) = 0;
+	virtual void Rm(void* aHandle) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
@@ -886,11 +893,14 @@ class CAE_ChromoNode
 	    CAE_ChromoNode(iMdl, iMdl.AddChildDef(iHandle, aNode.Handle(), aCopy)); };
 	CAE_ChromoNode AddNext(const CAE_ChromoNode& aPrev, const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
 	    CAE_ChromoNode(iMdl, iMdl.AddNext(aPrev.Handle(), aNode.Handle(), aCopy)); };
+	CAE_ChromoNode AddNext(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddNext(iHandle, aType));};
 	// Be careful while removing node got from iterator. Iterator is not cleaned thus it returns wrong node on ++
 	void RmChild(const CAE_ChromoNode& aChild) { iMdl.RmChild(iHandle, aChild.iHandle); };
+	void Rm() { iMdl.Rm(iHandle); };
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
 	void SetAttr(TNodeAttr aType, NodeType aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	void SetAttr(TNodeAttr aType, TNodeAttr aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
+	CAE_ChromoNode::Iterator Parent();
 	CAE_ChromoNode::Iterator Find(const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal);
@@ -1063,7 +1073,8 @@ protected:
 	void ConstructL(const void* aChrom = NULL);
 	void ConstructFromChromXL(const void* aChrom);
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
-	virtual void DoMutation();
+	virtual void DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime);
+	void DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
 private:
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
@@ -1085,7 +1096,7 @@ private:
 	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void ChangeChromoAttr(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
+	void ChangeChromoAttr(CAE_ChromoNode& aSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr);
 	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
 	void OnHeaderPress(const MAE_View* aView);

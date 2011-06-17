@@ -1,6 +1,6 @@
 format 70
 "fap_mdl"
-  revision 4
+  revision 5
   modified_by 2 "yborisov"
 
 
@@ -41,4 +41,8 @@ format 70
   package_ref 141058 // fap1
 
   package_ref 147586 // GTK
+
+  package_ref 154114 // fap-studio-gtk
+
+  package_ref 154242 // fap-bvp-gtk
 end
