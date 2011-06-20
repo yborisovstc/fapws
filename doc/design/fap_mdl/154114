@@ -1,5 +1,5 @@
 format 70
-"fap-bvp-gtk" // fap-bvp-gtk
+"fap-studio-gtk" // fap-studio-gtk
   revision 1
   modified_by 2 "yborisov"
   // class settings
@@ -26,7 +26,7 @@ format 70
   package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
   show_infonote default drawing_language default show_stereotype_properties default
   
-  classview 154242 "fap-bvp-gtk~clsview"
+  classview 154114 "fap-studio-gtk~clsview"
     //class diagram settings
     draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
     //collaboration diagram settings
@@ -42,12 +42,12 @@ format 70
     //activity diagram settings
     package_name_in_tab default show_context default show_opaque_action_definition default auto_label_position default write_flow_label_horizontally default draw_all_relations default shadow default
     show_infonote default drawing_language default show_stereotype_properties default
-    classdiagram 173954 "fap-bvp-gtk~clsdgm1"
+    classdiagram 173826 "fap-studio-gtk~clsdgm1"
       draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
       size A4
     end
 
-    class 210690 "CagProxy"
+    class 210562 "CsuApp"
       visibility package 
       cpp_decl ""
       java_decl ""
@@ -56,11 +56,18 @@ format 70
       idl_decl ""
       explicit_switch_type ""
       
-      classrelation 197250 // <generalisation>
-	relation 197250 ---|>
-	  a public
-	    classrelation_ref 197250 // <generalisation>
-	  b parent class_ref 203650 // MAE_Opv
+      classrelation 197122 // <unidirectional association>
+	relation 197122 --->
+	  a role_name "" private
+	    classrelation_ref 197122 // <unidirectional association>
+	  b parent class_ref 142082 // CAE_Env
+      end
+
+      classrelation 197378 // <unidirectional association>
+	relation 197378 --->
+	  a role_name "" private
+	    classrelation_ref 197378 // <unidirectional association>
+	  b parent class_ref 210690 // CagProxy
       end
     end
   end

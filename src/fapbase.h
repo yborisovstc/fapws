@@ -269,7 +269,7 @@ class CAE_ConnPointBase: public CAE_Base
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual void Disconnect() = 0;
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
@@ -333,7 +333,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
@@ -347,7 +347,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	static const char *Type() {return "ConnPoint";}; 
     protected:
 	TBool ConnectConnPoint(CAE_ConnPoint *aConnPoint);
-	void DisconnectConnPoint(CAE_ConnPoint *aConnPoint);
+	TBool DisconnectConnPoint(CAE_ConnPoint *aConnPoint);
 	virtual void *DoGetFbObj(const char *aName);
     private:
 	// Sources
@@ -369,7 +369,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
@@ -428,7 +428,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual void Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual void Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
@@ -903,7 +903,7 @@ class CAE_ChromoNode
 	CAE_ChromoNode::Iterator Parent();
 	CAE_ChromoNode::Iterator Find(const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
-	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal);
+	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal = EFalse);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
 	void ParseTname(const string& aTname, NodeType& aType, string& aName);
@@ -925,9 +925,13 @@ class MAE_Chromo
 	virtual void Init(NodeType aRootType) = 0;
 	virtual void Reset() = 0;
 	virtual void Save(const string& aFileName) const = 0;
+    public:
 	static string GetTypeId(NodeType aType);
 	static string GetAttrId(TNodeAttr aType);
 	static string GetTName(NodeType aType, const string& aName);
+	static void ParseTname(const string& aTname, NodeType& aType, string& aName);
+	static TBool ComparePath(const string& aS1, const string& aS2);
+	static TBool ReplacePathElem(string& aPath, const string& aPathTempl, const string& aNewElem);
 };
 
 class CAE_ChromoBase: public MAE_Chromo

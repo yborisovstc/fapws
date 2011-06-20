@@ -276,8 +276,9 @@ CAE_Base* CAE_ConnPoint::GetSrcPin(const char* aName)
     return iSrcs->Pin(aName);
 }
 
-void CAE_ConnPoint::DisconnectConnPoint(CAE_ConnPoint *aConnPoint)
+TBool CAE_ConnPoint::DisconnectConnPoint(CAE_ConnPoint *aConnPoint)
 {
+    TBool res = ETrue;
     CAE_ConnSlot& pair_srcs = *(aConnPoint->Srcs());
     // Go thru dests and disconnect any pins connected to pair
     for (vector<CAE_ConnSlot*>::iterator ids = iDests.begin(); ids != iDests.end(); ids++) {
@@ -300,15 +301,18 @@ void CAE_ConnPoint::DisconnectConnPoint(CAE_ConnPoint *aConnPoint)
 	    }
 	}
     }
+    return res;
 }
 
-void CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
+TBool CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
 {
+    TBool res = EFalse;
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
 	// Disconnect conn point
-	DisconnectConnPoint(pair);
+	res = DisconnectConnPoint(pair);
     }
+    return res;
 }
 
 void CAE_ConnPoint::Disconnect()
@@ -389,14 +393,25 @@ TBool CAE_ConnPointExt::Connect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
-void CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint) 
+TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint) 
 {
+    TBool res = EFalse;
     if (iRef != NULL) {
-	iRef->Disconnect(aConnPoint);
+	res = iRef->Disconnect(aConnPoint);
+    }
+    if (res) {
+	TBool found = EFalse;
+	for (vector<CAE_ConnPointBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+	    if ((*it) == aConnPoint) {
+		iConns.erase(it); found = ETrue; break;
+	    }
+	    res = found;
+	}
+	return res;
     }
 }
 
-void CAE_ConnPointExt::Disconnect()
+    void CAE_ConnPointExt::Disconnect()
 {
     if (iRef != NULL) {
 	iRef->Disconnect();
@@ -480,12 +495,14 @@ TBool CAE_ConnPointExtC::Connect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
-void CAE_ConnPointExtC::Disconnect(CAE_ConnPointBase *aConnPoint)
+TBool CAE_ConnPointExtC::Disconnect(CAE_ConnPointBase *aConnPoint)
 {
+    TBool res = ETrue;
     // Disconnect all the bus pins
     for (map<string, SlotTempl::slot_templ_elem>::iterator id = Templ().Dests().begin(); id != Templ().Dests().end(); id++) {
 	DisconnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
     }
+    return res;
 }
 
 void CAE_ConnPointExtC::Disconnect()
@@ -1282,12 +1299,14 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aNam
     return res;
 };
 
-CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal)
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal)
 {
     CAE_ChromoNode::Iterator res = End();
     for (CAE_ChromoNode::Iterator it = Begin(); it != End(); it++) {
-	if (((*it).Type() == aType) && (*it).AttrExists(aAttr) && (aAttrVal.compare((*it).Attr(aAttr)) == 0)) {
-	    res = it;  break;
+	if (((*it).Type() == aType) && (*it).AttrExists(aAttr)) {
+	    if (aPathVal && MAE_Chromo::ComparePath(aAttrVal, (*it).Attr(aAttr)) || !aPathVal && (aAttrVal.compare((*it).Attr(aAttr)) == 0)) {
+		res = it;  break;
+	    }
 	}
     }
     return res;
@@ -2217,12 +2236,55 @@ void CAE_Object::ChangeChromoAttr(CAE_ChromoNode& aMutSpec, CAE_ChromoNode& aCtx
 		    CAE_ChromoNode parent2 = *(parent1.Parent());
 		    string curpairname = parent1.Name() + "." + curval;
 		    string newpairname = parent1.Name() + "." + mval;
-		    CAE_ChromoNode::Iterator chepnodei = parent2.Find(ENt_Cext, ENa_ConnPair, curpairname);
-		    if (chepnodei != parent2.End()) {
-			CAE_ChromoNode chepnode = *chepnodei;
-			chepnode.SetAttr(ENa_ConnPair, newpairname);
+		    for (CAE_ChromoNode::Iterator it = parent2.Begin(); it != parent2.End(); it++) {
+			CAE_ChromoNode pnod = *it;
+			string curargval = pnod.Attr(ENa_ConnPair);
+			if ((pnod.Type() == ENt_Cext) && pnod.AttrExists(ENa_ConnPair) && curpairname.compare(curargval) == 0) {
+			    pnod.SetAttr(ENa_ConnPair, newpairname);
+			}
 		    }
 		}    
+		else if (parent1.Type() == ENt_State) {
+		    // Change the name in connections and ext on upper level
+		    CAE_ChromoNode parent2 = *(parent1.Parent());
+		    string fullp1name = MAE_Chromo::GetTName(ENt_State, parent1.Name()); 
+		    string curpairname = fullp1name + "." + curval;
+		    string newpairname = fullp1name + "." + mval;
+		    TNodeAttr chattr = (ntype == ENt_Stinp) ? ENa_Id : ENa_ConnPair;
+		    for (CAE_ChromoNode::Iterator it = parent2.Begin(); it != parent2.End(); it++) {
+			CAE_ChromoNode pnod = *it;
+			string curargval = pnod.Attr(chattr);
+			if ((pnod.Type() == ENt_Conn) && pnod.AttrExists(chattr) && curpairname.compare(curargval) == 0) {
+			    pnod.SetAttr(chattr, newpairname);
+			}
+			curargval = pnod.Attr(ENa_ConnPair);
+			if ((pnod.Type() == ENt_Cext) && pnod.AttrExists(ENa_ConnPair) && curpairname.compare(curargval) == 0) {
+			    pnod.SetAttr(ENa_ConnPair, newpairname);
+			}
+		    }
+		}
+	    }
+	    else if (ntype == ENt_State || ntype == ENt_Object) {
+		// Change the name in extensions pair on currnet level
+		CAE_ChromoNode parent1 = *(aCurr.Parent());
+		string curpairname = MAE_Chromo::GetTName(ntype, curval) + ".*";
+		for (CAE_ChromoNode::Iterator it = parent1.Begin(); it != parent1.End(); it++) {
+		    CAE_ChromoNode pnod = *it;
+		    string curargval = pnod.Attr(ENa_ConnPair);
+		    if ((pnod.Type() == ENt_Cext) && pnod.AttrExists(ENa_ConnPair) && MAE_Chromo::ComparePath(curpairname, curargval)) {
+			MAE_Chromo::ReplacePathElem(curargval, "*.", MAE_Chromo::GetTName(ntype, mval));
+			pnod.SetAttr(ENa_ConnPair, curargval);
+		    }
+		    if ((pnod.Type() == ENt_Conn) && pnod.AttrExists(ENa_ConnPair) && MAE_Chromo::ComparePath(curpairname, curargval)) {
+			MAE_Chromo::ReplacePathElem(curargval, "*.", MAE_Chromo::GetTName(ntype, mval));
+			pnod.SetAttr(ENa_ConnPair, curargval);
+		    }
+		    curargval = pnod.Attr(ENa_Id);
+		    if ((pnod.Type() == ENt_Conn) && pnod.AttrExists(ENa_Id) && MAE_Chromo::ComparePath(curpairname, curargval)) {
+			MAE_Chromo::ReplacePathElem(curargval, "*.", MAE_Chromo::GetTName(ntype, mval));
+			pnod.SetAttr(ENa_Id, curargval);
+		    }
+		}
 	    }
 	}
     }
@@ -2400,12 +2462,15 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	string pairname = aCurr.Attr(ENa_ConnPair);
 	CAE_ConnPointBase* conn = GetConn(name.c_str());
 	CAE_ConnPointBase* pair = GetConn(pairname.c_str());
-	if (conn != NULL) {
-	    conn->Disconnect(pair);
-	    pair->Disconnect(conn);
+	if (conn != NULL && pair != NULL) {
+	    if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
+	    {
+		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName(), name.c_str(), pairname.c_str());
+	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName(), 
+		    name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
 	}
     }
     else if (type == ENt_Cext) {

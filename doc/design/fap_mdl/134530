@@ -1,6 +1,6 @@
 format 70
 "fap" // fap
-  revision 3
+  revision 4
   modified_by 2 "yborisov"
   // class settings
   //class diagram settings
@@ -417,6 +417,13 @@ format 70
 	
 	
 	
+      end
+
+      classrelation 197506 // <unidirectional association>
+	relation 197506 --->
+	  a role_name "" private
+	    classrelation_ref 197506 // <unidirectional association>
+	  b parent class_ref 203650 // MAE_Opv
       end
     end
 

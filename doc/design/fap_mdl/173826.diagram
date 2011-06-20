@@ -1,0 +1,68 @@
+format 70
+
+classcanvas 128002 class_ref 210562 // CsuApp
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 257 67 2000
+end
+classcanvas 128130 class_ref 142082 // CAE_Env
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 420 144 2000
+end
+classcanvas 128514 class_ref 210690 // CagProxy
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 79 225 2000
+end
+classcanvas 128770 class_ref 203650 // MAE_Opv
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 271 179 2006
+end
+classcanvas 129026 class_ref 141698 // CAE_Object
+  draw_all_relations default hide_attributes default hide_operations default hide_getset_operations default show_members_full_definition default show_members_visibility default show_members_stereotype default show_members_multiplicity default show_members_initialization default show_attribute_modifiers default member_max_width 0 show_parameter_dir default show_parameter_name default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default show_relation_modifiers default show_relation_visibility default show_infonote default shadow default show_stereotype_properties default
+  xyz 301 306 2006
+end
+note 129410 "Application, acts as controller"
+  xyzwh 54 41 2000 129 55
+note 129666 "View for root system hierarchy"
+  xyzwh 48 124 2000 133 49
+note 129922 "FAP environment - model of system"
+  xyzwh 352 46 2000 165 53
+note 130178 "Interface of view (visual proxy) for system. Using this the system operates to view"
+  xyzwh 45 295 2000 195 73
+note 130306 "Root system. It also offer the view the means of navigation thru hierarchy"
+  xyzwh 41 388 2000 205 69
+relationcanvas 128258 relation_ref 197122 // <unidirectional association>
+  from ref 128002 z 2001 to ref 128130
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
+end
+relationcanvas 128642 relation_ref 197378 // <unidirectional association>
+  from ref 128002 z 2001 to ref 128514
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
+end
+relationcanvas 128898 relation_ref 197250 // <generalisation>
+  from ref 128514 z 2001 to ref 128770
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
+end
+relationcanvas 129154 relation_ref 142210 // <unidirectional association>
+  from ref 128130 z 2001 to ref 129026
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
+end
+relationcanvas 129282 relation_ref 197506 // <unidirectional association>
+  from ref 129026 z 2007 to ref 128770
+  no_role_a no_role_b
+  no_multiplicity_a no_multiplicity_b
+end
+line 129538 -_-_
+  from ref 129410 z 2001 to ref 128002
+line 129794 -_-_
+  from ref 129666 z 2001 to ref 128514
+line 130050 -_-_
+  from ref 129922 z 2001 to ref 128130
+line 130434 -_-_
+  from ref 130178 z 2007 to ref 128770
+line 130562 -_-_
+  from ref 130306 z 2007 to ref 129026
+end

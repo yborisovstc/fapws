@@ -8,16 +8,22 @@ diagrams
     1003 867 100 4 240 0
   classdiagram_ref 154242 // fap1.view~clsdgm
     1011 870 100 4 0 0
-  active  sequencediagram_ref 167298 // fap1~icd.view_proxy
+  sequencediagram_ref 167298 // fap1~icd.view_proxy
     828 867 100 4 0 0
+  active  classdiagram_ref 173826 // fap-studio-gtk~clsdgm1
+    828 867 100 4 0 0
+  classdiagram_ref 173954 // fap-bvp-gtk~clsdgm1
+    662 693 100 4 0 0
 end
 show_stereotypes
-selected operation_ref 185858 // RemoveBaseViewProxy
+selected class_ref 141698 // CAE_Object
 open
   class_ref 142082 // CAE_Env
   class_ref 203778 // CAE_Object_v1
   class_ref 203522 // MAE_ObjCtrl
   class_ref 203650 // MAE_Opv
   classview_ref 147586 // gtk~clsview
+  classview_ref 154114 // fap-studio-gtk~clsview
+  class_ref 210690 // CagProxy
 end
 end

@@ -50,6 +50,8 @@ static const TStateInfo* sinfos[] = {&KSinfo_State, &KSinfo_StBool, &KSinfo_StIn
 
 const char* KChromoSystemId = "/usr/share/fapws/conf/objspec.dtd";
 
+const char KPathSep = '.';
+
 //*********************************************************
 // Model of XML based chromo
 //*********************************************************
@@ -555,6 +557,67 @@ class CAE_ChromoX: public CAE_ChromoBase
 	CAE_ChromoMdlX iMdl;
 	CAE_ChromoNode iRootNode;
 };
+
+
+void MAE_Chromo::ParseTname(const string& aTname, NodeType& aType, string& aName)
+{
+    size_t tpos = aTname.find("%");
+    if (tpos != string::npos) {
+	string tid = aTname.substr(0, tpos);
+	aType = KNodeTypes[tid];
+	aName = aTname.substr(tpos+1);
+    }
+    else {
+	aType = ENt_Object;
+	aName = aTname;
+    }
+}
+
+
+// Comparing of paths with considering substitution for "*"
+TBool MAE_Chromo::ComparePath(const string& aS1, const string& aS2)
+{
+    TBool res = ETrue;
+    size_t pos1 = aS1.find_first_of(KPathSep);
+    size_t pos2 = aS2.find_first_of(KPathSep);
+    NodeType type1 = ENt_Unknown, type2 = ENt_Unknown;
+    string elem1 = (pos1 != string::npos) ? aS1.substr(0, pos1) : aS1;
+    string elem2 = (pos2 != string::npos) ? aS2.substr(0, pos2) : aS2;
+    string name1, name2;
+    ParseTname(elem1, type1, name1);
+    ParseTname(elem2, type2, name2);
+    if (type1 == type2 && (name1.compare("*") == 0 || name2.compare("*") == 0 || name1.compare(name2) == 0)) {
+	if (pos1 != string::npos && pos2 != string::npos) {
+	    res = ComparePath(aS1.substr(pos1+1), aS2.substr(pos2+1));
+	}
+    }
+    else {
+	res = EFalse;
+    }
+    return res;
+}
+
+TBool MAE_Chromo::ReplacePathElem(string& aPath, const string& aPathTempl, const string& aNewElem)
+{
+    TBool res = EFalse;
+    size_t posb = 0;
+    size_t pose = aPath.find_first_of(KPathSep, posb);
+    size_t postb = 0;
+    size_t poste = aPathTempl.find_first_of(KPathSep, postb);
+    do {
+	string elem = (poste != string::npos) ? aPathTempl.substr(postb, poste) : aPathTempl;
+	if (elem.compare("*") == 0) {
+	    aPath.replace(posb, pose, aNewElem);
+	    res = ETrue; break;
+	}
+	posb = pose + 1;
+	pose = aPath.find_first_of(KPathSep, posb);
+	postb = poste + 1;
+	poste = aPathTempl.find_first_of(KPathSep, postb);
+    }
+    while (pose != string::npos && poste != string::npos);
+    return res;
+}
 
 string MAE_Chromo::GetTypeId(NodeType aType)
 {

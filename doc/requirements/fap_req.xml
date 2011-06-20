@@ -294,4 +294,12 @@
 		STUDIO allows USER to select file on filesystem, create system from the spec and add it to the root.  </simpara>
 	</sect2>
     </sect1>
+
+    <sect1 id="sec_vizmo"><title>DES Visualization module (DESVM)</title>
+	<sect2 id="sec_vizmo_01"><title>FAP_UC_VM_01 USER creates new project and add Visualization Module to it.</title>
+	    <simpara>USER then can create his own regular DES module, the sybsystem within that module can access to DESVM 
+	    subsystems, create theys heirs and connect to it in order to visualize</simpara>
+	</sect2>
+    </sect1>
+
 </article>
