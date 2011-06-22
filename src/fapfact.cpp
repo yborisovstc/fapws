@@ -62,15 +62,55 @@ const char* KChromoSystemId = "/usr/share/fapws/conf/objspec.dtd";
 
 const char KPathSep = '.';
 
-//*********************************************************
-// Model of XML based chromo
-//*********************************************************
-
 static map<string, NodeType> KNodeTypes;
 static map<NodeType, string> KNodeTypesNames;
 static map<TNodeAttr, string> KNodeAttrsNames;
 static map<string, TNodeAttr> KNodeAttrs;
 
+
+// Des URI
+DesUri::DesUri(const string& aUri): iUri(aUri)
+{
+    Parse();
+}
+
+void DesUri::Parse()
+{
+    TBool fin = EFalse;
+    size_t elem_beg = 0;
+    size_t elem_end = iUri.find_first_of('/', 0);
+    string elem = iUri.substr(0, elem_end);
+    while (!elem.empty()) {
+	size_t type_end = iUri.find_first_of(':');
+	size_t name_beg = 0;
+	NodeType type;
+	if (type_end == string::npos) {
+	    type = ENt_Object;
+	}
+	else {
+	    string tname = elem.substr(0, type_end);
+	    type = KNodeTypes[tname];
+	    name_beg = type_end + 1;
+	}
+	string name = elem.substr(name_beg);
+	iElems.push_back(TElem(type, name));
+	if (elem_end == string::npos) {
+	    elem.clear();
+	} 
+	else {
+	    elem_beg = elem_end + 1;
+	    elem_end = iUri.find_first_of('/', elem_beg);
+	    elem = iUri.substr(elem_beg, elem_end == string::npos ? elem_end : elem_end - elem_beg);
+	}
+    }
+}
+
+
+
+//*********************************************************
+// Model of XML based chromo
+//*********************************************************
+//
 class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 {
     public:
@@ -104,9 +144,11 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec);
 	virtual void Save(const string& aFileName) const;
+	virtual void* Find(const void* aHandle, const string& aUri);
     public:
 	int GetAttrInt(void *aHandle, const char *aName);
 	void* Set(const char* aFileName);
+	void* Set(const string& aUri);
 	void* Set(CAE_ChromoMdlX& aMdl, const void* aHandle);
 	xmlDoc* Doc() { return iDoc;};
 	static inline const char *Type() { return "ChromoMdlX";}; 
@@ -204,6 +246,32 @@ void CAE_ChromoMdlX::Reset()
     iDoc = NULL;
 }
 
+void* CAE_ChromoMdlX::Find(const void* aHandle, const string& aUri)
+{
+    DesUri desuri(aUri);
+    const vector<DesUri::TElem>& elems = desuri.Elems();
+    xmlNodePtr fres = NULL;
+    xmlNodePtr res = (xmlNodePtr) aHandle;
+    for (vector<DesUri::TElem>::const_iterator it = desuri.Elems().begin(); it != desuri.Elems().end() && res != NULL; it++) {
+	DesUri::TElem elem = *it;
+	while (res != NULL) {
+	    if (res->type == XML_ELEMENT_NODE) {
+		NodeType type = GetType((void*) res);
+		char *name = (char*) xmlGetProp(res, (const xmlChar *) KNodeAttrsNames[ENa_Id].c_str());
+		if (elem.first == type && elem.second.compare(name) == 0) {
+		    break;
+		}
+	    }
+	    res = res->next;
+	}
+	if (res != NULL) {
+	    fres = res;
+	    res = res->children;
+	}
+    }
+    return fres;
+}
+
 void* CAE_ChromoMdlX::Set(const char *aFileName)
 {
     xmlNode *sEnv = NULL; // Node of environment element
@@ -211,13 +279,29 @@ void* CAE_ChromoMdlX::Set(const char *aFileName)
     // Read and parse the CAE spec file
     iDoc = xmlReadFile(aFileName, NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID);
     _FAP_ASSERT(iDoc != NULL);
-    // Get the node of environment, not used for now
-//    sEnv = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Env);
-//    _FAP_ASSERT(sEnv != NULL);
-//    sRoot = (xmlNodePtr) GetFirstChild((void *) sEnv, ENt_Object);
+    // Get the node 
     sRoot = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Object);
     iDocOwned = EFalse;
     return sRoot;
+}
+
+void* CAE_ChromoMdlX::Set(const string& aUri)
+{
+    xmlNodePtr res = NULL;
+    xmlNode *sEnv = NULL; // Node of environment element
+    xmlNode *sRoot = NULL; // Node of root element
+    // Read and parse the CAE spec file
+    string path;
+    CAE_ChromoBase::GetPath(aUri, path);
+    iDoc = xmlReadFile(path.c_str(), NULL, XML_PARSE_DTDLOAD | XML_PARSE_DTDVALID);
+    _FAP_ASSERT(iDoc != NULL);
+    // Get the node 
+    string desuri;
+    CAE_ChromoBase::GetFrag(aUri, desuri);
+    sRoot = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Object);
+    res = (xmlNodePtr) Find(sRoot, desuri); 
+    iDocOwned = EFalse;
+    return res;
 }
 
 void* CAE_ChromoMdlX::Set(CAE_ChromoMdlX& aMdl, const void* aNode)
@@ -629,11 +713,35 @@ string MAE_Chromo::GetAttrId(TNodeAttr aType)
     return (aType == ENa_Unknown) ? "" : KNodeAttrsNames[aType];
 }
 
-void CAE_ChromoBase::GetUriPath(const string& aUri, string& aPath)
+void CAE_ChromoBase::GetUriScheme(const string& aUri, string& aScheme)
 {
-    size_t fragpos = aUri.find_first_of('#');
-    aPath = (fragpos == string::npos) ? aUri.substr(0, fragpos) : aUri;
+    size_t pos = aUri.find_first_of(':');
+    aScheme = (pos != string::npos) ? aUri.substr(0, pos) : string();
 }
+
+void CAE_ChromoBase::GetPath(const string& aUri, string& aPath)
+{
+    size_t scheme_end = aUri.find_first_of(':');
+    size_t hier_beg = (scheme_end != string::npos) ? scheme_end+1 : 0; 
+    size_t frag_beg = aUri.find_first_of("#");
+    string hier = aUri.substr(hier_beg, frag_beg - hier_beg);
+    size_t pos = hier.find("//"); 
+    if (pos == 0) {
+	// There is authority
+    }
+    else {
+	aPath = hier;
+    }
+}
+
+void CAE_ChromoBase::GetFrag(const string& aUri, string& aFrag)
+{
+    size_t frag_beg = aUri.find_first_of('#');
+    if (frag_beg != string::npos) {
+	aFrag = aUri.substr(frag_beg + 1);
+    }
+}
+
 
 //*********************************************************
 // XML based chromo
@@ -649,6 +757,7 @@ class CAE_ChromoX: public CAE_ChromoBase
 	virtual CAE_ChromoNode& Root();
 	virtual const CAE_ChromoNode& Root() const;
 	virtual void Set(const char *aFileName);
+	virtual TBool Set(const string& aUri);
 	virtual void Set(const CAE_ChromoNode& aRoot);
 	virtual void Init(NodeType aRootType);
 	virtual void Reset();
@@ -667,6 +776,17 @@ void CAE_ChromoX::Set(const char *aFileName)
 {
     void *root = iMdl.Set(aFileName);
     iRootNode = CAE_ChromoNode(iMdl, root);
+}
+
+TBool CAE_ChromoX::Set(const string& aUri)
+{
+    TBool res = EFalse;
+    void *root = iMdl.Set(aUri);
+    if (root != NULL) {
+	iRootNode = CAE_ChromoNode(iMdl, root);
+	res = ETrue;
+    }
+    return res;
 }
 
 void CAE_ChromoX::Set(const CAE_ChromoNode& aRoot)

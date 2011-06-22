@@ -9,6 +9,19 @@
 #include <fapbase.h>
 #include <vector>
 
+class DesUri
+{
+    public:
+	typedef pair<NodeType, string> TElem;
+    public:
+	DesUri(const string& aUri);
+	const vector<TElem>& Elems() {return iElems;};
+    private:
+	void Parse();
+    private:
+	string iUri;
+	vector<TElem> iElems;
+};
 
 //*********************************************************
 // Factory of Chromosome manager for XML based chromosome

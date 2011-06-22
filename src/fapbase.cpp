@@ -1952,7 +1952,24 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
     }
     else
     {
-	CAE_Object *parent = GetComp(sparent.c_str());
+	CAE_Object *parent = NULL;
+	// Check the scheme
+	string scheme;
+	CAE_ChromoBase::GetUriScheme(sparent, scheme);
+	if (scheme.empty()) {
+	    // FAP scheme by default
+	    parent = GetComp(sparent.c_str());
+	}
+	else {
+	    CAE_ChromoBase *spec = iEnv->Provider()->CreateChromo();
+	    TBool res = spec->Set(sparent);
+	    if (res) {
+		const CAE_ChromoNode& root = spec->Root();
+		AddObject(root);
+		parent = GetComp(sparent.c_str());
+		delete spec;
+	    }
+	}
 	if (parent == NULL) {
 	    Logger()->WriteFormat("ERROR: Creating object [%s] - parent [%s] not found", sname.c_str(), sparent.c_str());
 	}

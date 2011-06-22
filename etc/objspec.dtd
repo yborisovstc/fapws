@@ -55,7 +55,7 @@
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
 -->
-<!ELEMENT iobject (inp*, out*, logspec*, trans*, object* , state*, state_mut*, conn*, ext*, extc*, mut*)>
+<!ELEMENT iobject (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*, mut*)>
 
 <!-- object spec: 
      This is pure chromo of object and normally shouldn't be used in spec

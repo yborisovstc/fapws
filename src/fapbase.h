@@ -810,6 +810,7 @@ class MAE_ChromoMdl
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec) = 0;
 	virtual void Save(const string& aFileName) const = 0;
+	virtual void* Find(const void* aHandle, const string& aUri) = 0;
 };
 
 class CAE_ChromoMdlBase: public CAE_Base, public MAE_ChromoMdl
@@ -921,6 +922,7 @@ class MAE_Chromo
 	virtual CAE_ChromoNode& Root() = 0;
 	virtual const CAE_ChromoNode& Root() const= 0;
 	virtual void Set(const char *aFileName) = 0;
+	virtual TBool Set(const string& aUri) = 0;
 	virtual void Set(const CAE_ChromoNode& aRoot) = 0;
 	virtual void Init(NodeType aRootType) = 0;
 	virtual void Reset() = 0;
@@ -940,7 +942,9 @@ class CAE_ChromoBase: public MAE_Chromo
     public:
 	virtual ~CAE_ChromoBase() {};
     public:
-	static void GetUriPath(const string& aUri, string& aPath);
+	static void GetUriScheme(const string& aUri, string& aScheme);
+	static void GetPath(const string& aUri, string& aPath);
+	static void GetFrag(const string& aUri, string& aFrag);
 };
 
 // Chromosome manager
