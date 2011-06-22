@@ -13,6 +13,16 @@
 #include "faplogger.h"
 #include "panics.h"
 #include "tadesl.h"
+#include "fapplugin.h"
+#include <dlfcn.h>
+#include <dirent.h>
+
+
+// Plugins default dir
+const char* KPluginDir = "/usr/lib/fap/plugins/";
+
+// Base provider name
+const char* KBaseProvName = "baseprov";
 
 // XML CAE spec parameters
 // Element types
@@ -535,29 +545,10 @@ xmlNodePtr CAE_ChromoMdlX::FindNodeEnterigPos(xmlNodePtr aParent, xmlNodePtr aNo
 }
 
 
-//*********************************************************
-// XML based chromo
-//*********************************************************
 
-class CAE_ChromoX: public CAE_ChromoBase
-{
-    public:
-	CAE_ChromoX();
-	CAE_ChromoX(const char *aFileName);
-	virtual ~CAE_ChromoX();
-    public:
-	virtual CAE_ChromoNode& Root();
-	virtual const CAE_ChromoNode& Root() const;
-	virtual void Set(const char *aFileName);
-	virtual void Set(const CAE_ChromoNode& aRoot);
-	virtual void Init(NodeType aRootType);
-	virtual void Reset();
-	virtual void Save(const string& aFileName) const;
-    private:
-	CAE_ChromoMdlX iMdl;
-	CAE_ChromoNode iRootNode;
-};
-
+//*********************************************************
+// Chromo base
+//*********************************************************
 
 void MAE_Chromo::ParseTname(const string& aTname, NodeType& aType, string& aName)
 {
@@ -572,7 +563,6 @@ void MAE_Chromo::ParseTname(const string& aTname, NodeType& aType, string& aName
 	aName = aTname;
     }
 }
-
 
 // Comparing of paths with considering substitution for "*"
 TBool MAE_Chromo::ComparePath(const string& aS1, const string& aS2)
@@ -639,6 +629,36 @@ string MAE_Chromo::GetAttrId(TNodeAttr aType)
     return (aType == ENa_Unknown) ? "" : KNodeAttrsNames[aType];
 }
 
+void CAE_ChromoBase::GetUriPath(const string& aUri, string& aPath)
+{
+    size_t fragpos = aUri.find_first_of('#');
+    aPath = (fragpos == string::npos) ? aUri.substr(0, fragpos) : aUri;
+}
+
+//*********************************************************
+// XML based chromo
+//*********************************************************
+
+class CAE_ChromoX: public CAE_ChromoBase
+{
+    public:
+	CAE_ChromoX();
+	CAE_ChromoX(const char *aFileName);
+	virtual ~CAE_ChromoX();
+    public:
+	virtual CAE_ChromoNode& Root();
+	virtual const CAE_ChromoNode& Root() const;
+	virtual void Set(const char *aFileName);
+	virtual void Set(const CAE_ChromoNode& aRoot);
+	virtual void Init(NodeType aRootType);
+	virtual void Reset();
+	virtual void Save(const string& aFileName) const;
+    private:
+	CAE_ChromoMdlX iMdl;
+	CAE_ChromoNode iRootNode;
+};
+
+
 CAE_ChromoX::CAE_ChromoX(): iRootNode(iMdl, NULL)
 {
 }
@@ -693,12 +713,11 @@ void CAE_ChromoX::Save(const string& aFileName) const
 //*********************************************************
 
 
-FAPWS_API CAE_ProviderBase::CAE_ProviderBase()
+CAE_ProviderBase::CAE_ProviderBase(const string& aName): iName(aName)
 {
 }
 
-
-FAPWS_API CAE_ProviderBase::~CAE_ProviderBase()
+CAE_ProviderBase::~CAE_ProviderBase()
 {
 }
 
@@ -706,7 +725,7 @@ FAPWS_API CAE_ProviderBase::~CAE_ProviderBase()
 // General provider
 //*********************************************************
 
-FAPWS_API CAE_ProviderGen::CAE_ProviderGen()
+FAPWS_API CAE_ProviderGen::CAE_ProviderGen(): CAE_ProviderBase(KBaseProvName)
 {
     iTransfs = new vector<const TTransInfo*>;
     iStateInfos = new vector<const TStateInfo*>;
@@ -1100,65 +1119,41 @@ int CAE_ChroManX::GetAttrInt(void *aSpec, const char *aName)
 //*********************************************************
 
 
-FAPWS_API CAE_Fact::CAE_Fact(): 
-    iProviders(NULL)
+CAE_Fact::CAE_Fact() 
 {
 }
 
-FAPWS_API CAE_Fact::~CAE_Fact()
+CAE_Fact::~CAE_Fact()
 {
-    if (iProviders != NULL)
+    for (map<string, CAE_ProviderBase*>::iterator it = iProviders.begin(); it != iProviders.end(); it++)
     {
-	TInt count = iProviders->size();
-	for (TInt i = 0; i < count; i++)
-	{
-	    CAE_ProviderBase* elem = GetProviderAt(i);
-	    if (elem != NULL)
-	    {
-		delete elem;
-	    }
-	}
-	delete iProviders;
-	iProviders = NULL;
+	delete it->second;
     }
+    iProviders.clear();
 }
 
-FAPWS_API void CAE_Fact::ConstructL()
+void CAE_Fact::ConstructL()
 {
-    iProviders = new vector<CAE_ProviderBase*>;
     CAE_ProviderBase* baseprov = new CAE_ProviderGen();
+    _FAP_ASSERT(baseprov != NULL);
     baseprov->RegisterStates(sinfos);
-    AddProviderL(baseprov);
+    AddProvider(baseprov);
 }
 
-FAPWS_API CAE_Fact* CAE_Fact::NewL()
+CAE_Fact* CAE_Fact::NewL()
 {
     CAE_Fact* self = new CAE_Fact();
     self->ConstructL();
     return self;
 }
 
-CAE_ProviderBase* CAE_Fact::GetProviderAt(TInt aInd) const
-{
-    _FAP_ASSERT(aInd >= 0 && aInd <= iProviders->size());
-    return  static_cast<CAE_ProviderBase*>(iProviders->at(aInd));
-}
-
-FAPWS_API void CAE_Fact::AddProviderL(CAE_ProviderBase* aProv)
-{
-    _FAP_ASSERT(aProv != NULL);
-    iProviders->push_back(aProv);
-
-}
-
 CAE_StateBase* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const
 {
     CAE_StateBase* res = NULL;
 
-    TInt count = iProviders->size();
-    for (TInt i = 0; i < count; i++)
+    for (map<string, CAE_ProviderBase*>::const_iterator it = iProviders.begin(); it != iProviders.end(); it++)
     {
-	CAE_ProviderBase* prov = GetProviderAt(i);
+	CAE_ProviderBase* prov = it->second;
 	_FAP_ASSERT(prov != NULL);
 	res = prov->CreateStateL(aTypeUid, aInstName, aMan);
 	if (res != NULL)
@@ -1167,13 +1162,13 @@ CAE_StateBase* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstNam
     return res;
 }
 
-FAPWS_API CAE_EBase* CAE_Fact::CreateObjectL(TUint32 aTypeUid) const
+CAE_EBase* CAE_Fact::CreateObjectL(TUint32 aTypeUid) const
 {
     CAE_EBase* res = NULL;
     return res;
 }
 
-FAPWS_API CAE_EBase* CAE_Fact::CreateObjectL(const char *aName) const
+CAE_EBase* CAE_Fact::CreateObjectL(const char *aName) const
 {
     CAE_EBase* res = NULL;
     return res;
@@ -1182,9 +1177,9 @@ FAPWS_API CAE_EBase* CAE_Fact::CreateObjectL(const char *aName) const
 const TTransInfo* CAE_Fact::GetTransf(const char *aName) const
 {
     const TTransInfo* res = NULL;
-    for (TInt i = 0; i < iProviders->size(); i++)
+    for (map<string, CAE_ProviderBase*>::const_iterator it = iProviders.begin(); it != iProviders.end(); it++)
     {
-	CAE_ProviderBase* prov = GetProviderAt(i);
+	CAE_ProviderBase* prov = it->second;
 	_FAP_ASSERT(prov != NULL);
 	res = prov->GetTransf(aName);
 	if (res != NULL)
@@ -1194,49 +1189,33 @@ const TTransInfo* CAE_Fact::GetTransf(const char *aName) const
 }
 
 void CAE_Fact::RegisterState(const TStateInfo *aInfo) {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->RegisterState(aInfo);
-    }
+    // Register in general provider
+    GetBaseProvider()->RegisterState(aInfo);
 }
 
 void CAE_Fact::RegisterStates(const TStateInfo **aInfos) {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->RegisterStates(aInfos);
-    }
+    // Register in general provider
+    GetBaseProvider()->RegisterStates(aInfos);
 }
 	
 void CAE_Fact::RegisterTransf(const TTransInfo *aTrans)
 {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->RegisterTransf(aTrans);
-    }
+    // Register in general provider
+    GetBaseProvider()->RegisterTransf(aTrans);
 }
 
 void CAE_Fact::RegisterTransfs(const TTransInfo **aTrans)
 {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->RegisterTransfs(aTrans);
-    }
+    // Register in general provider
+    GetBaseProvider()->RegisterTransfs(aTrans);
 }
 
 const CAE_Formatter* CAE_Fact::GetFormatter(int aUid) const
 {
     const CAE_Formatter* res = NULL;
-    for (TInt i = 0; i < iProviders->size(); i++)
+    for (map<string, CAE_ProviderBase*>::const_iterator it = iProviders.begin(); it != iProviders.end(); it++)
     {
-	CAE_ProviderBase* prov = GetProviderAt(i);
+	CAE_ProviderBase* prov = it->second;
 	_FAP_ASSERT(prov != NULL);
 	res = prov->GetFormatter(aUid);
 	if (res != NULL)
@@ -1247,39 +1226,91 @@ const CAE_Formatter* CAE_Fact::GetFormatter(int aUid) const
 
 void CAE_Fact::RegisterFormatter(CAE_Formatter *aForm)
 {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->RegisterFormatter(aForm);
-    }
+    // Register in general provider
+    GetBaseProvider()->RegisterFormatter(aForm);
+}
+
+CAE_ProviderBase* CAE_Fact::GetBaseProvider() const
+{
+    map<string, CAE_ProviderBase*>::const_iterator it = iProviders.find(KBaseProvName);
+    _FAP_ASSERT(it != iProviders.end());
+    return it->second;
 }
 
 CAE_ChromoBase* CAE_Fact::CreateChromo() const
 {
-    if (iProviders->size() > 0)
-    {
-	// Register in general provider
-	CAE_ProviderBase* prov = GetProviderAt(0);
-	prov->CreateChromo();
-    };
+    // Register in general provider
+    GetBaseProvider()->CreateChromo();
 }
 
 CAE_TranExBase* CAE_Fact::CreateTranEx(MCAE_LogRec* aLogger) const
 {
-    GetProviderAt(0)->CreateTranEx(aLogger);
+    GetBaseProvider()->CreateTranEx(aLogger);
 }
 
 MAE_Opv* CAE_Fact::CreateViewProxy()
 {
     MAE_Opv* res = NULL;
-    for (TInt i = 0; i < iProviders->size(); i++)
+    for (map<string, CAE_ProviderBase*>::iterator it = iProviders.begin(); it != iProviders.end(); it++)
     {
-	CAE_ProviderBase* prov = GetProviderAt(i);
+	CAE_ProviderBase* prov = it->second;
 	_FAP_ASSERT(prov != NULL);
 	res = prov->CreateViewProxy();
 	if (res != NULL)
 	    break;
     }
     return res;
+}
+
+TBool CAE_Fact::LoadPlugin(const string& aName)
+{
+    TBool res = EFalse;
+    CAE_ProviderBase* prov = NULL;
+    string plgpath = KPluginDir + aName;
+    void* handle = dlopen(plgpath.c_str(), RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
+    if (handle != NULL) {
+	dlerror();
+	plugin_init_func_t* init = (plugin_init_func_t*) dlsym(handle, "init");
+	char* str_error = dlerror();
+	if (init!= NULL) {
+	    prov = init();
+	    if (prov != NULL) {
+		res = ETrue;
+		AddProvider(prov);
+	    }
+	}
+    }
+    if (!res) {
+	dlclose(handle);
+    }
+    return res;
+}
+
+static int FilterPlgDirEntries(const struct dirent *aEntry)
+{
+    string name = aEntry->d_name;
+    size_t ppos = name.find_first_of(".");
+    string suff = name.substr(ppos + 1);
+    int res = suff.compare("so"); 
+    return (res == 0) ? 1 : 0;
+}
+
+// TODO [YB] To consider loading plugins on demand.
+void CAE_Fact::LoadAllPlugins()
+{
+    // List plugins directory
+    struct dirent **entlist;
+    int n = scandir (KPluginDir, &entlist, FilterPlgDirEntries, alphasort);
+    // Load plugins
+    for (int cnt = 0; cnt < n; ++cnt) {
+	LoadPlugin(entlist[cnt]->d_name);
+    }
+}
+
+void CAE_Fact::AddProvider(CAE_ProviderBase* aProv)
+{
+    _FAP_ASSERT(aProv != NULL);
+    if (iProviders.count(aProv->Name()) == 0) {
+	iProviders[aProv->Name()] = aProv;
+    }
 }

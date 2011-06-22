@@ -37,6 +37,7 @@ public:
 public:
 	// From MAE_Env
 	virtual MAE_Provider *Provider() const;
+	virtual void RequestProvider(const string& aName);
 	virtual MAE_ChroMan *Chman() const;
 	virtual MCAE_LogRec *Logger();
 	virtual MAE_TranEx *Tranex();

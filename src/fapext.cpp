@@ -62,8 +62,11 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
 {
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
+    iProvider->LoadAllPlugins();
     iTranEx = iProvider->CreateTranEx(Logger());
     iSystSpec = aSpec;
+    // TODO [YB] To consider loading plugins on demand
+    iProvider->LoadAllPlugins();
     if (aSinfos != NULL) {
 	iProvider->RegisterStates(aSinfos);
     }
@@ -156,5 +159,11 @@ FAPWS_API void CAE_Env::AddChmanXml(const char *aXmlFileName)
 
 void CAE_Env::AddProviderL(CAE_ProviderBase* aProv)
 {
-    iProvider->AddProviderL(aProv);
+    iProvider->AddProvider(aProv);
 }
+
+void CAE_Env::RequestProvider(const string& aName) 
+{
+    iProvider->LoadPlugin(aName);
+}
+

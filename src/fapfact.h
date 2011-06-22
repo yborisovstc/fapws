@@ -34,9 +34,12 @@ class CAE_ChroManXFact
 class CAE_ProviderBase: public MAE_Provider
 {
     public:
-	FAPWS_API CAE_ProviderBase();
-	FAPWS_API virtual ~CAE_ProviderBase();
+	CAE_ProviderBase(const string& aName);
+	const string& Name() const { return iName;};
+	virtual ~CAE_ProviderBase();
 	virtual MAE_ChroMan* Chman() const { return NULL;};
+    private:
+	string iName;
 };
 
 // Factory of element of object
@@ -45,7 +48,9 @@ class CAE_Fact: public MAE_Provider
     public:
 	FAPWS_API static CAE_Fact* NewL();
 	FAPWS_API virtual ~CAE_Fact();
-	FAPWS_API void AddProviderL(CAE_ProviderBase* aProv);
+	void AddProvider(CAE_ProviderBase* aProv);
+	TBool LoadPlugin(const string& aName);
+	void LoadAllPlugins();
 	// From MAE_Provider
 	virtual CAE_StateBase* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const;
 	FAPWS_API virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const;
@@ -64,12 +69,12 @@ class CAE_Fact: public MAE_Provider
 	FAPWS_API CAE_Fact();
 	FAPWS_API void ConstructL();
     private:
-	CAE_ProviderBase* GetProviderAt(TInt aInd) const;
+	CAE_ProviderBase* GetBaseProvider() const;
     private:
-	vector<CAE_ProviderBase*>* iProviders;
+	map<string, CAE_ProviderBase*> iProviders;
 };
 
-
+class MAE_Plugin;
 // General provider
 class CAE_ProviderGen: public CAE_ProviderBase
 {
@@ -78,8 +83,8 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	FAPWS_API virtual ~CAE_ProviderGen();
 	// From MAE_Provider
 	virtual CAE_StateBase* CreateStateL(const char *aTypeUid, const char* aInstName, CAE_Object* aMan) const;
-	FAPWS_API virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const;
-	FAPWS_API virtual CAE_EBase* CreateObjectL(const char *aName) const;
+	virtual CAE_EBase* CreateObjectL(TUint32 aTypeUid) const;
+	virtual CAE_EBase* CreateObjectL(const char *aName) const;
 	virtual const TTransInfo* GetTransf(const char *aName) const;
 	virtual void RegisterState(const TStateInfo *aInfo);
 	virtual void RegisterStates(const TStateInfo **aInfos);

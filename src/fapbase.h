@@ -926,6 +926,7 @@ class MAE_Chromo
 	virtual void Reset() = 0;
 	virtual void Save(const string& aFileName) const = 0;
     public:
+	// TODO [YB] To move the utils from iface to CAE_ChromoBase or sec utils class
 	static string GetTypeId(NodeType aType);
 	static string GetAttrId(TNodeAttr aType);
 	static string GetTName(NodeType aType, const string& aName);
@@ -938,6 +939,8 @@ class CAE_ChromoBase: public MAE_Chromo
 {
     public:
 	virtual ~CAE_ChromoBase() {};
+    public:
+	static void GetUriPath(const string& aUri, string& aPath);
 };
 
 // Chromosome manager
@@ -1163,6 +1166,7 @@ class MAE_Env
 {
     public:
 	virtual MAE_Provider *Provider() const = 0;
+	virtual void RequestProvider(const string& aName) = 0;
 	// Getting Cromosome manager
 	virtual MAE_ChroMan *Chman() const = 0;
 	virtual MCAE_LogRec *Logger() = 0;

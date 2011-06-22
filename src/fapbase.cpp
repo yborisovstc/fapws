@@ -194,6 +194,8 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
 	res = ConnectConnPoint(pair);
+	if (res)
+	    iConns.push_back(pair);
     }
     else {
 	// Probably it's commutating extention
@@ -207,8 +209,6 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
 	    res = res1;
 	}
     }
-    if (res)
-	iConns.push_back(aConnPoint);
     return res;
 }
 
@@ -2731,113 +2731,6 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 		{
 		    CAE_ChromoNode mno = (*mit);
 		    DoMutationMut(mno, mnode, node, aRunTime);
-		    #if 0
-		    if (mno.Type() == ENt_MutAdd) 
-		    {
-			for (CAE_ChromoNode::Iterator mait = mno.Begin(); mait != mno.End(); mait++)
-			{
-			    CAE_ChromoNode mano = (*mait);
-			    if (mano.Type() == ENt_Object) {
-				AddObject(mano);
-			    }
-			    else if (mano.Type() == ENt_Stinp) {
-				CAE_Object* obj = node->GetFbObj(obj);
-				if (obj != NULL) {
-				    AddConn(mano, obj->iInputs);
-				}
-				else {
-				    CAE_StateBase* state = node->GetFbObj(state);
-				    if (state != NULL) {
-					CreateStateInp(mano, state);
-				    }
-				    else {
-					Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
-				    }
-				}
-			    }
-			    else if (mano.Type() == ENt_Soutp) {
-				AddConn(mano, iOutputs);
-			    }
-			    else if (mano.Type() == ENt_State) {
-				AddState(mano);
-			    }
-			    else if (mano.Type() == ENt_Conn) {
-				AddConn(mano);
-			    }
-			    else if (mano.Type() == ENt_Cext) {
-				AddExt(mano);
-			    }
-			    else if (mano.Type() == ENt_Cextc) {
-				AddExtc(mano);
-			    }
-			    else if (mano.Type() == ENt_Trans) {
-				AddTrans(mano);
-			    }
-			    else if (mano.Type() == ENt_Logspec) {
-				AddLogspec(node, mano);
-			    }
-			    else {
-				Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
-			    }
-			    // Change chromo
-			    mnode.AddChild(mano);
-			}
-		    }
-		    else if (mno.Type() == ENt_MutRm) 
-		    {
-			NodeType type = mno.AttrNtype(ENa_Type);
-			string name = mno.Name();
-			CAE_ChromoNode::Iterator remit = mnode.End();
-			if (mno.AttrExists(ENa_MutChgAttr)) {
-			    TNodeAttr mattr = mno.AttrNatype(ENa_MutChgAttr);
-			    string attval = mno.Attr(ENa_MutChgVal);
-			    remit = mnode.Find(type, name, mattr, attval);
-			}
-			else {
-			    remit = mnode.Find(type, name);
-			}
-			if (remit != mnode.End()) {
-			    RemoveElem(node, mno, *remit);
-			    // Change chromo
-			    mnode.RmChild(*remit);
-			}
-			else {
-			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName(), name.c_str());
-			}
-		    }
-		    else if (mno.Type() == ENt_MutChange) 
-		    {
-			NodeType type = mno.AttrNtype(ENa_Type);
-			string name = mno.Name();
-			CAE_ChromoNode::Iterator curr = mnode.Find(type, name);
-			if (curr != mnode.End()) {
-			    // Change runtime model
-			    ChangeAttr(node, mno, *curr);
-			    // Change chromo
-			    CAE_ChromoNode currn = *curr;
-			    ChangeChromoAttr(mno, currn);
-			}
-			else {
-			    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName(), name.c_str());
-			}
-		    }
-		    else if (mno.Type() == ENt_MutChangeCont) 
-		    {
-			string chnodename = mno.Attr(ENa_MutNode);
-			CAE_ChromoNode::Iterator curr = mnode.Find(chnodename);
-			if (curr != mnode.End()) {
-			    // Change runtime model
-			    ChangeCont(node, mno, *curr);
-			    // Change chromo
-			    CAE_ChromoNode currn = *curr;
-			    ChangeChromoCont(mno, currn);
-			}
-		    }
-		    else
-		    {
-			Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName());
-		    }
-		    #endif
 		}
 	    }
 	    else
