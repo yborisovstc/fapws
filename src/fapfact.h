@@ -16,6 +16,7 @@ class DesUri
     public:
 	DesUri(const string& aUri);
 	const vector<TElem>& Elems() {return iElems;};
+	string GetUri(vector<TElem>::const_iterator aStart);
     private:
 	void Parse();
     private:

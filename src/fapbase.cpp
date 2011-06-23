@@ -40,6 +40,7 @@
 #include "fapbase.h"
 #include "fapview.h"
 #include "fapopvi.h"
+#include "fapfact.h"
 
 _LIT(KFapPanic, "FAP: Error %d");
 const TInt KNameSeparator  = '.';
@@ -971,13 +972,13 @@ const string CAE_StateBase::ValStr() const
     return res;
 }
 
-CSL_ExprBase* CAE_StateBase::GetExpr(const string& aTerm, const string& aRtype) 
+CSL_ExprBase* CAE_StateBase::GetExpr(const string& aTerm, const string& aRtype, MAE_TransContext* aRequestor) 
 { 
     return iMan->GetExpr(aTerm, aRtype);
 };
 
 multimap<string, CSL_ExprBase*>::iterator CAE_StateBase::GetExprs(const string& aName, const string& aRtype, multimap<string,
-       	CSL_ExprBase*>::iterator& aEnd)
+       	CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor)
 {
     multimap<string, CSL_ExprBase*>::iterator res;
     if (iMan != NULL)
@@ -1340,9 +1341,12 @@ FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_En
 
 void *CAE_Object::DoGetFbObj(const char *aName)
 {
-    CAE_EBase *res = NULL;
+    void *res = NULL;
     if (strcmp(aName, Type()) == 0) {
 	res = this;
+    }
+    if (strcmp(aName, MAE_TransContext::Type()) == 0) {
+	res = (MAE_TransContext*) this;
     }
     return res;
 }
@@ -1940,7 +1944,7 @@ void CAE_Object::SetMutation(const CAE_ChromoNode& aMuta)
 }
 
 // TODO [YB] To consider creating from chromo but not via mut
-void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
+CAE_Object* CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 {
     string sparent = aNode.Attr(ENa_Type);
     string sname = aNode.Name();
@@ -1958,15 +1962,14 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	CAE_ChromoBase::GetUriScheme(sparent, scheme);
 	if (scheme.empty()) {
 	    // FAP scheme by default
-	    parent = GetComp(sparent.c_str());
+	    parent = GetComp(sparent);
 	}
 	else {
 	    CAE_ChromoBase *spec = iEnv->Provider()->CreateChromo();
 	    TBool res = spec->Set(sparent);
 	    if (res) {
 		const CAE_ChromoNode& root = spec->Root();
-		AddObject(root);
-		parent = GetComp(sparent.c_str());
+		parent = AddObject(root);
 		delete spec;
 	    }
 	}
@@ -1979,7 +1982,7 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	}
     }
     if (obj == NULL) {
-	Logger()->WriteFormat("ERROR: Creating object [%s]", sname.c_str());
+	Logger()->WriteFormat("ERROR: Creating object [%s] - failed", sname.c_str());
     }
     else {
 	obj->SetQuiet(squiet);
@@ -1990,6 +1993,7 @@ void CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	obj->SetMutation(aNode);
 	obj->Mutate();
     }
+    return obj;
 }
 
 void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
@@ -2816,6 +2820,27 @@ CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
     return res;
 }
 
+CAE_Object* CAE_Object::GetComp(const string& aUri)
+{
+    CAE_Object* res = this;
+    DesUri uri(aUri);
+    vector<DesUri::TElem>::const_iterator it = uri.Elems().begin();
+    DesUri::TElem elem = *it;
+    if (elem.first == ENt_Object) {
+	if (elem.second.compare("..") == 0) {
+	    string nuri = uri.GetUri(++it);
+	    res = iMan->GetComp(nuri);
+	}
+	else {
+	    res = iComps[elem.second];
+	    if (res != NULL && ++it != uri.Elems().end()) {
+		res = res->GetComp(uri.GetUri(it));
+	    }
+	}
+    }
+    return res;
+}
+
 // TODO [YB] To move FindByName to CAE_EBase
 FAPWS_API CAE_EBase* CAE_Object::FindByName(const string& aName)
 {
@@ -3038,40 +3063,53 @@ void CAE_Object::DoTrans(CAE_StateBase* aState, const string& aInit)
     iEnv->Tranex()->EvalTrans(this, aState, aInit);
 }
 
-CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype)
+CSL_ExprBase* CAE_Object::GetExpr(const string& aName, const string& aRtype, MAE_TransContext* aRequestor)
 {
     CSL_ExprBase* res = NULL;
-    if (res == NULL) {
-	string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
-	multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
-	if (it != iTrans.end()) {
-	    res = it->second;
+    // Look at self first
+    string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
+    multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
+    if (it != iTrans.end()) {
+	res = it->second;
+    }
+    // Then look at the self components
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end() && res == NULL; it++) {
+	MAE_TransContext* comp = it->second->GetFbObj(comp);
+	if (comp != aRequestor) {
+	    res = comp->GetExpr(aName, aRtype, this);
+	}
+    }	
+    // Finally asking man
+    if (res == NULL && iMan != NULL) {
+	MAE_TransContext* man = iMan->GetFbObj(man);
+	if (man != aRequestor) {
+	    res = man->GetExpr(aName, aRtype, this);
 	}
     }
-    return (res != NULL) ? res : (iMan != NULL ? iMan->GetExpr(aName, aRtype) : NULL);
+    return res;
 }
 
 multimap<string, CSL_ExprBase*>::iterator CAE_Object::GetExprs(const string& aName, const string& aRtype,
-	multimap<string, CSL_ExprBase*>::iterator& aEnd)
+	multimap<string, CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor)
 {
     multimap<string, CSL_ExprBase*>::iterator res;
     // Look at emb terms first then for current
     string key = (aRtype.size() == 0) ? aName : aName + " " + aRtype;
-    multimap<string, CSL_ExprBase*>::iterator it = iTrans.find(key);
-    if (it != iTrans.end()) {
-	res = it; aEnd = iTrans.end();
-    }
-    else if (iMan != NULL) {
-	multimap<string, CSL_ExprBase*>::iterator it = iMan->GetExprs(aName, aRtype, aEnd);
-	if (it != aEnd) {
-	    res = it;
+    res = iTrans.find(key); aEnd = iTrans.end();
+    if (res == aEnd) {
+	// Then look at the self components
+	for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end() && res == aEnd; it++) {
+	    MAE_TransContext* comp = it->second->GetFbObj(comp);
+	    if (comp != aRequestor) {
+		res = comp->GetExprs(aName, aRtype, aEnd, this);
+	    }
+	}	
+	if (res == aEnd && iMan != NULL) {
+	    MAE_TransContext* man = iMan->GetFbObj(man);
+	    if (man != aRequestor) {
+		res = man->GetExprs(aName, aRtype, aEnd, this);
+	    }
 	}
-	else {
-	    aEnd = iTrans.end(); res = aEnd;
-	}
-    }
-    else {
-	aEnd = iTrans.end(); res = aEnd;
     }
     return res;
 }

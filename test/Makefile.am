@@ -9,8 +9,9 @@ ut_fapws_lib_SOURCES = \
 	ut_ext_mut.cpp \
 	ut_conn.cpp \
 	ut_control.cpp \
+	ut_emtran.cpp \
 	ut_modul.cpp \
-	ut_emtran.cpp 
+	ut_embmod.cpp 
 
 AM_CPPFLAGS = -D_PLAT_LINUX_ -g -O0
 ut_fapws_lib_LDFLAGS=-L../src -lfapws  -lcppunit

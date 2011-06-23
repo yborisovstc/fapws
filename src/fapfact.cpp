@@ -105,6 +105,22 @@ void DesUri::Parse()
     }
 }
 
+string DesUri::GetUri(vector<TElem>::const_iterator aStart)
+{
+    string res;
+    for (vector<DesUri::TElem>::const_iterator it = aStart; it != iElems.end(); it++) {
+	DesUri::TElem elem = *it;
+	if (elem.first != ENt_Object) {
+	    res.append(KNodeTypesNames[elem.first] + ":");
+	}
+	res.append(elem.second);
+	if (it + 1 != iElems.end()) {
+	    res.append("/");
+	}
+    }
+    return res;
+}
+
 
 
 //*********************************************************

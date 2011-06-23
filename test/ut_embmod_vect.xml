@@ -1,0 +1,73 @@
+<?xml version="1.0" ?>
+
+<!-- Specification of FAP environment for unit test for embedded module "Vector" -->
+<!--
+     -->
+
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
+
+<iobject type="none" id="main_test">
+
+    <out id="rock">
+	<src id="coord"/> <src id="mass"/> 
+    </out>
+
+    <logspec event="tran"> <logdata id="trex"/></logspec> 
+
+    <iobject type="file:../modules/vector.xml#vector" id="my_vector" quiet="yes"/> 
+
+
+    <iobject type="none" id="Rock" quiet="yes"> 
+	<mut>
+	    <add>
+		<out id="coord"/>
+		<out id="mass"/>
+		<out id="outp"> <src id="coord"/> <src id="mass"/> </out>
+
+		<logspec  event="cre"> <logdata id="new"/> </logspec>
+
+		<state type="Float" id="mass" init="2.0"> 
+		    <logspec event="upd"> <logdata id="new"/> </logspec> 
+		</state>
+
+		<state type="Vector" id="coord" init="0.0 1.0"> 
+		    <logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+		    <logspec event="tran"> <logdata id="trex"/></logspec> 
+		    <inp id="self"/> <inp id="velocity"/> 
+		    <trans> 
+			let coord :: Vector := add inp self inp velocity
+			let bang :: TBool := le VectY coord 0.0
+			if bang KVect0 coord
+		    </trans>
+		</state>
+
+		<state type="Vector" id="velocity" init="80.0 80.0"> 
+		    <logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+		    <logspec event="tran"> <logdata id="trex"/></logspec> 
+		    <inp id="self"/><inp id="coord"/> 
+		    <trans> 
+			let bang :: TBool := le VectY inp coord 0.0
+			let vel :: Vector := add inp self KAccDef
+			if bang KVect0 vel
+		    </trans>
+		</state>
+
+		<conn id="state%coord.self" pair="state%coord.output"/> 
+		<conn id="state%coord.velocity" pair="state%velocity.output"/> 
+		<conn id="state%velocity.coord" pair="state%coord.output"/> 
+		<conn id="state%velocity.self" pair="state%velocity.output"/> 
+
+		<ext id="coord" pair="state%coord.output"/>
+		<ext id="mass" pair="state%mass.output"/>
+
+	    </add>
+	</mut>
+
+    </iobject> <!-- Rock -->
+
+    <iobject type="Rock" id="rock_1" > <mut> <change type="state" id="mass" attr="init" val="7"/> </mut>  </iobject>
+
+    <extc id="rock"> <srcext id="coord" pair="rock_1.coord"/> <srcext id="mass" pair="rock_1.mass"/> </extc>
+
+</iobject> <!-- test -->
+

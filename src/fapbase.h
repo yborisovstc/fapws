@@ -491,9 +491,10 @@ class CAE_StateBase;;
 class MAE_TransContext
 {
     public:
-	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
+	const char* Type() { return "TransContext";} 
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype, MAE_TransContext* aRequestor = NULL) = 0;
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype,
-		multimap<string, CSL_ExprBase*>::iterator& aEnd) = 0;
+		multimap<string, CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor = NULL) = 0;
 };
 
 
@@ -571,9 +572,9 @@ protected:
 	virtual void DoOperation();
 	void LogUpdate(TInt aLogData);
 	void LogTrans(TInt aLogData);
-	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype, MAE_TransContext* aRequestor = NULL);
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, 
-		multimap<string, CSL_ExprBase*>::iterator& aEnd);
+		multimap<string, CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor = NULL);
 protected:
 	// Transition info
 	TTransInfo iTrans;
@@ -1049,6 +1050,7 @@ public:
 	virtual void Confirm();
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
+	CAE_Object* GetComp(const string& aUri);
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
 	CAE_EBase* FindByName(const string& aName);
 	CAE_ConnPointBase* GetConn(const char *aName);
@@ -1070,9 +1072,9 @@ public:
 	void Mutate();
 	void DoTrans(CAE_StateBase* aState);
 	void DoTrans(CAE_StateBase* aState, const string& aInit);
-	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype, MAE_TransContext* aRequestor = NULL);
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, multimap<string,
-	       	CSL_ExprBase*>::iterator& aEnd);
+	       	CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor = NULL);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
 	void AddView(MAE_View* aView);
 	void SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot = EFalse);
@@ -1097,7 +1099,7 @@ private:
 	void CreateStateInp(const CAE_ChromoNode& aSpecNode, CAE_StateBase *aState);
 	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
 	void AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
-	void AddObject(const CAE_ChromoNode& aNode);
+	CAE_Object* AddObject(const CAE_ChromoNode& aNode);
 	void AddState(const CAE_ChromoNode& aSpec);
 	void AddConn(const CAE_ChromoNode& aSpec);
 	void AddExt(const CAE_ChromoNode& aSpec);
