@@ -423,7 +423,7 @@ void CSL_EfInp::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::
     CAE_StateBase::mult_point_inp_iterator end =  state->MpInput_end(name.c_str());
     CAE_StateBase::mult_point_inp_iterator itc = beg;
     itc++;
-    if (itc != end) {
+    if (beg != end && itc != end) {
 	string type = aEnv.DataType(*itc);
 	// TODO [YB] Migrate to tuple constructor
 	aRes = new CSL_ExprBase("[" + type + "]");
@@ -438,16 +438,26 @@ void CSL_EfInp::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::
     else {
 	// Singlepoint input
 	CAE_StateBase* sinp = state->Input(name.c_str());
-	CAE_StateEx *sinpex = sinp->GetFbObj(sinpex);
-	if (sinpex != NULL) {
-	    aRes = sinpex->Value().Clone();
+	if (sinp != NULL) {
+	    CAE_StateEx *sinpex = sinp->GetFbObj(sinpex);
+	    if (sinpex != NULL) {
+		aRes = sinpex->Value().Clone();
+	    }
+	    else {
+		string ival = sinp->ValStr();
+		string type = aEnv.DataType(*sinp);
+		CSL_ExprBase* constr = aEnv.GetExpr(type, "");
+		CSL_ExprBase data("-", ival);
+		if (constr != NULL) {
+		    constr->Apply(aEnv, aArgs, aArgr, data, aRes, aReqType);
+		}
+		else {
+		    aEnv.Logger()->WriteFormat("ERROR: Evaluating input [%s]: Constructor [%s] not found", name.c_str(), type.c_str());
+		}
+	    }
 	}
 	else {
-	    string ival = sinp->ValStr();
-	    string type = aEnv.DataType(*sinp);
-	    CSL_ExprBase* constr = aEnv.GetExpr(type, "");
-	    CSL_ExprBase data("-", ival);
-	    constr->Apply(aEnv, aArgs, aArgr, data, aRes, aReqType);
+	    aEnv.Logger()->WriteFormat("ERROR: Evaluating input [%s]: input not connected", name.c_str());
 	}
     }
 }
@@ -670,7 +680,7 @@ void CSL_EfTBool::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>
 
 void CSL_EfVectF::FromStr(CF_TdVectF& aData, const string& aStr)
 {
-    sscanf(aStr.c_str(), "(%f,%f)", &(aData.iX), &(aData.iY));
+    sscanf(aStr.c_str(), "{%f,%f}", &(aData.iX), &(aData.iY));
 }
 
 string CSL_EfVectF::ToStr(const CF_TdVectF& aData)
@@ -678,7 +688,7 @@ string CSL_EfVectF::ToStr(const CF_TdVectF& aData)
     int buflen = 80;
     char* buf = (char *) malloc(buflen);
     memset(buf, 0, buflen);
-    sprintf(buf, "(%6.3f,%6.3f)", aData.iX, aData.iY);
+    sprintf(buf, "{%6.3f,%6.3f}", aData.iX, aData.iY);
     string res(buf);
     free(buf);
     return res;
@@ -757,7 +767,7 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
 {
     iRootExpr = new CSL_ExprBase();
     // Register embedded function
-    SetExprEmb("VectF", new CSL_EfVectF());
+    SetExprEmb("TVectF", new CSL_EfVectF());
     SetExprEmb("add", new CSL_EfAddInt());
     SetExprEmb("add", new CSL_EfAddVectF());
     SetExprEmb("add", new CSL_EfAddFloat());

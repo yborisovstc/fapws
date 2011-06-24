@@ -303,14 +303,14 @@ _TEMPLATE_ char* CAE_TState<CF_TdVectF>::DataToStr(TBool aCurr) const
     char* buf = (char *) malloc(buflen);
     memset(buf, 0, buflen);
     CF_TdVectF* data = (CF_TdVectF*) (aCurr ? iCurr : iNew);
-    sprintf(buf, "(%6.3f,%6.3f)", data->iX, data->iY);
+    sprintf(buf, "{%6.3f,%6.3f}", data->iX, data->iY);
     return buf;
 }
 
 _TEMPLATE_ void CAE_TState<CF_TdVectF>::DataFromStr(const char* aStr, void *aData) const
 {
     CF_TdVectF* data = (CF_TdVectF*) aData;
-    sscanf(aStr, "(%f,%f)", &(data->iX), &(data->iY));
+    sscanf(aStr, "{%f,%f}", &(data->iX), &(data->iY));
 }
 
 _TEMPLATE_ void CAE_TState<CF_TdVectF>::DoOperation()

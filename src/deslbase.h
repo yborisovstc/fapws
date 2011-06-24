@@ -250,7 +250,7 @@ class CF_TdVectF;
 class CSL_EfVectF: public CSL_ExprBase
 {
     public:
-	CSL_EfVectF(): CSL_ExprBase("TVectF") {};
+	CSL_EfVectF(): CSL_ExprBase("TVectF -") {};
 	CSL_EfVectF(const string& aData): CSL_ExprBase("TVectF", aData) {};
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);

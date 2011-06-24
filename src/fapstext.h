@@ -62,6 +62,7 @@ struct CF_TdVectF
     CF_TdVectF(const CF_TdPointF& aEnd): iX(aEnd.iX), iY(aEnd.iY) {}
     CF_TdVectF(const CF_TdPointF& aBeg, const CF_TdPointF& aEnd): iX(aEnd.iX-aBeg.iX), iY(aEnd.iY-aBeg.iY) {}
     CF_TdVectF(float aX, float aY): iX(aX), iY(aY) {}
+    TBool      operator==(const CF_TdVectF& aOpd) { return iX == aOpd.iX && iY == aOpd.iY;} 
     CF_TdVectF operator+(const CF_TdVectF& aOpd) { return CF_TdVectF(iX+aOpd.iX, iY+aOpd.iY);} 
     CF_TdVectF operator+(const CF_TdVectF& aOpd) const { return CF_TdVectF(iX+aOpd.iX, iY+aOpd.iY);} 
     CF_TdVectF operator-(const CF_TdVectF& aOpd) { return CF_TdVectF(iX-aOpd.iX, iY-aOpd.iY);} 

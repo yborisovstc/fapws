@@ -41,7 +41,8 @@ include_HEADERS = \
 		  viewgtk.h \
 		  fapviewprim.h \
 		  fapplugin.h \
-		  fapplat.h
+		  fapplat.h \
+		  deslbase.h 
 
 
 libfapws_la_LDFLAGS = -rdynamic -no-undefined
