@@ -1044,6 +1044,9 @@ public:
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
+	// TODO [YB] CAE_Object cannot register/unregister just base class because the reristry are for heir of EBase
+	// Object uses type resolver to understand what is to be reg/unreg. Thats why it is impossible to unger 
+	// from EBase destructor (resolver is based on virt funct so isnt working there). To conside specialize reg/unreg. 
 	void RegisterCompL(CAE_EBase* aComp);
 	void UnregisterComp(CAE_EBase* aComp);
 	virtual void Update();

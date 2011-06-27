@@ -640,8 +640,6 @@ void CAE_EBase::SetType(const char *aName)
 
 FAPWS_API CAE_EBase::~CAE_EBase()
 {
-    if (iMan != NULL)
-	iMan->UnregisterComp(this);
     if (iInstName != NULL)
 	free(iInstName);
     if (iTypeName != NULL)
@@ -734,6 +732,9 @@ CAE_StateBase::CAE_StateBase(const char* aInstName, CAE_Object* aMan,  TTransInf
 
 CAE_StateBase::~CAE_StateBase()
 {
+    // [YB] Shouldn't control man even for unregistering
+//    if (iMan != NULL)
+//	iMan->UnregisterComp(this);
     // Delete inputs and outputs
     for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++) {
 	CAE_ConnPointBase* cpoint = i->second;
@@ -1849,25 +1850,34 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 
 FAPWS_API CAE_Object::~CAE_Object()
 {
-	iComps.clear();
-	iStates.clear();
-	if (iChromX != NULL) {
-	    delete (char *) iChromX;
-	    iChromX = NULL;
-	}
-	iEnv = NULL; // Not owned
+    // [YB] Shouldn't control man even for unregistering
+    //if (iMan != NULL)
+//	iMan->UnregisterComp(this);
+    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++) {
+	delete it->second;
+    }
+    iStates.clear();
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+	delete it->second;
+    }
+    iComps.clear();
+    if (iChromX != NULL) {
+	delete (char *) iChromX;
+	iChromX = NULL;
+    }
+    iEnv = NULL; // Not owned
 
-	if (iMut != NULL) {
-	    delete iMut;
-	    iMut = NULL;
-	}
-	if (iChromo != NULL) {
-	    delete iChromo;
-	    iChromo = NULL;
-	}
-	for (map<string, MAE_View*>::iterator it = iViews.begin(); it != iViews.end(); it++) {
-	    delete it->second;
-	}
+    if (iMut != NULL) {
+	delete iMut;
+	iMut = NULL;
+    }
+    if (iChromo != NULL) {
+	delete iChromo;
+	iChromo = NULL;
+    }
+    for (map<string, MAE_View*>::iterator it = iViews.begin(); it != iViews.end(); it++) {
+	delete it->second;
+    }
 };
 
 TInt CAE_Object::LsEventFromStr(const char *aStr)
@@ -2802,7 +2812,7 @@ void CAE_Object::UnregisterComp(CAE_EBase* aComp)
     else {
 	CAE_StateBase* state = aComp->GetFbObj(state);
 	_FAP_ASSERT(state != NULL);
-	map<string, CAE_StateBase*>::iterator it = iStates.find(obj->InstName());
+	map<string, CAE_StateBase*>::iterator it = iStates.find(state->InstName());
 	_FAP_ASSERT(it != iStates.end());
 	iStates.erase(it);
     }

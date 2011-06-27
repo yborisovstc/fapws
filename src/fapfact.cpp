@@ -914,10 +914,6 @@ CAE_StateBase* CAE_ProviderGen::CreateStateL(const char *aType, const char* aIns
     if (info != NULL) {
 	res = info->iFactFun(aInstName, aMan, TTransInfo());
     }
-    else {
-	res = new CAE_StateEx(aType, aInstName, aMan);
-
-    }
     return res;
 
 }
@@ -1294,6 +1290,9 @@ CAE_StateBase* CAE_Fact::CreateStateL(const char *aTypeUid, const char* aInstNam
 	res = prov->CreateStateL(aTypeUid, aInstName, aMan);
 	if (res != NULL)
 	    break;
+    }
+    if (res == NULL) {
+	res = new CAE_StateEx(aTypeUid, aInstName, aMan);
     }
     return res;
 }
