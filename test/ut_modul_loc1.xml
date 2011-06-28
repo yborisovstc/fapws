@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+
+<!-- Unit test for modularity - access in local context -->
+<!--
+     -->
+
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
+
+<iobject type="none" id="root">
+    <out id="output"/>
+    <logspec  event="cre"> <logdata id="new"/> </logspec>
+
+    <iobject type="none" id="incrementor">
+	<out id="output"/>
+
+	<!-- State that contains data -->
+	<state type="StInt" id="S_Count" init="5"> 
+	    <logspec event="cre"> <logdata id="new"/> </logspec> 
+	    <logspec event="upd"> <logdata id="new"/> </logspec> 
+	    <inp id="self"/> 
+	    <trans> add inp self 1 </trans>
+	</state>
+
+	<conn id="state%S_Count.self" pair="state%S_Count.output"/> 
+	<ext id="output" pair="state%S_Count.output"/>
+
+    </iobject> <!-- incrementor -->
+
+    <iobject type="none" id="Box">
+	<out id="output"/>
+	<iobject type="incrementor" id="My_Incr">
+	</iobject> <!-- My_Incr -->
+	<ext id="output" pair="My_Incr.output"/>
+    </iobject>
+    <ext id="output" pair="Box.output"/>
+
+</iobject> <!-- Test -->
+

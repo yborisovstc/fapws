@@ -1989,6 +1989,9 @@ CAE_Object* CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 	else {
 	    // Create heir from the parent
 	    obj = parent->CreateHeir(sname.c_str(), this);
+	    // TODO [YB] Seems to be just temporal solution. To consider using context instead.
+	    CAE_ChromoNode hroot = obj->Chromo().Root();
+	    hroot.SetAttr(ENa_Type, sparent);
 	}
     }
     if (obj == NULL) {
@@ -2704,10 +2707,14 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 	NodeType rnotype = rno.Type();
 	if (rnotype == ENt_Object) {
 	    AddObject(rno);
+	    // [YB] Don't unwrpap chromo from parent, see discussion in md#sec_desg_chromo_full
+#if 0
 	    if (iComps.count(rno.Name()) > 0) {
 		CAE_Object* comp = iComps[rno.Name()];
 		chrroot.AddChild(comp->iChromo->Root(), EFalse);
 	    }
+#endif
+	    chrroot.AddChild(rno);
 	}
 	else if (rnotype == ENt_Stinp) {
 	    AddConn(rno, iInputs);
@@ -2818,14 +2825,22 @@ void CAE_Object::UnregisterComp(CAE_EBase* aComp)
     }
 }
 
-CAE_Object* CAE_Object::GetComp(const char* aName, TBool aGlob)
+CAE_Object* CAE_Object::GetComp(const char* aName, CAE_Object* aRequestor)
 {
-    CAE_Object* res = iComps[aName];
-    if (res == NULL && aGlob) {
-	for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+    // Search local
+    CAE_Object* res = iComps.count(aName) > 0 ? iComps[aName] : NULL;
+    // Then down
+    if (res == NULL && aRequestor != NULL) {
+	for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end() && res == NULL; it++) {
 	    CAE_Object* comp = it->second;
-	    res = comp->GetComp(aName, ETrue);
+	    if (comp != aRequestor) {
+		res = comp->GetComp(aName, this);
+	    }
 	}
+    }
+    // Then up
+    if (res == NULL && iMan != aRequestor) {
+	res = iMan->GetComp(aName, this);
     }
     return res;
 }
@@ -2837,14 +2852,21 @@ CAE_Object* CAE_Object::GetComp(const string& aUri)
     vector<DesUri::TElem>::const_iterator it = uri.Elems().begin();
     DesUri::TElem elem = *it;
     if (elem.first == ENt_Object) {
-	if (elem.second.compare("..") == 0) {
-	    string nuri = uri.GetUri(++it);
-	    res = iMan->GetComp(nuri);
+	if (uri.Elems().size() == 1) {
+	    // Simple name, search the comp
+	    res = GetComp(elem.second.c_str(), this);
 	}
 	else {
-	    res = iComps[elem.second];
-	    if (res != NULL && ++it != uri.Elems().end()) {
-		res = res->GetComp(uri.GetUri(it));
+	    // Path
+	    if (elem.second.compare("..") == 0) {
+		string nuri = uri.GetUri(++it);
+		res = iMan->GetComp(nuri);
+	    }
+	    else {
+		res = iComps[elem.second];
+		if (res != NULL && ++it != uri.Elems().end()) {
+		    res = res->GetComp(uri.GetUri(it));
+		}
 	    }
 	}
     }
@@ -3020,6 +3042,10 @@ CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
     CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
     heir->SetType(InstName());
     heir->Construct();
+    // Set parent
+    // TODO [YB] The context is missed here, just name set. To consider, ref discussion in md#sec_desg_chromo_full
+    CAE_ChromoNode hroot = heir->Chromo().Root();
+    hroot.SetAttr(ENa_Type, InstName());
     // Mutate bare child with original parent chromo
     CAE_ChromoNode root = iChromo->Root();
     heir->SetMutation(root);

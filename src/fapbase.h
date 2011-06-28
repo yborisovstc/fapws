@@ -1052,7 +1052,7 @@ public:
 	virtual void Update();
 	virtual void Confirm();
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
-	CAE_Object* GetComp(const char* aName, TBool aGlob = EFalse);
+	CAE_Object* GetComp(const char* aName, CAE_Object* aRequestor = NULL);
 	CAE_Object* GetComp(const string& aUri);
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
 	CAE_EBase* FindByName(const string& aName);
