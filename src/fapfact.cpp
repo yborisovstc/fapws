@@ -67,6 +67,43 @@ static map<NodeType, string> KNodeTypesNames;
 static map<TNodeAttr, string> KNodeAttrsNames;
 static map<string, TNodeAttr> KNodeAttrs;
 
+// URI
+Uri::Uri(const string& aUri)
+{
+    Parse(aUri);
+}
+
+void Uri::Parse(const string& aUri)
+{
+    TBool res = ETrue;
+    TBool sAuthPres = EFalse;
+    TBool sPathPres = ETrue;
+    size_t scheme_end = aUri.find_first_of(':');
+    iScheme = (scheme_end != string::npos) ? aUri.substr(0, scheme_end) : string();
+    size_t auth_beg = aUri.find("//", scheme_end);
+    size_t path_beg = 0;
+    if (auth_beg != string::npos) {
+	// Auth presents
+	sAuthPres = ETrue;
+	size_t auth_end = aUri.find_first_of("/?#", auth_beg);
+	iAuth = aUri.substr(auth_beg, auth_end);
+	if (aUri.at(auth_end) != '/') {
+	    sPathPres = EFalse;
+	}
+	else {
+	    path_beg = auth_end + 1;
+	}
+    }
+    else {
+	// No auth
+	path_beg = aUri.find_first_of('/', scheme_end);
+    }
+    if (sPathPres) {
+	// Path
+	size_t path_end = aUri.find_first_of("?#", path_beg);
+	iPath = aUri.substr(path_beg, path_end);
+    }
+}
 
 // Des URI
 DesUri::DesUri(const string& aUri): iUri(aUri)
@@ -315,7 +352,12 @@ void* CAE_ChromoMdlX::Set(const string& aUri)
     string desuri;
     CAE_ChromoBase::GetFrag(aUri, desuri);
     sRoot = (xmlNodePtr) GetFirstChild((void *) iDoc, ENt_Object);
-    res = (xmlNodePtr) Find(sRoot, desuri); 
+    if (!desuri.empty()) {
+	res = (xmlNodePtr) Find(sRoot, desuri); 
+    }
+    else {
+	res = sRoot;
+    }
     iDocOwned = EFalse;
     return res;
 }

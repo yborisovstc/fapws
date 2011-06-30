@@ -9,6 +9,22 @@
 #include <fapbase.h>
 #include <vector>
 
+class Uri
+{
+    public:
+	Uri(const string& aUri);
+	const string& Scheme() {return iScheme;};
+	const string& Auth() {return iAuth;};
+	const string& Path() {return iPath;};
+    private:
+	void Parse(const string& aUri);
+    private:
+	string iScheme;
+	string iAuth;
+	string iPath;
+};
+
+
 class DesUri
 {
     public:
@@ -21,6 +37,7 @@ class DesUri
 	void Parse();
     private:
 	string iUri;
+	string iScheme;
 	vector<TElem> iElems;
 };
 
