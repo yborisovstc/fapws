@@ -192,6 +192,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	virtual void* AddNext(const void* aPrev, NodeType aNode);
 	virtual void RmChild(void* aParent, void* aChild);
 	virtual void Rm(void* aNode);
+	virtual void MoveNextTo(void* aHandle, void* aDest);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
@@ -244,6 +245,7 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["caeenv"] = ENt_Env;
 	KNodeTypes["add"] = ENt_MutAdd;
 	KNodeTypes["rm"] = ENt_MutRm;
+	KNodeTypes["move"] = ENt_MutMove;
 	KNodeTypes["change"] = ENt_MutChange;
 	KNodeTypes["changecont"] = ENt_MutChangeCont;
 	KNodeTypes["trans"] = ENt_Trans;
@@ -686,6 +688,13 @@ xmlNodePtr CAE_ChromoMdlX::FindNodeEnterigPos(xmlNodePtr aParent, xmlNodePtr aNo
     return res;
 }
 
+
+void CAE_ChromoMdlX::MoveNextTo(void* aHandle, void* aDest)
+{
+    xmlNodePtr src = (xmlNodePtr) aHandle;
+    xmlNodePtr dest = (xmlNodePtr) aDest;
+    xmlAddNextSibling(dest, src);
+}
 
 
 //*********************************************************

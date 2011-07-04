@@ -660,8 +660,9 @@ void CAE_EBase::AddLogSpec(TInt aEvent, TInt aData)
 
 void CAE_EBase::RemLogSpec()
 {
-    _FAP_ASSERT (iLogSpec != NULL);
-    iLogSpec->clear();
+    if (iLogSpec != NULL) {
+	iLogSpec->clear();
+    }
 }
 
 TInt CAE_EBase::GetLogSpecData(TInt aEvent) const
@@ -1414,6 +1415,7 @@ void  CAE_Object::RegisterCompL(CAE_EBase* aComp)
     if (comp != NULL) {
 	_FAP_ASSERT(iComps.count(aComp->InstName()) == 0);
 	iComps.insert(pair<string, CAE_Object*>(comp->InstName(), comp));
+	iCompsOrd.push_back(comp);
     }
     else {
 	CAE_StateBase* state = aComp->GetFbObj(state);
@@ -1454,6 +1456,7 @@ FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
 	{
 	    char *sparent = chman->GetStrAttr(child, KXTransAttr_Type);
 	    char *sname = chman->GetName(child); 
+	    // TODO [YB] To propagate quiet to all hierarchy
 	    char *squiet = chman->GetStrAttr(child, "quiet");
 	    if (strcmp(sparent, "none") == 0) {
 		CAE_Object *obj = CAE_Object::NewL(NULL, this, child, iEnv);
@@ -1861,6 +1864,7 @@ FAPWS_API CAE_Object::~CAE_Object()
 	delete it->second;
     }
     iComps.clear();
+    iCompsOrd.clear();
     if (iChromX != NULL) {
 	delete (char *) iChromX;
 	iChromX = NULL;
@@ -2349,6 +2353,30 @@ void CAE_Object::ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& a
     aCurr.SetContent(mval);
 }
 
+void CAE_Object::ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
+{
+    string tname = aSpec.Attr(ENa_MutNode);
+    NodeType ntype = ENt_Unknown;
+    string nname;
+    iChromo->Root().ParseTname(tname, ntype, nname);
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    if (ntype == ENt_Trans)
+    {
+	CAE_StateBase* state = aNode->GetFbObj(state);
+	CAE_Object* obj = aNode->GetFbObj(obj);
+	if (state != NULL) {
+	    state->SetTrans(TTransInfo(mval));
+	}
+	else if (obj != NULL) {
+	    obj->SetTrans(mval);
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
+    }
+}
+
+
 void CAE_Object::ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
     string tname = aSpec.Attr(ENa_MutNode);
@@ -2371,6 +2399,146 @@ void CAE_Object::ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
     }
 }
+
+
+void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
+{
+    NodeType ntype = aSpec.AttrNtype(ENa_Type);
+    string nname = aSpec.Name();
+    TNodeAttr mattr = aSpec.AttrNatype(ENa_MutChgAttr);
+    string mattrs = aSpec.Attr(ENa_MutChgAttr);
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    if (ntype == ENt_State)
+    {
+	map<string, CAE_StateBase*>::iterator it = iStates.find(nname);
+	if (it != iStates.end()) {
+	    CAE_StateBase* state = it->second;
+	    if (mattr == ENa_StInit) {
+		state->SetFromStr(mval.c_str());
+		state->Confirm();
+	    }
+	    else if (mattr == ENa_Id) {
+		iStates[nname] = NULL;
+		iStates.erase(it);
+		state->SetName(mval.c_str());
+		iStates[mval] = state;
+	    }
+	    else if (mattr == ENa_Type) {
+		// TODO [YB] To implement
+#if 0
+		MAE_Provider *prov = iEnv->Provider();
+		state->SetType(mval.c_str());
+		newstate = prov->CreateStateL(mval.c_str(), state->InstName(), this);  
+		iStates[mval] = newstate;
+		delete state;
+#endif
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName(), mattrs.c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing state [%s] - not found", nname.c_str());
+	}
+    }
+    else if (ntype == ENt_Cext)
+    {
+	CAE_ConnPointBase* ext = GetConn(nname.c_str());
+	if (ext != NULL) {
+	    if (mattr == ENa_ConnPair) {
+		//string cpair_name = aCurr.Attr(ENa_ConnPair);
+		string cpair_name;
+		CAE_ConnPointBase* cpair = GetConn(cpair_name.c_str());
+		if (cpair != NULL) {
+		    TBool res = ext->Disextend(cpair);
+		    if (res) {
+			CAE_ConnPointBase* npair = GetConn(mval.c_str());
+			if (npair != NULL) {
+			    res = ext->Extend(npair);
+			    if (!res) {
+				Logger()->WriteFormat("ERROR: Changing extention [%s] - re-extention to [%s] failed", nname.c_str(), 
+					cpair_name.c_str());
+			    }
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Changing extention [%s] - new pair [%s] not found", nname.c_str(), mval.c_str());
+			}
+		    }
+		    else {
+			Logger()->WriteFormat("ERROR: Changing extention [%s] - disextention from [%s] failed", nname.c_str(), cpair_name.c_str());
+		    }
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Changing extention [%s] - ext with pair [%s] not found", nname.c_str(), cpair_name.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Changing extention [%s] - changing attr [%s] not supported", nname.c_str(), mattrs.c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing extention [%s] - not found", nname.c_str());
+	}
+    }
+    else if (ntype == ENt_Object)
+    {
+	map<string, CAE_Object*>::iterator it = iComps.find(nname);
+	if (it != iComps.end()) {
+	    CAE_Object* obj = it->second;
+	    if (mattr == ENa_Id) {
+		iComps[nname] = NULL;
+		iComps.erase(it);
+		obj->SetName(mval.c_str());
+		iComps[mval] = obj;
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName(), mattrs.c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing object [%s] - not found", nname.c_str());
+	}
+    }
+    else if (ntype == ENt_Stinp || ntype == ENt_Soutp)
+    {
+	CAE_StateBase* state = aNode->GetFbObj(state);
+	CAE_Object* obj = aNode->GetFbObj(obj);
+	if (state != NULL && ntype == ENt_Stinp || obj != NULL) {
+	    map<string, CAE_ConnPointBase*>& cps = 
+		(ntype == ENt_Soutp) ? (obj->Outputs()) : (state != NULL ? state->Inputs() : obj->Inputs());
+	    map<string, CAE_ConnPointBase*>::iterator it = cps.find(nname);
+	    if (it != cps.end()) {
+		CAE_ConnPointBase* cp = it->second;
+		if (mattr == ENa_Id) {
+		    cps[nname] = NULL;
+		    cps.erase(it);
+		    cp->SetName(mval.c_str());
+		    cps[mval] = cp;
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->InstName(), nname.c_str());
+		}
+
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->InstName());
+	}
+    }
+    else if (ntype == ENt_Trans)
+    {
+	if (EFalse) {
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Changing trans - changing attr [%s] not supported", mattrs.c_str());
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - changing node type [%d] not supported", nname.c_str(), ntype);
+    }
+}
+
+
 
 void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
@@ -2501,6 +2669,77 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
     }
 }
 
+void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
+{
+    NodeType type = aSpec.AttrNtype(ENa_Type);
+    string name = aSpec.Name();
+    if (type == ENt_State) {
+	if (iStates.count(name) != 0) {
+	    iStates.erase(name);
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName(), name.c_str());
+	}
+    }
+    else if (type == ENt_Object) {
+	if (iComps.count(name) != 0) {
+	    iComps.erase(name);
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting component from  [%s] - cannot find [%s]", InstName(), name.c_str());
+	}
+    }
+    else if (type == ENt_Logspec) {
+	aNode->RemLogSpec();
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName());
+    }
+}
+
+void CAE_Object::MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
+{
+    CAE_ChromoNode& croot = iChromo->Root();
+    DesUri src(aSpec.Attr(ENa_Id));
+    NodeType srctype = src.Elems().at(0).first;
+    string srcname = src.Elems().at(0).second;
+    DesUri dest(aSpec.Attr(ENa_MutNode));
+    string destname = dest.Elems().at(0).second;
+    if (srctype == ENt_Object) {
+	// Find the dest and src
+	CAE_ChromoNode::Iterator nidest = croot.Find(ENt_Object, destname);
+	CAE_ChromoNode::Iterator nisrc = croot.Find(ENt_Object, srcname);
+	// Move node
+	CAE_ChromoNode nsrc = *nisrc;
+	nsrc.MoveNextTo(nidest);
+	// Find and move run-time
+	map<string, CAE_Object*>::iterator srcrtit = iComps.find(srcname);
+	map<string, CAE_Object*>::iterator destrtit = iComps.find(destname);
+	if (srcrtit != iComps.end() && destrtit != iComps.end()) {
+	    vector<CAE_Object*>::iterator sit = iCompsOrd.end();
+	    vector<CAE_Object*>::iterator dit = iCompsOrd.end();
+	    for (vector<CAE_Object*>::iterator it = iCompsOrd.begin(); it != iCompsOrd.end(); it++) {
+		if (*it == srcrtit->second) {
+		    sit = it; break;
+		}
+	    }
+	    for (vector<CAE_Object*>::iterator it = iCompsOrd.begin(); it != iCompsOrd.end(); it++) {
+		if (*it == destrtit->second) {
+		    dit = it; break;
+		}
+	    }
+	    iCompsOrd.erase(sit);
+	    iCompsOrd.insert(++dit, srcrtit->second);
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Moving component [%s] - cannot find", srcname.c_str());
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Moving element [%s] - unsupported element type for moving", srcname);
+    }
+}
+
 // TODO [YB] To consider keeping connection as object's elem (id required). It would simplilify handling of conn.
 void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
@@ -2566,10 +2805,10 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
     }
 }
 
-void CAE_Object::Mutate()
+void CAE_Object::Mutate(TBool aRunTimeOnly)
 {
     CAE_ChromoNode& root = iMut->Root();
-    DoMutation(root, ETrue);
+    DoMutation_v1(root, aRunTimeOnly);
     // Clear mutation
     for (CAE_ChromoNode::Iterator mit = root.Begin(); mit != root.End();)
     {
@@ -2604,6 +2843,86 @@ void CAE_Object::AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
     }
     aNode->AddLogSpec(event, ldata);
 }
+
+
+void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNode, CAE_EBase* aCtxRtNode, TBool aRunTime)
+{
+    CAE_ChromoNode& mno = aMutNode;
+    CAE_ChromoNode& mnode = aCtxNode;
+    CAE_EBase* node = aCtxRtNode;
+    if (mno.Type() == ENt_MutAdd) 
+    {
+	for (CAE_ChromoNode::Iterator mait = mno.Begin(); mait != mno.End(); mait++)
+	{
+	    CAE_ChromoNode mano = (*mait);
+	    if (mano.Type() == ENt_Object) {
+		AddObject(mano);
+	    }
+	    else if (mano.Type() == ENt_Stinp) {
+		CAE_Object* obj = node->GetFbObj(obj);
+		if (obj != NULL) {
+		    AddConn(mano, obj->iInputs);
+		}
+		else {
+		    CAE_StateBase* state = node->GetFbObj(state);
+		    if (state != NULL) {
+			CreateStateInp(mano, state);
+		    }
+		    else {
+			Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName());
+		    }
+		}
+	    }
+	    else if (mano.Type() == ENt_Soutp) {
+		AddConn(mano, iOutputs);
+	    }
+	    else if (mano.Type() == ENt_State) {
+		AddState(mano);
+	    }
+	    else if (mano.Type() == ENt_Conn) {
+		AddConn(mano);
+	    }
+	    else if (mano.Type() == ENt_Cext) {
+		AddExt(mano);
+	    }
+	    else if (mano.Type() == ENt_Cextc) {
+		AddExtc(mano);
+	    }
+	    else if (mano.Type() == ENt_Trans) {
+		AddTrans(mano);
+	    }
+	    else if (mano.Type() == ENt_Logspec) {
+		AddLogspec(node, mano);
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName());
+	    }
+	}
+    }
+    else if (mno.Type() == ENt_MutRm) 
+    {
+	RemoveElem_v1(node, mno);
+    }
+    else if (mno.Type() == ENt_MutChange) 
+    {
+	ChangeAttr_v1(node, mno);
+    }
+    else if (mno.Type() == ENt_MutChangeCont) 
+    {
+	ChangeCont_v1(node, mno);
+    }
+    else if (mno.Type() == ENt_MutMove) 
+    {
+	MoveElem(node, mno);
+    }
+    else
+    {
+	Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName());
+    }
+}
+
+
+
 
 void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNode, CAE_EBase* aCtxRtNode, TBool aRunTime)
 {
@@ -2719,6 +3038,91 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
     }
 }
 
+void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
+{
+    CAE_ChromoNode& mroot = aMutSpec;
+    CAE_ChromoNode& chrroot = iChromo->Root();
+    for (CAE_ChromoNode::Iterator rit = mroot.Begin(); rit != mroot.End(); rit++)
+    {
+	CAE_ChromoNode rno = (*rit);
+	NodeType rnotype = rno.Type();
+	if (rnotype == ENt_Object) {
+	    AddObject(rno);
+	    if (!aRunTime) {
+		// Attach comp chromo
+		if (iComps.count(rno.Name()) > 0) {
+		    CAE_Object* comp = iComps[rno.Name()];
+		    chrroot.AddChild(comp->iChromo->Root(), EFalse);
+		}
+	    }
+	}
+	else {
+	    if (rnotype == ENt_Stinp) {
+		AddConn(rno, iInputs);
+	    }
+	    else if (rnotype == ENt_Soutp) {
+		AddConn(rno, iOutputs);
+	    }
+	    else if (rnotype == ENt_State) {
+		AddState(rno);
+	    }
+	    else if (rnotype == ENt_Conn) {
+		AddConn(rno);
+	    }
+	    else if (rnotype == ENt_Cext) {
+		AddExt(rno);
+	    }
+	    else if (rnotype == ENt_Cextc) {
+		AddExtc(rno);
+	    }
+	    else if (rnotype == ENt_Trans) {
+		AddTrans(rno);
+	    }
+	    else if (rnotype == ENt_Logspec) {
+		AddLogspec(this, rno);
+	    }
+	    else if (rnotype == ENt_Mut) {
+		TBool emnode = rno.AttrExists(ENa_MutNode);
+		string mnoden = rno.Attr(ENa_MutNode);
+		TBool selfnode = (!emnode || (mnoden.compare("self") == 0));
+		CAE_EBase* node = this;
+		CAE_ChromoNode mnode = chrroot;
+		if (!selfnode) {
+		    node = FindByName(mnoden);
+		    CAE_ChromoNode::Iterator mnodeit = chrroot.Find(mnoden);
+		    if (mnodeit != chrroot.End()) {
+			mnode = *mnodeit;
+		    }
+		    //_FAP_ASSERT(node == NULL || mnodeit != chrroot.End());
+		}
+		if (node != NULL)
+		{
+		    // Handling mutations
+		    for (CAE_ChromoNode::Iterator mit = rno.Begin(); mit != rno.End(); mit++)
+		    {
+			CAE_ChromoNode mno = (*mit);
+			// TODO [YB] Mutation of add obj requires embedding the node into system's chromo! 
+			DoMutationMut_v1(mno, mnode, node, aRunTime);
+		    }
+		}
+		else
+		{
+		    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName(), mnoden.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", InstName(), rnotype);
+	    }
+	    if (!aRunTime) {
+		chrroot.AddChild(rno);
+	    }
+	}
+    }
+}
+
+
+
+
 // TODO [YB] To carefully consider the concept:
 // 1. We use FindByName - not sure it should have an access to all nodes
 void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
@@ -2789,7 +3193,9 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 		for (CAE_ChromoNode::Iterator mit = rno.Begin(); mit != rno.End(); mit++)
 		{
 		    CAE_ChromoNode mno = (*mit);
-		    DoMutationMut(mno, mnode, node, aRunTime);
+		    //DoMutationMut(mno, mnode, node, aRunTime);
+		    DoMutationMut_v1(mno, mnode, node, aRunTime);
+		    chrroot.AddChild(rno);
 		}
 	    }
 	    else
@@ -2835,6 +3241,11 @@ void CAE_Object::UnregisterComp(CAE_EBase* aComp)
     if (obj != NULL) {
 	map<string, CAE_Object*>::iterator it = iComps.find(obj->InstName());
 	_FAP_ASSERT(it != iComps.end());
+	for (vector<CAE_Object*>::iterator oit = iCompsOrd.begin(); oit != iCompsOrd.end(); oit++) {
+	    if (*oit == it->second) {
+		iCompsOrd.erase(oit); break;
+	    }	
+	}
 	iComps.erase(it);
     }
     else {
@@ -2864,6 +3275,26 @@ CAE_Object* CAE_Object::GetComp(const char* aName, CAE_Object* aRequestor)
 	res = iMan->GetComp(aName, this);
     }
     return res;
+}
+
+void CAE_Object::AppendCompList(vector<string>& aList, const CAE_Object* aRequestor) const
+{
+    // Get local
+    for (map<string, CAE_Object*>::const_iterator it = iComps.begin(); it != iComps.end(); it++) 
+    {
+	aList.push_back(it->first);
+    }
+    // Then down
+    for (map<string, CAE_Object*>::const_iterator it = iComps.begin(); it != iComps.end(); it++) {
+	CAE_Object* comp = it->second;
+	if (comp != aRequestor) {
+	    comp->AppendCompList(aList, this);
+	}
+    }
+    // Then up
+    if (iMan != NULL && iMan != aRequestor) {
+	iMan->AppendCompList(aList, this);
+    }
 }
 
 CAE_Object* CAE_Object::GetComp(const string& aUri)
@@ -3057,7 +3488,8 @@ FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aNam
 	heir->ConstructL(aSpec);
     return heir;
 }
-
+#if 0 
+// Variant for absolute chromo form
 CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
 {
     CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
@@ -3077,6 +3509,25 @@ CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
 	it++; // It is required because removing node by iterator breakes iterator itself
 	hroot.RmChild(node);
     }
+    return heir;
+}
+#endif 
+
+// Variant for delta chromo form
+// TODO [YB] It will not work with grandparent. To support.
+CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
+{
+    CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
+    heir->SetType(InstName());
+    heir->Construct();
+    // Set parent
+    // TODO [YB] The context is missed here, just name set. To consider, ref discussion in md#sec_desg_chromo_full
+    CAE_ChromoNode hroot = heir->Chromo().Root();
+    hroot.SetAttr(ENa_Type, InstName());
+    // Mutate bare child with original parent chromo, mutate run-time only to have clean heir's chromo
+    CAE_ChromoNode root = iChromo->Root();
+    heir->SetMutation(root);
+    heir->Mutate(ETrue);
     return heir;
 }
 

@@ -17,7 +17,7 @@
 <!-- 
      Mutation
 -->
-<!ELEMENT mut (add*, remove*, change*, changecont*)>
+<!ELEMENT mut (add*, remove*, change*, changecont*, move*)>
 
 <!-- 
      Mutation - addition
@@ -38,6 +38,11 @@
      Mutation - change content
 -->
 <!ELEMENT changecont EMPTY>
+
+<!-- 
+     Mutation - moving
+-->
+<!ELEMENT move EMPTY>
 
 
 <!-- 
@@ -280,6 +285,14 @@
    val CDATA #REQUIRED
 >
 
+<!-- Moving attributes:
+     id - moved node name
+     node - base node, to top if omitted
+     -->
+<!ATTLIST move
+   id CDATA #REQUIRED
+   node CDATA #IMPLIED
+>
 
 <!-- Environment attr -->
 <!--

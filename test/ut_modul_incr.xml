@@ -6,10 +6,10 @@
 
 <!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
-<iobject type="none" id="root">
+<iobject type="none" id="root" quiet="yes">
     <logspec  event="cre"> <logdata id="new"/> </logspec>
 
-    <iobject type="none" id="incrementor">
+    <iobject type="none" id="incrementor" quiet="yes">
 	<out id="output"/>
 
 	<!-- State that contains data -->

@@ -22,6 +22,7 @@ class UT_FAP_Modul : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST(test_Module_loc);
     CPPUNIT_TEST(test_Module_loc1);
     CPPUNIT_TEST(test_Module_save);
+    CPPUNIT_TEST(test_Module_ext1);
     CPPUNIT_TEST_SUITE_END();
 public:
     virtual void setUp();
@@ -31,6 +32,7 @@ private:
     void test_Module_loc();
     void test_Module_loc1();
     void test_Module_save();
+    void test_Module_ext1();
 private:
     CAE_Env* iEnv;
 };
@@ -144,6 +146,35 @@ void UT_FAP_Modul::test_Module_save()
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
     iEnv->ConstructSystem();
 
+
+    for (TInt i=0; i<40; i++)
+    {
+        iEnv->Step();
+    }
+
+    CAE_ConnPointBase* c_incr = iEnv->Root()->GetOutpN("my_incr");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [my_incr] output", c_incr != 0);
+    CAE_StateBase* sb_incr = c_incr->GetSrcPin("_1")->GetFbObj(sb_incr);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [c_incr._1] src pin state", sb_incr != 0);
+    CAE_TState<TInt>& s_incr = *sb_incr;
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [c_incr._1] value", ~s_incr == 45);
+
+    delete iEnv;
+}
+
+// UC: system creates comp based on ext module root, that contains ext comp
+// System creates comp based on ext comp
+
+static const char* KSpecFileName_Ext1 = "ut_modul_ext1.xml";
+static const char* KLogFileName_Ext1 = "ut_modul_ext1.txt";
+
+void UT_FAP_Modul::test_Module_ext1()
+{
+    printf("\n === Test of modularity - Ext - creating comp from inside ext module\n");
+
+    iEnv = CAE_Env::NewL(NULL, NULL, KSpecFileName_Ext1, 1, NULL, KLogFileName_Ext1);
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
 
     for (TInt i=0; i<40; i++)
     {

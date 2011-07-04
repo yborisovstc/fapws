@@ -761,6 +761,7 @@ enum NodeType
     ENt_Trans = 23, // Transtion function of state
     ENt_MutAddStInp = 24,  // Mutation - addition of state input
     ENt_MutChangeCont = 25, // Mutation - change of content
+    ENt_MutMove = 26, // Mutation - move node
 };
 
 enum TNodeAttr
@@ -806,6 +807,7 @@ class MAE_ChromoMdl
 	virtual void* AddNext(const void* aPrev, NodeType aNode) = 0;
 	virtual void RmChild(void* aParent, void* aChild) = 0;
 	virtual void Rm(void* aHandle) = 0;
+	virtual void MoveNextTo(void* aHandle, void* aDest) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
@@ -910,6 +912,7 @@ class CAE_ChromoNode
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
 	void ParseTname(const string& aTname, NodeType& aType, string& aName);
 	string GetName(const string& aTname);
+	void MoveNextTo(Iterator& aDest) { iMdl.MoveNextTo(iHandle, aDest.iHandle);};
     private :
 	CAE_ChromoMdlBase& iMdl;
 	void* iHandle;
@@ -1026,6 +1029,7 @@ public:
 		Ctrl(CAE_Object& aOwner): iOwner(aOwner) {}
 		//vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
 		map<string, CAE_Object*>& Comps() { return iOwner.iComps;};
+		vector<CAE_Object*>& CompsOrd() { return iOwner.iCompsOrd;};
 		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
 		const string& Trans() const { return iOwner.iTransSrc;};
 		CAE_Object& Object() { return iOwner;}
@@ -1072,7 +1076,7 @@ public:
 	MAE_Chromo& Mut() { return *iMut;};
 	const MAE_Chromo& Chromo() { return *iChromo;};
 	CAE_Object::ChromoPx* ChromoIface() { return &iChromoIface;};
-	void Mutate();
+	void Mutate(TBool aRunTimeOnly = EFalse);
 	void DoTrans(CAE_StateBase* aState);
 	void DoTrans(CAE_StateBase* aState, const string& aInit);
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype, MAE_TransContext* aRequestor = NULL);
@@ -1082,6 +1086,7 @@ public:
 	void AddView(MAE_View* aView);
 	void SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot = EFalse);
 	void RemoveBaseViewProxy(MAE_Opv* aProxy);
+	void AppendCompList(vector<string>& aList, const CAE_Object* aRequestor) const;
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1089,8 +1094,10 @@ protected:
 	void ConstructL(const void* aChrom = NULL);
 	void ConstructFromChromXL(const void* aChrom);
 	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
-	virtual void DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime);
+	virtual void DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTimeOnly = EFalse);
+	virtual void DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime);
 	void DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
+	void DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
 private:
 	// Calculates the length of chromosome
 	TInt ChromLen(const TUint8* aChrom) const;
@@ -1110,8 +1117,12 @@ private:
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
+	void MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
+	void ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void ChangeChromoAttr(CAE_ChromoNode& aSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr);
 	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
@@ -1120,6 +1131,7 @@ private:
 private:
 	// TODO [YB] To migrate to map
 	map<string, CAE_Object*> iComps;
+	vector<CAE_Object*> iCompsOrd;
 	map<string, CAE_StateBase*> iStates;
 	//vector<CAE_EBase*> iCompReg;
 	void* iChromX;		// Chromosome, XML based
