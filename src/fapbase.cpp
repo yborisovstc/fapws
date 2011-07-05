@@ -316,8 +316,9 @@ TBool CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
-void CAE_ConnPoint::Disconnect()
+TBool CAE_ConnPoint::Disconnect()
 {
+    TBool res = ETrue;
     // Go thru dests and disconnect any pins connected to pair
     for (vector<CAE_ConnSlot*>::iterator ids = iDests.begin(); ids != iDests.end(); ids++) {
 	CAE_ConnSlot& dest = *(*ids);
@@ -334,6 +335,7 @@ void CAE_ConnPoint::Disconnect()
 	    }
 	}
     }
+    return res;
 }
 
 TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint) 
@@ -412,11 +414,13 @@ TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint)
     }
 }
 
-    void CAE_ConnPointExt::Disconnect()
+TBool CAE_ConnPointExt::Disconnect()
 {
+    TBool res = ETrue;
     if (iRef != NULL) {
-	iRef->Disconnect();
+	res = iRef->Disconnect();
     }
+    return res;
 }
 
 TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint) 
@@ -506,8 +510,10 @@ TBool CAE_ConnPointExtC::Disconnect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
-void CAE_ConnPointExtC::Disconnect()
+TBool CAE_ConnPointExtC::Disconnect()
 {
+    TBool res = EFalse;
+    return res;
 }
 
 TBool CAE_ConnPointExtC::ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
@@ -2150,8 +2156,8 @@ void CAE_Object::AddTrans(const CAE_ChromoNode& aSpec)
 {
     CAE_ChromoNode::Const_Iterator iconnode = aSpec.FindText();
     SetTrans((*iconnode).Content());
-    iEnv->Tranex()->EvalTrans(this, this, iTransSrc);
-    iTrans = iEnv->Tranex()->Exprs();
+    //iEnv->Tranex()->EvalTrans(this, this, iTransSrc);
+    //iTrans = iEnv->Tranex()->Exprs();
 }
 
 // TODO [YB] For now it is not possible to have "multipoint" output that extends multiple output conn points. To implement.
@@ -2491,6 +2497,9 @@ void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 		obj->SetName(mval.c_str());
 		iComps[mval] = obj;
 	    }
+	    else if (mattr == ENa_ObjQuiet) {
+		obj->SetQuiet(mval.compare("yes") == 0);
+	    }
 	    else {
 		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName(), mattrs.c_str());
 	    }
@@ -2673,7 +2682,65 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
     NodeType type = aSpec.AttrNtype(ENa_Type);
     string name = aSpec.Name();
-    if (type == ENt_State) {
+    TNodeAttr mattr = ENa_Unknown;
+    string attval;
+    if (aSpec.AttrExists(ENa_MutChgAttr)) {
+	mattr = aSpec.AttrNatype(ENa_MutChgAttr);
+	attval = aSpec.Attr(ENa_MutChgVal);
+    }
+    if (type == ENt_Conn) {
+	// TODO [YB] There can be several connections with the same origin point, needs to have unique id of conn.
+	if (mattr == ENa_ConnPair) {
+	    string pairname = attval;
+	    CAE_ConnPointBase* conn = GetConn(name.c_str());
+	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	    if (conn != NULL && pair != NULL) {
+		if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
+		{
+		    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName(), name.c_str(), pairname.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName(), 
+			name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
+	    }
+	}
+	else if (mattr == ENa_Unknown) {
+	    CAE_ConnPointBase* conn = GetConn(name.c_str());
+	    if (conn != NULL) {
+		if (!conn->Disconnect())
+		{
+		    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]:  failed", name.c_str(), InstName());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: cannot find", name.c_str(), InstName()); 
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
+	}
+    }
+    else if (type == ENt_Cext) {
+	if (mattr == ENa_ConnPair) {
+	    string pairname = attval;
+	    CAE_ConnPointBase* ext = GetConn(name.c_str());
+	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	    if (ext != NULL && pair != NULL) {
+		if (!ext->Disextend(pair) || !pair->SetDisextended(ext)) {
+		    Logger()->WriteFormat("ERROR: Deleting extention from  [%s - %s] - failed", name.c_str(), pairname.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting extention from  [%s] - cannot find point [%s]", InstName(), 
+			(ext == NULL ? name : pairname).c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting extention [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
+	}
+    }
+    else if (type == ENt_State) {
 	if (iStates.count(name) != 0) {
 	    iStates.erase(name);
 	}
@@ -3637,6 +3704,8 @@ void CAE_Object::SetTrans(const string& aTrans)
 {
     iTransSrc.erase();
     TTransInfo::FormatEtrans(aTrans, iTransSrc);
+    iEnv->Tranex()->EvalTrans(this, this, iTransSrc);
+    iTrans = iEnv->Tranex()->Exprs();
 }
 
 void CAE_Object::AddView(MAE_View* aView)
@@ -3651,16 +3720,18 @@ void CAE_Object::SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot)
 {
     _FAP_ASSERT (iOpv == 0);
     iOpv = aProxy;
+#if 0
     iOpv->SetObj(&iCtrl);
     if (aAsRoot) {
 	iOpv->SetRoot(&iCtrl);
     }
+#endif
 }
 
 void CAE_Object::RemoveBaseViewProxy(MAE_Opv* aProxy)
 {
     _FAP_ASSERT (iOpv == aProxy);
-    iOpv->UnsetObj(&iCtrl);
+    //iOpv->UnsetObj(&iCtrl);
     iOpv = NULL;
 }
 

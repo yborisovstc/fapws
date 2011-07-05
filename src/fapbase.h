@@ -270,7 +270,7 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual void Disconnect() = 0;
+	virtual TBool Disconnect() = 0;
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
@@ -334,7 +334,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual void Disconnect();
+	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
@@ -370,7 +370,7 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual void Disconnect();
+	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
@@ -429,7 +429,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
 	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
-	virtual void Disconnect();
+	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
@@ -990,6 +990,7 @@ class CAE_TranExBase: public CAE_Base, public MAE_TranEx
 
 class MAE_View;
 class MAE_Env;
+class CAE_Env;
 class MAE_Opv;
 class MCAE_LogRec;
 // Base class for object. Object is container and owner of its component and states
@@ -998,6 +999,7 @@ class MCAE_LogRec;
 // TODO [YB] To reconsider approach with "quiet" elements. This approach is not effective enough 
 class CAE_Object: public CAE_EBase, public MAE_TransContext
 {
+    friend class CAE_Env;
 public:
 	// Operation under chromosome
 	enum TChromOper
@@ -1023,6 +1025,7 @@ public:
     };
 
 	// Object's controller
+	// TODO [YB] To consider if we need controller at all. The access control can be done via root. 
 	class Ctrl
 	{
 	    public:
@@ -1035,6 +1038,7 @@ public:
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const string& aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};
+		CAE_Object::Ctrl& GetCtrl(CAE_Object* aObj) { return aObj->iCtrl;};
 	    public:
 		CAE_Object& iOwner;
 	};
