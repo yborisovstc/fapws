@@ -114,7 +114,20 @@ fap-vm-gtk=/home/yborisov/projects/fap/git/fap-vm-gtk CD=. filter="*" {
  README
  autogen.sh
  configure.ac
+ debian=debian CD=. filter="*" {
+  changelog
+  compat
+  control
+  copyright
+  fap-vm-gtk.install
+  files
+  rules
+ }
  src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
+  vmstates.h
+  vmwindow.h
+  vmstates.cpp
+  vmwindow.cpp
   Makefile.am
  }
 }
@@ -259,9 +272,12 @@ fap-studio-gtk=/home/yborisov/projects/fap/git/fap-studio-gtk CD=. filter="autog
   mainwnd.h
   Makefile.am
  }
- files=files CD=. filter="*" {
+ templates=templates CD=. filter="*" {
   empty.xml
-  ut_emtran_spec_2.xml
+ }
+ examples=examples CD=. filter="*" {
+  rock_1.xml
+  rock_2.xml
  }
 }
 fap-balls=/home/yborisov/projects/fap/git/fap-balls CD=. filter="*.ac *.am" {

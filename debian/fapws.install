@@ -1,1 +1,3 @@
 debian/tmp/usr/lib/libfapws.so.*
+usr/share/fapws/modules/*
+usr/share/fapws/conf/*

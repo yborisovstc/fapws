@@ -197,27 +197,59 @@ struct TLogSpecBase
     TInt  iData;   // Data to log TLdBase
 };
 
-
 /** Base class for FAP all elements
- */
+*/
 class CAE_Base
 {
-public:
+    public:
 	CAE_Base() {};
 	virtual ~CAE_Base() {};
 	template <class T> T* GetFbObj(T* aInst) {return aInst = static_cast<T*>(DoGetFbObj(aInst->Type())); };
 	void* GetFbObj(const char *aType) {return DoGetFbObj(aType); };
-protected:
+    protected:
 	virtual void *DoGetFbObj(const char *aName) = 0;
 };
 
+class CAE_NotifierBase
+{
+    public: 
+	void SetObs(void* aObs);
+	void RemoveObs(void* aObs);
+	TInt Size() { return iObs.size();};
+    protected:
+	vector<void*> iObs;
+};
+
+template <class T> 
+class CAE_Notifier: public CAE_NotifierBase
+{
+    public:
+	void SetObserver(CAE_Base* aObs) { SetObs(aObs->GetFbObj(T::Type()));};
+	void RemoveObserver(CAE_Base* aObs) { RemoveObs(aObs->GetFbObj(T::Type()));};
+	T* At(TInt aId) { return (T*) iObs.at(aId);};
+};
+
+class CAE_EBase;
+class MAE_EbaseObserver
+{
+    public:
+	static const char* Type() { return "EBaseObserver";} 
+       	virtual void OnActivated(CAE_EBase* aObj) = 0;
+};
 
 /** Base class for FAP elements - updatable, managed, logged
- */
+*/
 // TODO [YB] To move inputs and outputs to CAE_EBase
 class CAE_EBase: public CAE_Base
 {
-public:
+    private:
+	class ENotifier: public CAE_Notifier<MAE_EbaseObserver>
+    {
+	public:
+	    void OnActivated(CAE_EBase* aObj) { for (TInt i = 0; i < Size(); i++) At(i)->OnActivated(aObj);} ;
+    };
+
+    public:
 	CAE_EBase(const char* aInstName, CAE_Object* aMan);
 	virtual ~CAE_EBase();
 	virtual void Confirm() = 0;
@@ -242,6 +274,7 @@ public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec* Logger();
 	TInt GetLogSpecData(TInt aEvent) const;
+	CAE_Notifier<MAE_EbaseObserver>& Notifier() { return iNotifier;};
 protected:
 	// From CAE_Base
 	virtual void *DoGetFbObj(const char *aName);
@@ -254,6 +287,7 @@ protected:
 	TBool iQuiet; 
 	CAE_Object* iMan;
 	vector<TLogSpecBase>* iLogSpec;
+	ENotifier iNotifier;
 };
 
 inline const char *CAE_EBase::Type() { return "EBase";} 
@@ -1044,6 +1078,7 @@ public:
 	};
 
 	friend class Crtl;
+
 public:
 	static inline const char *Type(); 
 	inline MCAE_LogRec *Logger();
@@ -1091,6 +1126,9 @@ public:
 	void SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot = EFalse);
 	void RemoveBaseViewProxy(MAE_Opv* aProxy);
 	void AppendCompList(vector<string>& aList, const CAE_Object* aRequestor) const;
+	void SetEbaseObsRec(CAE_Base* aObs);
+	void Deactivate();
+	void Activate();
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);

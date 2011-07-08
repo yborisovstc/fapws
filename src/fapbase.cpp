@@ -64,6 +64,26 @@ void Panic(TInt aRes)
 	_IND_PANIC(KFapPanic, aRes);
 }
 
+
+
+void CAE_NotifierBase::SetObs(void* aObs)
+{
+    _FAP_ASSERT(aObs != NULL);
+    iObs.push_back(aObs);
+}
+
+void CAE_NotifierBase::RemoveObs(void* aObs)
+{
+    for (vector<void*>::iterator it = iObs.begin(); it != iObs.end(); it++) {
+	if (*it == aObs) {
+	    iObs.erase(it); return;
+	}
+    }
+    _FAP_ASSERT(0);
+}
+
+
+
 CAE_ConnSlot::CAE_ConnSlot(const map<string, string>& aTempl): iTempl(aTempl)
 {
     for (map<string, string>::const_iterator i = aTempl.begin(); i != aTempl.end(); i++) {
@@ -619,8 +639,11 @@ CAE_EBase::CAE_EBase(const char* aInstName, CAE_Object* aMan): CAE_Base(),
 
 void CAE_EBase::SetActive() 
 { 
+    if (!iActive) {
 	iActive= ETrue; 
+	iNotifier.OnActivated(this);
 	if (iMan && !iMan->IsActive()) iMan->SetActive();
+    }
 };
 
 void CAE_EBase::SetUpdated()
@@ -1433,6 +1456,28 @@ void  CAE_Object::RegisterCompL(CAE_EBase* aComp)
     if (aComp->IsUpdated()) SetUpdated();
 };
 
+void CAE_Object::Deactivate()
+{
+    ResetActive();
+    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++) {
+	it->second->ResetActive();
+    }
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+	it->second->Deactivate();
+    }
+}
+
+void CAE_Object::Activate()
+{
+    SetActive();
+    for (map<string, CAE_StateBase*>::iterator it = iStates.begin(); it != iStates.end(); it++) {
+	it->second->SetActive();
+    }
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+	it->second->Activate();
+    }
+}
+
 // TODO [YB] To support referencing to object in spec instead of direct definition
 // TODO [YB] To add object proxy state 
 FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
@@ -2026,6 +2071,8 @@ CAE_Object* CAE_Object::AddObject(const CAE_ChromoNode& aNode)
     else {
 	obj->SetQuiet(squiet);
 	if (squiet) {
+	    CAE_ChromoNode hroot = obj->Chromo().Root();
+	    hroot.SetAttr(ENa_ObjQuiet, "yes");
 	    Logger()->WriteFormat("ATTENTION: Object [%s] created as quiet", sname.c_str());
 	}
 	// Mutate object 
@@ -2052,7 +2099,7 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 	const char *transf_name = atransf.c_str();
 	trans = prov->GetTransf(transf_name);
 	if (trans == NULL)
-	    Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
+	    Logger()->WriteFormat("ERROR: Transition [%s] not found", transf_name);
 	_FAP_ASSERT(trans != NULL);
     }
     string ainit = aSpec.Attr(ENa_StInit);
@@ -2883,6 +2930,8 @@ void CAE_Object::Mutate(TBool aRunTimeOnly)
 	mit++; // It is required because removing node by iterator breakes iterator itself
 	root.RmChild(node);
     }
+    // Activate
+    SetActive();
 }
 
 void CAE_Object::AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
@@ -3758,6 +3807,14 @@ void CAE_Object::OnCompHeaderPress(const MAE_View* aView, const string& aName)
     CAE_Object* obj = comp->GetFbObj(obj);
     obj->AddView(view);
     //obj->OnExpose(view->Wnd(), CAV_Rect());
+}
+
+void CAE_Object::SetEbaseObsRec(CAE_Base* aObs)
+{
+    Notifier().SetObserver(aObs);
+    for (map<string, CAE_Object*>::iterator it = iComps.begin(); it != iComps.end(); it++) {
+	it->second->SetEbaseObsRec(aObs);
+    }
 }
 
 
