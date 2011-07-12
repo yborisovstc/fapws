@@ -60,7 +60,7 @@
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
 -->
-<!ELEMENT iobject (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*, mut*)>
+<!ELEMENT iobject (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*, mut*, rm*)>
 
 <!-- object spec: 
      This is pure chromo of object and normally shouldn't be used in spec
@@ -83,6 +83,9 @@
 <!ELEMENT caeenv (iobject*)>
 -->
 
+
+<!-- Removing node -->
+<!ELEMENT rm EMPTY >
 
 <!-- Output -->
 <!ELEMENT out (src*, dest*)>
@@ -249,6 +252,14 @@
 <!ATTLIST mut 
     node CDATA #IMPLIED
 >
+
+<!-- Removing node attributes:
+  node - mutated node - DES URI
+  -->
+<!ATTLIST rm 
+    node CDATA #IMPLIED
+>
+
 
 <!-- Node  remove attributes:
      Node is identified by type + id. In case if it is not enough additional attribute can be used

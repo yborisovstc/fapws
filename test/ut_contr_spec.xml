@@ -17,169 +17,143 @@
 
 <!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
-    <iobject type="none" id="Test">
-	<mut>
-	    <add>
-		<logspec  event="cre"> <logdata id="new"/> </logspec>
+<iobject type="none" id="Test">
+    <logspec  event="cre"> <logdata id="new"/> </logspec>
 
-		<iobject type="none" id="Order">
-		    <mut>
-			<add>
-			    <out id="output"/>
-			    <iobject type="none" id="Storage"> 
-				<mut>
-				    <add>
-					<!-- Output of subject on given position -->
-					<out id="output"/>
-					<out id="togetup_1"/>
-					<out id="togetup_2"/>
-					<out id="togetup_3"/>
-					
-					<logspec  event="cre"> <logdata id="new"/> </logspec>
-					<logspec event="upd"> <logdata id="new"/> </logspec> 
-					<!-- Terminator of storage elements -->
-					<iobject type="none" id="Terminal" quiet="yes"> 
-					    <mut> 
-						<add>
-						    <inp id="input"/>
-						    <out id="output"/>
+    <iobject type="none" id="Order">
+	<out id="output"/>
+	<iobject type="none" id="Storage"> 
+	    <!-- Output of subject on given position -->
+	    <out id="output"/>
+	    <out id="togetup_1"/>
+	    <out id="togetup_2"/>
+	    <out id="togetup_3"/>
 
-						    <!-- State that contains data -->
-						    <state type="StUint32" id="mass" init="0"> 
-							<logspec event="cre"> <logdata id="new"/> </logspec> 
-							<logspec event="upd"> <logdata id="new"/> </logspec> 
-							<inp id="input"/> 
-						    </state>
+	    <logspec  event="cre"> <logdata id="new"/> </logspec>
+	    <logspec event="upd"> <logdata id="new"/> </logspec> 
+	    <!-- Terminator of storage elements -->
+	    <iobject type="none" id="Terminal" quiet="yes"> 
+		<inp id="input"/>
+		<out id="output"/>
 
-						    <ext id="input" pair="mass.input"/>
-						    <ext id="output" pair="mass.output"/>
-						</add> 
-					    </mut>
-					</iobject> <!-- Terminal -->
+		<!-- State that contains data -->
+		<state type="StUint32" id="mass" init="0"> 
+		    <logspec event="cre"> <logdata id="new"/> </logspec> 
+		    <logspec event="upd"> <logdata id="new"/> </logspec> 
+		    <inp id="input"/> 
+		</state>
 
-					<!-- Subject of ordering -->
-					<iobject type="none" id="Subject" quiet="yes"> 
-					    <mut> 
-						<add>
-						    <inp id="input"/>
-						    <out id="output"/>
-						    <out id="up"/>
+		<ext id="input" pair="state%mass.input"/>
+		<ext id="output" pair="state%mass.output"/>
+	    </iobject> <!-- Terminal -->
 
-						    <!-- State that contains data -->
-						    <state type="StUint32" id="mass" init="0"> 
-							<logspec event="cre"> <logdata id="new"/> </logspec> 
-							<logspec event="upd"> <logdata id="new"/> </logspec> 
-							<inp id="mass"/> 
-						    </state>
+	    <!-- Subject of ordering -->
+	    <iobject type="none" id="Subject" quiet="yes"> 
+		<inp id="input"/>
+		<out id="output"/>
+		<out id="up"/>
 
-						    <!-- State that forms the sign of data to be up -->
-						    <state type="StBool" id="S_Up" transf="trans_up" init="0"> 
-							<logspec event="cre"> <logdata id="new"/> </logspec> 
-							<logspec event="upd"> <logdata id="new"/> </logspec> 
-							<inp id="data"/> 
-							<inp id="data_up"/> 
-						    </state>
+		<!-- State that contains data -->
+		<state type="StUint32" id="mass" init="0"> 
+		    <logspec event="cre"> <logdata id="new"/> </logspec> 
+		    <logspec event="upd"> <logdata id="new"/> </logspec> 
+		    <inp id="mass"/> 
+		</state>
 
-						    <conn id="state%S_Up.data" pair="state%mass.output"/> 
+		<!-- State that forms the sign of data to be up -->
+		<state type="StBool" id="S_Up" transf="trans_up" init="0"> 
+		    <logspec event="cre"> <logdata id="new"/> </logspec> 
+		    <logspec event="upd"> <logdata id="new"/> </logspec> 
+		    <inp id="data"/> 
+		    <inp id="data_up"/> 
+		</state>
 
-						    <ext id="input" pair="state%S_Up.data_up"/>
-						    <ext id="output" pair="state%mass.output"/>
-						    <ext id="up" pair="state%S_Up.output"/>
-						</add> 
-					    </mut>
-					</iobject> <!-- Subject -->
+		<conn id="state%S_Up.data" pair="state%mass.output"/> 
 
-					<iobject type="Terminal" id="_Most">
-					    <mut><change type="state" id="mass" attr="init" val="10000"/></mut></iobject>
-					<iobject type="Terminal" id="_Less"><mut><change type="state" id="mass" attr="init" val="0"/></mut></iobject>
-					<iobject type="Subject" id="Peter"><mut><change type="state" id="mass" attr="init" val="5"/></mut></iobject>
-					<iobject type="Subject" id="Alex"><mut><change type="state" id="mass" attr="init" val="7"/></mut></iobject>
-					<iobject type="Subject" id="John"><mut><change type="state" id="mass" attr="init" val="2"/></mut></iobject>
+		<ext id="input" pair="state%S_Up.data_up"/>
+		<ext id="output" pair="state%mass.output"/>
+		<ext id="up" pair="state%S_Up.output"/>
+	    </iobject> <!-- Subject -->
 
-					<conn id="Peter.input" pair="_Most.output"/> 
-					<conn id="Alex.input" pair="Peter.output"/> 
-					<conn id="John.input" pair="Alex.output"/> 
-					<conn id="_Less.input" pair="Alex.output"/> 
+	    <iobject type="Terminal" id="_Most">
+		<mut><change type="state" id="mass" attr="init" val="10000"/></mut></iobject>
+	    <iobject type="Terminal" id="_Less"><mut><change type="state" id="mass" attr="init" val="0"/></mut></iobject>
+	    <iobject type="Subject" id="Peter"><mut><change type="state" id="mass" attr="init" val="5"/></mut></iobject>
+	    <iobject type="Subject" id="Alex"><mut><change type="state" id="mass" attr="init" val="7"/></mut></iobject>
+	    <iobject type="Subject" id="John"><mut><change type="state" id="mass" attr="init" val="2"/></mut></iobject>
 
-					<!-- TODO [YB] We don't support multiple output extender. Would be convenient -->
-					<ext id="output" pair="Peter.output"/>
-					<ext id="togetup_1" pair="Peter.up"/>
-					<ext id="togetup_2" pair="Alex.up"/>
-					<ext id="togetup_3" pair="John.up"/>
-				    </add>
-				</mut>
-			    </iobject> <!-- Storage -->
+	    <conn id="Peter.input" pair="_Most.output"/> 
+	    <conn id="Alex.input" pair="Peter.output"/> 
+	    <conn id="John.input" pair="Alex.output"/> 
+	    <conn id="_Less.input" pair="Alex.output"/> 
 
-			    <iobject type="none" id="Timer"> <!-- Timer (not used here) -->
-				<mut>
-				    <add>
-					<inp id="event"/>
-					<out id="output"/>
+	    <!-- TODO [YB] We don't support multiple output extender. Would be convenient -->
+	    <ext id="output" pair="Peter.output"/>
+	    <ext id="togetup_1" pair="Peter.up"/>
+	    <ext id="togetup_2" pair="Alex.up"/>
+	    <ext id="togetup_3" pair="John.up"/>
+	</iobject> <!-- Storage -->
 
-					<state type="StBool" id="S_Start" transf="trans_timer_start" init="0"> 
-					    <logspec event="cre"> <logdata id="new"/> </logspec> 
-					    <logspec event="upd"> <logdata id="new"/> </logspec> 
-					    <inp id="start"/> 
-					    <inp id="stop"/> 
-					</state>
+	<iobject type="none" id="Timer"> <!-- Timer (not used here) -->
+	    <inp id="event"/>
+	    <out id="output"/>
 
-					<state type="StInt" id="S_Count" transf="trans_timer_count" init="-1"> 
-					    <logspec event="cre"> <logdata id="new"/> </logspec> 
-					    <logspec event="upd"> <logdata id="new"/> </logspec> 
-					    <inp id="start"/> 
-					    <inp id="self"/> 
-					</state>
+	    <state type="StBool" id="S_Start" transf="trans_timer_start" init="0"> 
+		<logspec event="cre"> <logdata id="new"/> </logspec> 
+		<logspec event="upd"> <logdata id="new"/> </logspec> 
+		<inp id="start"/> 
+		<inp id="stop"/> 
+	    </state>
 
-					<state type="StBool" id="S_Stop" transf="trans_timer_stop" init="0"> 
-					    <logspec event="cre"> <logdata id="new"/> </logspec> 
-					    <logspec event="upd"> <logdata id="new"/> </logspec> 
-					    <inp id="count"/> 
-					    <inp id="start"/> 
-					</state>
+	    <state type="StInt" id="S_Count" transf="trans_timer_count" init="-1"> 
+		<logspec event="cre"> <logdata id="new"/> </logspec> 
+		<logspec event="upd"> <logdata id="new"/> </logspec> 
+		<inp id="start"/> 
+		<inp id="self"/> 
+	    </state>
 
-					<conn id="state%S_Start.stop" pair="state%S_Stop.output"/> 
-					<conn id="state%S_Count.start" pair="state%S_Start.output"/> 
-					<conn id="state%S_Count.self" pair="state%S_Count.output"/> 
-					<conn id="state%S_Stop.count" pair="state%S_Count.output"/> 
-					<conn id="state%S_Stop.start" pair="state%S_Start.output"/> 
+	    <state type="StBool" id="S_Stop" transf="trans_timer_stop" init="0"> 
+		<logspec event="cre"> <logdata id="new"/> </logspec> 
+		<logspec event="upd"> <logdata id="new"/> </logspec> 
+		<inp id="count"/> 
+		<inp id="start"/> 
+	    </state>
 
-					<ext id="event" pair="state%S_Start.start"/>
-					<ext id="output" pair="state%S_Start.start"/>
+	    <conn id="state%S_Start.stop" pair="state%S_Stop.output"/> 
+	    <conn id="state%S_Count.start" pair="state%S_Start.output"/> 
+	    <conn id="state%S_Count.self" pair="state%S_Count.output"/> 
+	    <conn id="state%S_Stop.count" pair="state%S_Count.output"/> 
+	    <conn id="state%S_Stop.start" pair="state%S_Start.output"/> 
 
-				    </add>
-				</mut>
-			    </iobject>
+	    <ext id="event" pair="state%S_Start.start"/>
+	    <ext id="output" pair="state%S_Start.start"/>
+	</iobject>
 
 
-			    <!-- State that controls Storage -->
-			    <state type="StContr" id="S_Controller" transf="trans_controller" init="Storage"> 
-				<logspec event="upd"> <logdata id="new"/> </logspec> 
-				<logspec event="tran"> <logdata id="new"/> </logspec> 
-				<inp id="subj_req"/> 
-				<inp id="pos"/> <!-- Position pointed by Storage's output -->
-			    </state>
-                            <!-- State that contains data -->
-			    <state type="StUint32" id="S_Pos" init="1"> 
-			    </state>
+	<!-- State that controls Storage -->
+	<state type="StContr" id="S_Controller" transf="trans_controller" init="Storage"> 
+	    <logspec event="upd"> <logdata id="new"/> </logspec> 
+	    <logspec event="tran"> <logdata id="new"/> </logspec> 
+	    <inp id="subj_req"/> 
+	    <inp id="pos"/> <!-- Position pointed by Storage's output -->
+	</state>
+	<!-- State that contains data -->
+	<state type="StUint32" id="S_Pos" init="1"> 
+	</state>
 
 
-			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_1"/> 
-			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_2"/> 
-			    <conn id="state%S_Controller.subj_req" pair="Storage.togetup_3"/> 
+	<conn id="state%S_Controller.subj_req" pair="Storage.togetup_1"/> 
+	<conn id="state%S_Controller.subj_req" pair="Storage.togetup_2"/> 
+	<conn id="state%S_Controller.subj_req" pair="Storage.togetup_3"/> 
 
-			    <conn id="state%S_Controller.pos" pair="state%S_Pos.output"/> 
+	<conn id="state%S_Controller.pos" pair="state%S_Pos.output"/> 
 
 
-			    <conn id="Timer.event" pair="S_Controller.output"/> 
+	<conn id="Timer.event" pair="state%S_Controller.output"/> 
 
-			    <ext id="output" pair="Storage.output"/>
+	<ext id="output" pair="Storage.output"/>
 
-			</add>
+    </iobject> <!-- Order -->
 
-		    </mut>
-		</iobject> <!-- Order -->
-
-	    </add>
-	</mut>
-    </iobject> <!-- Test -->
+</iobject> <!-- Test -->
 

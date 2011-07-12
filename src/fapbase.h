@@ -27,7 +27,6 @@
 #include <stdarg.h>
 #include <string.h>
 #include "fapplat.h"
-#include "fapview.h"
 #include <vector>
 #include <map>
 #include <string>
@@ -210,6 +209,9 @@ class CAE_Base
 	virtual void *DoGetFbObj(const char *aName) = 0;
 };
 
+// TODO [YB] Consider to redesign basing on tree model: to have tree node as base class
+// The node can contain the refs to childs and parent. Shall be integrated with DES Uri
+
 class CAE_NotifierBase
 {
     public: 
@@ -242,6 +244,7 @@ class MAE_EbaseObserver
 // TODO [YB] To move inputs and outputs to CAE_EBase
 class CAE_EBase: public CAE_Base
 {
+    friend class DesUri;
     private:
 	class ENotifier: public CAE_Notifier<MAE_EbaseObserver>
     {
@@ -303,16 +306,19 @@ class CAE_ConnPointBase: public CAE_Base
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
 	virtual TBool Disconnect() = 0;
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
+	virtual TBool Disextend();
 	// Extention is directed relation, so use separate methods for "slave"
+	// TODO [YB] Consider of necessity of separate methods for extention slave
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint) = 0;
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
+	virtual TBool SetDisextended();
 	const string& Name() { return iName; };
 	const string& Name() const { return iName; };
 	void SetName(const string& aName) { iName = aName;};
@@ -367,12 +373,14 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
 	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
+	virtual TBool Disextend() { return CAE_ConnPointBase::Disextend();};
+	virtual TBool SetDisextended() { return CAE_ConnPointBase::SetDisextended();};
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	CAE_ConnSlot* Srcs() {return iSrcs;};
@@ -403,12 +411,12 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
 	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
 	void Set(CAE_ConnPointBase *aConnPoint);
 	void Unset();
 	CAE_ConnPointBase* Ref() {return iRef;};
@@ -462,12 +470,12 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
 	virtual TBool Disconnect();
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) {};
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };
 	static const char *Type() {return "ConnPointExtC";}; 
@@ -796,6 +804,7 @@ enum NodeType
     ENt_MutAddStInp = 24,  // Mutation - addition of state input
     ENt_MutChangeCont = 25, // Mutation - change of content
     ENt_MutMove = 26, // Mutation - move node
+    ENt_Rm = 27,   // Mutation - removal
 };
 
 enum TNodeAttr
@@ -941,6 +950,7 @@ class CAE_ChromoNode
 	CAE_ChromoNode::Iterator Parent();
 	CAE_ChromoNode::Iterator Find(const string& aName);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
+	CAE_ChromoNode::Const_Iterator Find(NodeType aType, const string& aName) const;
 	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal = EFalse);
 	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
@@ -1022,7 +1032,6 @@ class CAE_TranExBase: public CAE_Base, public MAE_TranEx
 };
 
 
-class MAE_View;
 class MAE_Env;
 class CAE_Env;
 class MAE_Opv;
@@ -1122,13 +1131,14 @@ public:
 	virtual multimap<string, CSL_ExprBase*>::iterator GetExprs(const string& aName, const string& aRtype, multimap<string,
 	       	CSL_ExprBase*>::iterator& aEnd, MAE_TransContext* aRequestor = NULL);
 	CSL_ExprBase* CreateDataExpr(const string& aType);
-	void AddView(MAE_View* aView);
+	// TODO [YB] To migrate from proxy to observer
 	void SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot = EFalse);
 	void RemoveBaseViewProxy(MAE_Opv* aProxy);
 	void AppendCompList(vector<string>& aList, const CAE_Object* aRequestor) const;
 	void SetEbaseObsRec(CAE_Base* aObs);
 	void Deactivate();
 	void Activate();
+	CAE_Object* FindMutableMangr();
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1157,6 +1167,7 @@ private:
 	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
+	void RmNode(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
@@ -1168,8 +1179,6 @@ private:
 	void ChangeChromoAttr(CAE_ChromoNode& aSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr);
 	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
-	void OnHeaderPress(const MAE_View* aView);
-	void OnCompHeaderPress(const MAE_View* aView, const string& aName);
 private:
 	// TODO [YB] To migrate to map
 	map<string, CAE_Object*> iComps;
@@ -1184,7 +1193,6 @@ private:
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;
-	map<string, MAE_View*> iViews;
 	string iTransSrc;
 	MAE_Opv* iOpv; // Proxy for base view
 	Ctrl iCtrl; // Controll interface

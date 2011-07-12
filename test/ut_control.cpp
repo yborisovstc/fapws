@@ -225,6 +225,7 @@ void UT_FAP_Contr::tearDown()
 void UT_FAP_Contr::test_Contr_main()
 {
     printf("\n === Test of controlling\n");
+    CPPUNIT_ASSERT_MESSAGE("This test got incorrect because of migrating to delta chromo", EFalse);
     CAE_Object *order = iEnv->Root()->GetComp("Order");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [Order]", order != 0);
 

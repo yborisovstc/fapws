@@ -16,32 +16,29 @@ src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
   fapext.h
   fapfact.h
   faplogger.h
-  fapopvi.h
   fapplat.h
+  fapplugin.h
   fapstext.h
   faptran.h
-  fapview.h
-  fapviewprim.h
   fapws.h
   panics.h
   tadesl.h
-  viewgtk.h
   deslbase.cpp
   fapbase.cpp
   fapext.cpp
   fapfact.cpp
   faplogger.cpp
-  fapopvi.cpp
   fapstext.cpp
-  fapviewprim.cpp
   fapws.cpp
   tadesl.cpp
-  viewgtk.cpp
   Makefile.am
 } 
 etc=etc CD=. filter="*" {
   objspec.dtd
 }
+ modules=modules CD=. filter="*" {
+  vector.xml
+ }
 debian=debian CD=. filter="*" {
   README.Debian
   changelog
@@ -82,10 +79,12 @@ doc=doc CD=. filter="*" {
 test=test CD=. filter="*.cpp *.h *.xml *.am" {
   ut_conn.cpp
   ut_control.cpp
+  ut_embmod.cpp
   ut_emtran.cpp
   ut_ext_mut.cpp
   ut_fapws_main.cpp
   ut_game_xo.cpp
+  ut_modul.cpp
   ut_simple_increase.cpp
   ut_spec_creat.cpp
   ut_game_xo.h
@@ -93,9 +92,17 @@ test=test CD=. filter="*.cpp *.h *.xml *.am" {
   ut_spec_creat.h
   ut_conn_spec.xml
   ut_contr_spec.xml
+  ut_embmod_vect.xml
   ut_emtran_spec.xml
   ut_emtran_spec_2.xml
   ut_emtran_spec_3.xml
+  ut_emtran_vect.xml
+  ut_modul_base.xml
+  ut_modul_ext1.xml
+  ut_modul_incr.xml
+  ut_modul_loc.xml
+  ut_modul_loc1.xml
+  ut_modul_save_tmp.xml
   ut_spec_creat_1.xml
   ut_spec_ext_mut.xml
   Makefile.am

@@ -106,10 +106,35 @@ void Uri::Parse(const string& aUri)
 }
 
 // Des URI
+
+map<string, NodeType> DesUri::iEbNameToNType;
+
 DesUri::DesUri(const string& aUri): iUri(aUri)
 {
+    Construct();
     Parse();
 }
+
+DesUri::DesUri(): iUri()
+{
+    Construct();
+}
+
+DesUri::DesUri(CAE_Base* aElem, CAE_Base* aBase)
+{
+    Construct();
+    PrependElem(aElem, ETrue, aBase);
+}
+
+
+void DesUri::Construct()
+{
+    if (iEbNameToNType.size() == 0)
+    {
+	iEbNameToNType[CAE_Object::Type()] = ENt_Object;
+    }
+}
+
 
 void DesUri::Parse()
 {
@@ -158,6 +183,48 @@ string DesUri::GetUri(vector<TElem>::const_iterator aStart)
     return res;
 }
 
+NodeType DesUri::GetType()
+{
+    TInt size = iElems.size();
+    return size == 0 ? ENt_Unknown : iElems.at(size -1).first;
+}
+
+string DesUri::GetName() const
+{
+    TInt size = iElems.size();
+    return size == 0 ? string() : iElems.at(size -1).second;
+}
+
+void DesUri::AppendElem(NodeType aType, const string& aName)
+{
+    iElems.push_back(TElem(aType, aName));
+}
+
+void DesUri::PrependElem(NodeType aType, const string& aName)
+{
+    iElems.insert(iElems.begin(), TElem(aType, aName));
+}
+
+// TODO [YB] To redesign the run-time model basing on treee. To have method of prepending uri in tree node base class
+void DesUri::PrependElem(CAE_Base* aElem, TBool aRec, CAE_Base* aBase)
+{
+    CAE_Object* obj = aElem->GetFbObj(obj);
+    CAE_Base* base = NULL;
+    if (obj != NULL) {
+	base = obj->iMan;
+	PrependElem(ENt_Object, obj->InstName());
+    }
+    else {
+	CAE_StateBase* state = aElem->GetFbObj(state);
+	if (state !=NULL) {
+	    base = state->iMan;
+	    PrependElem(ENt_State, state->InstName());
+	}
+    }
+    if (aRec && base != NULL && base != aBase) {
+	PrependElem(base, aRec, aBase);
+    }
+}
 
 
 //*********************************************************
@@ -244,7 +311,8 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["dstext"] = ENt_CextcDest;
 	KNodeTypes["caeenv"] = ENt_Env;
 	KNodeTypes["add"] = ENt_MutAdd;
-	KNodeTypes["rm"] = ENt_MutRm;
+	KNodeTypes["remove"] = ENt_MutRm;
+	KNodeTypes["rm"] = ENt_Rm;
 	KNodeTypes["move"] = ENt_MutMove;
 	KNodeTypes["change"] = ENt_MutChange;
 	KNodeTypes["changecont"] = ENt_MutChangeCont;

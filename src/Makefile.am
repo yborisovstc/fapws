@@ -20,13 +20,6 @@ libfapws_la_SOURCES = \
 		       fapws.cpp \
 		       fapws.h \
 		       fapplat.h \
-		       fapview.h \
-		       viewgtk.h \
-		       viewgtk.cpp \
-		       fapviewprim.h \
-		       fapviewprim.cpp \
-		       fapopvi.h \
-		       fapopvi.cpp \
 		       fapplugin.h \
 		       deslbase.cpp \
 		       deslbase.h 
@@ -37,9 +30,6 @@ include_HEADERS = \
 		  fapext.h \
 		  fapstext.h \
 		  fapfact.h \
-		  fapview.h \
-		  viewgtk.h \
-		  fapviewprim.h \
 		  fapplugin.h \
 		  fapplat.h \
 		  deslbase.h 

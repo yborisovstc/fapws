@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+
+<!-- Unit test for modularity - base -->
+<!--
+     -->
+
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
+
+<iobject type="none" id="Test">
+    <out id="my_incr"/>
+    <logspec  event="cre"> <logdata id="new"/> </logspec>
+
+    <iobject type="file:./ut_modul_incr.xml#root" id="ext_mod"/>
+
+    <iobject type="incrementor" id="My_Incr">
+	<rm node="state:S_Count"/>
+    </iobject> <!-- My_Incr -->
+
+    <ext id="my_incr" pair="My_Incr.output"/>
+
+</iobject> <!-- Test -->
+

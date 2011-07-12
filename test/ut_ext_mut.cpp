@@ -13,8 +13,6 @@
  * Mutation is the changing of the object when it creating from parent.
  */
 
-
-static const char* KLogSpecFileName = "../testfaplogspec.txt";
 static const char* KLogFileName = "ut_ext_mut.txt";
 static const char* KSpecFileName = "ut_spec_ext_mut.xml";
 
@@ -36,12 +34,16 @@ class UT_FAP_ExtMut : public CPPUNIT_NS::TestFixture
 {
     CPPUNIT_TEST_SUITE(UT_FAP_ExtMut);
     CPPUNIT_TEST(test_ExtMut_main);
+    CPPUNIT_TEST(test_ExtMut_deta1);
+    CPPUNIT_TEST(test_ExtMut_deta2);
     CPPUNIT_TEST_SUITE_END();
 public:
     virtual void setUp();
     virtual void tearDown();
 private:
     void test_ExtMut_main();
+    void test_ExtMut_deta1();
+    void test_ExtMut_deta2();
 private:
     CAE_Env* iEnv;
 };
@@ -78,20 +80,20 @@ void update_coord(CAE_Object* aObject, CAE_StateBase* aState)
 
 void UT_FAP_ExtMut::setUp()
 {
-    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
-    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
-    iEnv->ConstructSystem();
 }
 
 void UT_FAP_ExtMut::tearDown()
 {
-    delete iEnv;
-    CPPUNIT_ASSERT_EQUAL_MESSAGE("tearDown", 0, 0);
 }
 
 void UT_FAP_ExtMut::test_ExtMut_main()
 {
     printf("\n === Test of creation object from spec");
+
+    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
+
     CAE_Object *snail_1 = iEnv->Root()->GetComp("snail_1");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [snail_1]", snail_1 != 0);
     CAE_Object *snail_3 = iEnv->Root()->GetComp("snail_3");
@@ -105,6 +107,60 @@ void UT_FAP_ExtMut::test_ExtMut_main()
     {
         iEnv->Step();
     }
+
+    delete iEnv;
 }
 
+// This test is for so called "detached" chromo when delta chromo form is used. 
+// This is the case for all components inherited from parent. The heir actually doesn't contain
+// parent's comps in it chromo but in runtime only. So mutating of such "deattached" chromo
+// has to be done on heir's level. The test checks changing attr in such detached chromo
 
+void UT_FAP_ExtMut::test_ExtMut_deta1()
+{
+    printf("\n === Test of mutations - Detached - changing state init in inherited subsystem\n");
+
+    iEnv = CAE_Env::NewL(NULL, NULL, "ut_mut_deta1.xml", 1, NULL, "ut_mut_deta1.log");
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
+
+    for (TInt i=0; i<40; i++)
+    {
+        iEnv->Step();
+    }
+
+    CAE_ConnPointBase* c_incr = iEnv->Root()->GetOutpN("my_incr");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [my_incr] output", c_incr != 0);
+    CAE_StateBase* sb_incr = c_incr->GetSrcPin("_1")->GetFbObj(sb_incr);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [c_incr._1] src pin state", sb_incr != 0);
+    CAE_TState<TInt>& s_incr = *sb_incr;
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [c_incr._1] value", ~s_incr == 42);
+
+    delete iEnv;
+}
+
+// This test is for so called "detached" chromo when delta chromo form is used. 
+// This is the case for all components inherited from parent. The heir actually doesn't contain
+// parent's comps in it chromo but in runtime only. So mutating of such "deattached" chromo
+// has to be done on heir's level. The test checks deleting node in such detached chromo.
+
+void UT_FAP_ExtMut::test_ExtMut_deta2()
+{
+    printf("\n === Test of mutations - Detached - deleting state in inherited subsystem\n");
+
+    iEnv = CAE_Env::NewL(NULL, NULL, "ut_mut_deta2.xml", 1, NULL, "ut_mut_deta2.log");
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
+
+    for (TInt i=0; i<40; i++)
+    {
+        iEnv->Step();
+    }
+
+    CAE_ConnPointBase* c_incr = iEnv->Root()->GetOutpN("my_incr");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [my_incr] output", c_incr != 0);
+    CAE_Base* sb_incr = c_incr->GetSrcPin("_1");
+    CPPUNIT_ASSERT_MESSAGE("Failed: [c_incr._1] src pin state still exists", sb_incr == 0);
+
+    delete iEnv;
+}

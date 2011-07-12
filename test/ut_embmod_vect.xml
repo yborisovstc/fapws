@@ -16,7 +16,6 @@
 
     <iobject type="file:../modules/vector.xml#vector" id="my_vector" quiet="yes"/> 
 
-
     <iobject type="none" id="Rock" quiet="yes"> 
 	<mut>
 	    <add>
@@ -25,6 +24,10 @@
 		<out id="outp"> <src id="coord"/> <src id="mass"/> </out>
 
 		<logspec  event="cre"> <logdata id="new"/> </logspec>
+
+		<trans>
+		    let KAccDef :: Vector := 0.0 -8.9
+		</trans>
 
 		<state type="Float" id="mass" init="2.0"> 
 		    <logspec event="upd"> <logdata id="new"/> </logspec> 
