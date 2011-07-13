@@ -106,6 +106,8 @@ void Uri::Parse(const string& aUri)
 }
 
 // Des URI
+// Uri conforms to RFC 3986 
+// Query syntax: (attr_name '=' attr_value) *( ('&' | '|')  (attr_name '=' attr_value))  
 
 map<string, NodeType> DesUri::iEbNameToNType;
 
@@ -139,11 +141,15 @@ void DesUri::Construct()
 void DesUri::Parse()
 {
     TBool fin = EFalse;
+    size_t query_beg = iUri.find_first_of('?', 0);
+    string hier = iUri.substr(0, query_beg);
+    string query = iUri.substr(query_beg+1);
     size_t elem_beg = 0;
-    size_t elem_end = iUri.find_first_of('/', 0);
-    string elem = iUri.substr(0, elem_end);
+    size_t elem_end = hier.find_first_of('/', 0);
+    string elem = hier.substr(0, elem_end);
+    // Hier
     while (!elem.empty()) {
-	size_t type_end = iUri.find_first_of(':');
+	size_t type_end = elem.find_first_of(':');
 	size_t name_beg = 0;
 	NodeType type;
 	if (type_end == string::npos) {
@@ -161,15 +167,26 @@ void DesUri::Parse()
 	} 
 	else {
 	    elem_beg = elem_end + 1;
-	    elem_end = iUri.find_first_of('/', elem_beg);
-	    elem = iUri.substr(elem_beg, elem_end == string::npos ? elem_end : elem_end - elem_beg);
+	    elem_end = hier.find_first_of('/', elem_beg);
+	    elem = hier.substr(elem_beg, elem_end == string::npos ? elem_end : elem_end - elem_beg);
 	}
     }
+    // Query
+    // Just one condition for now
+    size_t attr_beg = 0;
+    size_t attr_end = query.find_first_of('=', 0);
+    size_t val_beg = attr_end + 1;
+    size_t val_end = string::npos;
+    string attrs = query.substr(attr_beg, attr_end);
+    string val = query.substr(val_beg, val_end);
+    TNodeAttr attr = KNodeAttrs.count(attrs) > 0 ? KNodeAttrs[attrs] : ENa_Unknown;
+    AppendQueryElem(EQop_Unknown, attr, val);
 }
 
 string DesUri::GetUri(vector<TElem>::const_iterator aStart)
 {
     string res;
+    // Hier
     for (vector<DesUri::TElem>::const_iterator it = aStart; it != iElems.end(); it++) {
 	DesUri::TElem elem = *it;
 	if (elem.first != ENt_Object) {
@@ -178,6 +195,19 @@ string DesUri::GetUri(vector<TElem>::const_iterator aStart)
 	res.append(elem.second);
 	if (it + 1 != iElems.end()) {
 	    res.append("/");
+	}
+    }
+    // Query
+    if (!iQueryElems.empty()) {
+	res.append("?");
+	for (vector<TQueryElem>::const_iterator it = iQueryElems.begin(); it != iQueryElems.end(); it++) {
+	    TQueryOpr opr = it->first;
+	    if (opr ==  EQop_And) {
+		res.append("&");
+	    }
+	    res.append(KNodeAttrsNames[it->second.first]);
+	    res.append("=");
+	    res.append(it->second.second);
 	}
     }
     return res;
@@ -208,22 +238,29 @@ void DesUri::PrependElem(NodeType aType, const string& aName)
 // TODO [YB] To redesign the run-time model basing on treee. To have method of prepending uri in tree node base class
 void DesUri::PrependElem(CAE_Base* aElem, TBool aRec, CAE_Base* aBase)
 {
-    CAE_Object* obj = aElem->GetFbObj(obj);
-    CAE_Base* base = NULL;
-    if (obj != NULL) {
-	base = obj->iMan;
-	PrependElem(ENt_Object, obj->InstName());
-    }
-    else {
-	CAE_StateBase* state = aElem->GetFbObj(state);
-	if (state !=NULL) {
-	    base = state->iMan;
-	    PrependElem(ENt_State, state->InstName());
+    if (aElem != aBase) {
+	CAE_Object* obj = aElem->GetFbObj(obj);
+	CAE_Base* base = NULL;
+	if (obj != NULL) {
+	    base = obj->iMan;
+	    PrependElem(ENt_Object, obj->InstName());
+	}
+	else {
+	    CAE_StateBase* state = aElem->GetFbObj(state);
+	    if (state !=NULL) {
+		base = state->iMan;
+		PrependElem(ENt_State, state->InstName());
+	    }
+	}
+	if (aRec && base != NULL && base != aBase) {
+	    PrependElem(base, aRec, aBase);
 	}
     }
-    if (aRec && base != NULL && base != aBase) {
-	PrependElem(base, aRec, aBase);
-    }
+}
+
+void DesUri::AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue)
+{
+    iQueryElems.push_back(TQueryElem(aOpr, TQueryCnd(aAttr, aValue)));
 }
 
 

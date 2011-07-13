@@ -2287,7 +2287,73 @@ void CAE_Object::RmNode(const CAE_ChromoNode& aSpec)
 	    Logger()->WriteFormat("ERROR: Deleting comp from  [%s] - cannot find [%s]", InstName(), name.c_str());
 	}
     }
-
+    else if (type == ENt_Conn) {
+	CAE_Object* comp = GetComp(snode);
+	TNodeAttr mattr = ENa_Unknown;
+	string attval;
+	if (!unode.QueryElems().empty()) {
+	    mattr = unode.QueryElems().at(0).second.first;
+	    attval = unode.QueryElems().at(0).second.second;
+	}
+	if (mattr == ENa_ConnPair) {
+	    string pairname = attval;
+	    CAE_ConnPointBase* conn = GetConn(name.c_str());
+	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	    if (conn != NULL && pair != NULL) {
+		if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
+		{
+		    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName(), name.c_str(), pairname.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName(), 
+			name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
+	    }
+	}
+	else if (mattr == ENa_Unknown) {
+	    CAE_ConnPointBase* conn = GetConn(name.c_str());
+	    if (conn != NULL) {
+		if (!conn->Disconnect())
+		{
+		    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]:  failed", name.c_str(), InstName());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: cannot find", name.c_str(), InstName()); 
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
+	}
+    }
+    else if (type == ENt_Cext) {
+	// Has not be completed. Waiting for migration no node run-time arch to minimize getting connection node.
+	_FAP_ASSERT(0);
+	CAE_Object* comp = GetComp(snode);
+	TNodeAttr mattr = ENa_Unknown;
+	string attval;
+	if (!unode.QueryElems().empty()) {
+	    mattr = unode.QueryElems().at(0).second.first;
+	    attval = unode.QueryElems().at(0).second.second;
+	}
+	if (mattr == ENa_ConnPair) {
+	    string pairname = attval;
+	    CAE_ConnPointBase* ext = GetConn(name.c_str());
+	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
+	    if (ext != NULL && pair != NULL) {
+		if (!ext->Disextend(pair) || !pair->SetDisextended(ext)) {
+		    Logger()->WriteFormat("ERROR: Deleting extention from  [%s - %s] - failed", name.c_str(), pairname.c_str());
+		}
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Deleting extention from  [%s] - cannot find point [%s]", InstName(), 
+			(ext == NULL ? name : pairname).c_str());
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Deleting extention [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
+	}
+    }
 }
 
 // TODO [YB] For now it is not possible to have "multipoint" output that extends multiple output conn points. To implement.

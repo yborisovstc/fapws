@@ -211,6 +211,8 @@ class CAE_Base
 
 // TODO [YB] Consider to redesign basing on tree model: to have tree node as base class
 // The node can contain the refs to childs and parent. Shall be integrated with DES Uri
+// Possible problem here is that there is no full relation between chromo nodes and runtime nodes
+// For instance ENt_Cext, ENt_Conn. To consider if it makes sense to have such nodes in runtime
 
 class CAE_NotifierBase
 {
