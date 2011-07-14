@@ -78,6 +78,53 @@ enum TCaeMut
 };
 
 
+enum NodeType
+{
+    ENt_Unknown = 0,
+    ENt_Object = 1,
+    ENt_State = 2,
+    ENt_Conn = 3,	   // Connection
+    ENt_Logspec = 4,  // Logging specification
+    ENt_Dep = 5,      // Dependency
+    ENt_Logdata = 6,  // Logging data
+    ENt_Stinp = 7,    // State/system input
+    ENt_Mut = 8,      // Mutation
+    ENt_Soutp = 9,    // State/system output
+    ENt_CpSource = 10,// Connection point source
+    ENt_CpDest = 11,  // Connection point destination
+    ENt_Cext = 12,    // Connecting extention
+    ENt_Cextc = 13,   // Custom Connecting extention
+    ENt_CextcSrc = 14,// Custom Connecting extention src spec
+    ENt_CextcDest = 15,// Custom Connecting extention dest spec
+    ENt_Env = 16,     // Environment
+    ENt_MutAdd = 17,  // Mutation - addition
+    ENt_MutRm = 18,   // Mutation - removal
+    ENt_MutChange = 19, // Mutation - change
+    ENt_Robject = 20, // Root of object
+    ENt_Trans = 23, // Transtion function of state
+    ENt_MutAddStInp = 24,  // Mutation - addition of state input
+    ENt_MutChangeCont = 25, // Mutation - change of content
+    ENt_MutMove = 26, // Mutation - move node
+    ENt_Rm = 27,   // Mutation - removal
+};
+
+enum TNodeAttr
+{
+    ENa_Unknown = 0,
+    ENa_Id = 1,
+    ENa_Type = 2,
+    ENa_ObjQuiet = 3,
+    ENa_Transf = 4,
+    ENa_StInit = 5,
+    ENa_Logevent = 6,
+    ENa_StLen = 7,
+    ENa_ConnPair = 9,
+    ENa_MutNode = 10,
+    ENa_MutChgAttr = 11,
+    ENa_MutChgVal = 12,
+};
+
+
 
 // Adaptive automata programming constants
 
@@ -148,6 +195,46 @@ enum TChrStateUint8OpType
 
 void Panic(TInt aRes);
 
+class CAE_Base;
+
+class DesUri
+{
+    public:
+	enum TQueryOpr {
+	    EQop_Unknown,
+	    EQop_And
+	};
+	typedef pair<NodeType, string> TElem;
+	typedef pair<TNodeAttr, string> TQueryCnd;
+	typedef pair<TQueryOpr, TQueryCnd> TQueryElem;
+	typedef vector<TElem>::const_iterator const_elem_iter;
+    public:
+	DesUri(const string& aUri);
+	DesUri();
+	DesUri(CAE_Base* aElem, CAE_Base* aBase);
+	const vector<TElem>& Elems() const {return iElems;};
+	const vector<TQueryElem>& QueryElems() const { return iQueryElems;};
+	string GetUri(vector<TElem>::const_iterator aStart) const;
+	string GetUri() const { return GetUri(iElems.begin());};
+	NodeType GetType() const;
+	string GetName() const;
+	void AppendElem(NodeType aType, const string& aName);
+	void PrependElem(NodeType aType, const string& aName);
+	void PrependElem(CAE_Base* aElem, TBool aRec = ETrue, CAE_Base* aBase = NULL);
+	void AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue);
+    protected:
+	void Construct();
+    private:
+	void Parse();
+    private:
+	static map<string, NodeType> iEbNameToNType;
+	string iUri;
+	string iScheme;
+	vector<TElem> iElems;
+	vector<TQueryElem> iQueryElems;
+};
+
+
 
 class CAE_Object;
 class CAE_StateBase;
@@ -214,6 +301,24 @@ class CAE_Base
 // Possible problem here is that there is no full relation between chromo nodes and runtime nodes
 // For instance ENt_Cext, ENt_Conn. To consider if it makes sense to have such nodes in runtime
 
+class CAE_NBase: public CAE_Base
+{
+    public:
+	CAE_NBase(NodeType aNodeType, const string& aInstName): iNodeType(aNodeType), iInstName(aInstName) {};
+	NodeType NType() const { return iNodeType;};
+	const string& InstName() const { return iInstName;};
+	void SetName(const string& aName) { iInstName = aName;};
+	CAE_NBase* GetNode(const string& aUri) { DesUri uri(aUri); return GetNode(uri, uri.Elems().begin());};
+	CAE_NBase* GetNode(const DesUri& aUri) {GetNode(aUri, aUri.Elems().begin());};
+	void RmNode(const string& aUri) {DesUri uri(aUri); RmNode(uri);};
+    public:
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) = 0;
+	virtual void RmNode(const DesUri& aUri) = 0;
+    protected:
+	NodeType iNodeType;
+	string iInstName;
+};
+
 class CAE_NotifierBase
 {
     public: 
@@ -244,7 +349,7 @@ class MAE_EbaseObserver
 /** Base class for FAP elements - updatable, managed, logged
 */
 // TODO [YB] To move inputs and outputs to CAE_EBase
-class CAE_EBase: public CAE_Base
+class CAE_EBase: public CAE_NBase
 {
     friend class DesUri;
     private:
@@ -255,7 +360,7 @@ class CAE_EBase: public CAE_Base
     };
 
     public:
-	CAE_EBase(const char* aInstName, CAE_Object* aMan);
+	CAE_EBase(NodeType aNodeType, const string& aInstName, CAE_Object* aMan);
 	virtual ~CAE_EBase();
 	virtual void Confirm() = 0;
 	virtual void Update() = 0;
@@ -267,10 +372,8 @@ class CAE_EBase: public CAE_Base
 	void ResetUpdated() {iUpdated = EFalse;};
 	TBool IsUpdated() const { return iUpdated; };
 	TBool IsQuiet() const { return iQuiet; };
-	void SetName(const char *aName);
 	void SetType(const char *aType);
 	void SetMan(CAE_Object *aMan) { _FAP_ASSERT (iMan == NULL || iMan == aMan); iMan = aMan;};
-	const char* InstName() const { return iInstName;};
 	const char* TypeName() const { return iTypeName;};
 	const char* MansName(TInt aLevel) const;
 	void AddLogSpec(TInt aEvent, TInt aData);
@@ -284,7 +387,6 @@ protected:
 	// From CAE_Base
 	virtual void *DoGetFbObj(const char *aName);
 protected:
-	char* iInstName;
 	/* Name of ancestor */
 	char* iTypeName;
 	TBool	iUpdated, iActive;
@@ -488,6 +590,17 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	vector<Slot> iSlots;
 };
 
+// Extention
+
+class CAE_Ext: public CAE_NBase
+{
+    public:
+	CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair);
+    private:
+	CAE_ConnPointBase* iPoint;
+	CAE_ConnPointBase* iPair;
+};
+
 // Parameters of operation
 struct TOperationInfo
 {
@@ -601,6 +714,9 @@ public:
 	// TODO YB operator doesn't called
 	template <class T> inline operator CAE_TState<T>& ();
 	template <class T> inline operator const T& ();
+	// From CAE_NBase
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
+	virtual void RmNode(const DesUri& aUri);
 public:
 	const string ValStr() const;
 	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
@@ -777,53 +893,6 @@ class CAE_StateCtr: public CAE_StateRef
 
 inline const char *CAE_StateCtr::Type() { return "StateCtr";} 
 
-
-
-enum NodeType
-{
-    ENt_Unknown = 0,
-    ENt_Object = 1,
-    ENt_State = 2,
-    ENt_Conn = 3,	   // Connection
-    ENt_Logspec = 4,  // Logging specification
-    ENt_Dep = 5,      // Dependency
-    ENt_Logdata = 6,  // Logging data
-    ENt_Stinp = 7,    // State/system input
-    ENt_Mut = 8,      // Mutation
-    ENt_Soutp = 9,    // State/system output
-    ENt_CpSource = 10,// Connection point source
-    ENt_CpDest = 11,  // Connection point destination
-    ENt_Cext = 12,    // Connecting extention
-    ENt_Cextc = 13,   // Custom Connecting extention
-    ENt_CextcSrc = 14,// Custom Connecting extention src spec
-    ENt_CextcDest = 15,// Custom Connecting extention dest spec
-    ENt_Env = 16,     // Environment
-    ENt_MutAdd = 17,  // Mutation - addition
-    ENt_MutRm = 18,   // Mutation - removal
-    ENt_MutChange = 19, // Mutation - change
-    ENt_Robject = 20, // Root of object
-    ENt_Trans = 23, // Transtion function of state
-    ENt_MutAddStInp = 24,  // Mutation - addition of state input
-    ENt_MutChangeCont = 25, // Mutation - change of content
-    ENt_MutMove = 26, // Mutation - move node
-    ENt_Rm = 27,   // Mutation - removal
-};
-
-enum TNodeAttr
-{
-    ENa_Unknown = 0,
-    ENa_Id = 1,
-    ENa_Type = 2,
-    ENa_ObjQuiet = 3,
-    ENa_Transf = 4,
-    ENa_StInit = 5,
-    ENa_Logevent = 6,
-    ENa_StLen = 7,
-    ENa_ConnPair = 9,
-    ENa_MutNode = 10,
-    ENa_MutChgAttr = 11,
-    ENa_MutChgVal = 12,
-};
 
 // TODO [YB] Consider avoiding iHandle from Node
 class CAE_ChromoNode;
@@ -1098,11 +1167,12 @@ public:
 	// Variant for Chrom XML. In order for somooth transition to XML chrom.
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
-	// TODO [YB] CAE_Object cannot register/unregister just base class because the reristry are for heir of EBase
+	// TODO [YB] -DONE- CAE_Object cannot register/unregister just base class because the reristry are for heir of EBase
 	// Object uses type resolver to understand what is to be reg/unreg. Thats why it is impossible to unger 
 	// from EBase destructor (resolver is based on virt funct so isnt working there). To conside specialize reg/unreg. 
 	void RegisterCompL(CAE_EBase* aComp);
-	void UnregisterComp(CAE_EBase* aComp);
+	void UnregisterComp(CAE_Object* aComp);
+	void UnregisterState(CAE_StateBase* aState);
 	virtual void Update();
 	virtual void Confirm();
 	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
@@ -1141,6 +1211,9 @@ public:
 	void Deactivate();
 	void Activate();
 	CAE_Object* FindMutableMangr();
+	// From CAE_NBase
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
+	virtual void RmNode(const DesUri& aUri);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
@@ -1169,7 +1242,6 @@ private:
 	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
-	void RmNode(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
@@ -1192,6 +1264,7 @@ private:
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
 	multimap<string, CSL_ExprBase*> iTrans; // Transition module
+	map<string, CAE_Ext*> iExts; // Extentions
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;

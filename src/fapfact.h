@@ -24,43 +24,6 @@ class Uri
 	string iPath;
 };
 
-
-class DesUri
-{
-    public:
-	enum TQueryOpr {
-	    EQop_Unknown,
-	    EQop_And
-	};
-	typedef pair<NodeType, string> TElem;
-	typedef pair<TNodeAttr, string> TQueryCnd;
-	typedef pair<TQueryOpr, TQueryCnd> TQueryElem;
-    public:
-	DesUri(const string& aUri);
-	DesUri();
-	DesUri(CAE_Base* aElem, CAE_Base* aBase);
-	const vector<TElem>& Elems() {return iElems;};
-	const vector<TQueryElem>& QueryElems() const { return iQueryElems;};
-	string GetUri(vector<TElem>::const_iterator aStart);
-	string GetUri() { return GetUri(iElems.begin());};
-	NodeType GetType();
-	string GetName() const;
-	void AppendElem(NodeType aType, const string& aName);
-	void PrependElem(NodeType aType, const string& aName);
-	void PrependElem(CAE_Base* aElem, TBool aRec = ETrue, CAE_Base* aBase = NULL);
-	void AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue);
-    protected:
-	void Construct();
-    private:
-	void Parse();
-    private:
-	static map<string, NodeType> iEbNameToNType;
-	string iUri;
-	string iScheme;
-	vector<TElem> iElems;
-	vector<TQueryElem> iQueryElems;
-};
-
 //*********************************************************
 // Factory of Chromosome manager for XML based chromosome
 //*********************************************************
