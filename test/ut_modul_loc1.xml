@@ -21,8 +21,8 @@
 	    <trans> add inp self 1 </trans>
 	</state>
 
-	<conn id="state%S_Count.self" pair="state%S_Count.output"/> 
-	<ext id="output" pair="state%S_Count.output"/>
+	<conn id="state:S_Count/inp:self" pair="state:S_Count/out:output"/> 
+	<ext id="out:output" pair="state:S_Count/out:output"/>
 
     </iobject> <!-- incrementor -->
 
@@ -30,9 +30,9 @@
 	<out id="output"/>
 	<iobject type="incrementor" id="My_Incr">
 	</iobject> <!-- My_Incr -->
-	<ext id="output" pair="My_Incr.output"/>
+	<ext id="out:output" pair="My_Incr/out:output"/>
     </iobject>
-    <ext id="output" pair="Box.output"/>
+    <ext id="out:output" pair="Box/out:output"/>
 
 </iobject> <!-- Test -->
 

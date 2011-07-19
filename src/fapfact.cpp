@@ -62,8 +62,8 @@ const char* KChromoSystemId = "/usr/share/fapws/conf/objspec.dtd";
 
 const char KPathSep = '.';
 
-map<string, NodeType> KNodeTypes;
-map<NodeType, string> KNodeTypesNames;
+map<string, TNodeType> KNodeTypes;
+map<TNodeType, string> KNodeTypesNames;
 map<TNodeAttr, string> KNodeAttrsNames;
 map<string, TNodeAttr> KNodeAttrs;
 
@@ -114,32 +114,32 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
     public:
 	CAE_ChromoMdlX();
     public:
-	virtual NodeType GetType(const string& aId);
-	virtual NodeType GetType(const void* aHandle);
-//	virtual string GetTypeId(NodeType aType);
+	virtual TNodeType GetType(const string& aId);
+	virtual TNodeType GetType(const void* aHandle);
+//	virtual string GetTypeId(TNodeType aType);
 	virtual void* Parent(const void* aHandle);
-	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* Next(const void* aHandle, TNodeType aType = ENt_Unknown);
 	virtual void* NextText(const void* aHandle);
-	virtual void* Prev(const void* aHandle, NodeType aType = ENt_Unknown);
-	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown);
-	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown);
+	virtual void* Prev(const void* aHandle, TNodeType aType = ENt_Unknown);
+	virtual void* GetFirstChild(const void* aHandle, TNodeType aType = ENt_Unknown);
+	virtual void* GetLastChild(const void* aHandle, TNodeType aType = ENt_Unknown);
 	virtual void* GetFirstTextChild(const void* aHandle);
 	virtual char *GetAttr(const void* aHandle, TNodeAttr aAttr);
 	virtual char* GetContent(const void* aHandle);
 	virtual void  SetContent(const void* aHandle, const string& aContent);
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr);
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr);
-	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
-	virtual void* AddChild(void* aParent, NodeType aNode);
+	virtual TNodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr);
+	virtual void* AddChild(void* aParent, TNodeType aNode);
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue);
 	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue);
 	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue);
-	virtual void* AddNext(const void* aPrev, NodeType aNode);
+	virtual void* AddNext(const void* aPrev, TNodeType aNode);
 	virtual void RmChild(void* aParent, void* aChild);
 	virtual void Rm(void* aNode);
 	virtual void MoveNextTo(void* aHandle, void* aDest);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal);
-	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal);
+	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeType aVal);
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal);
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec);
 	virtual void Save(const string& aFileName) const;
@@ -151,7 +151,7 @@ class CAE_ChromoMdlX: public CAE_ChromoMdlBase
 	void* Set(CAE_ChromoMdlX& aMdl, const void* aHandle);
 	xmlDoc* Doc() { return iDoc;};
 	static inline const char *Type() { return "ChromoMdlX";}; 
-	virtual void* Init(NodeType aRootType);
+	virtual void* Init(TNodeType aRootType);
 	void Reset();
     protected:
 	virtual void *DoGetFbObj(const char *aName);
@@ -194,10 +194,11 @@ CAE_ChromoMdlX::CAE_ChromoMdlX(): iDoc(NULL), iDocOwned(EFalse)
 	KNodeTypes["move"] = ENt_MutMove;
 	KNodeTypes["change"] = ENt_MutChange;
 	KNodeTypes["changecont"] = ENt_MutChangeCont;
+	KNodeTypes["chg"] = ENt_Change;
 	KNodeTypes["trans"] = ENt_Trans;
 	KNodeTypes["state_inp"] = ENt_MutAddStInp;
 
-	for (map<string, NodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
+	for (map<string, TNodeType>::const_iterator it = KNodeTypes.begin(); it != KNodeTypes.end(); it++) {
 	    KNodeTypesNames[it->second] = it->first;
 	}
     }
@@ -226,7 +227,7 @@ void *CAE_ChromoMdlX::DoGetFbObj(const char *aName)
     return (strcmp(aName, Type()) == 0) ? this : NULL;
 }
 
-void* CAE_ChromoMdlX::Init(NodeType aRootType)
+void* CAE_ChromoMdlX::Init(TNodeType aRootType)
 {
     iDocOwned = ETrue;
     iDoc = xmlNewDoc((const xmlChar*) "1.0");
@@ -257,7 +258,7 @@ void* CAE_ChromoMdlX::Find(const void* aHandle, const string& aUri)
 	DesUri::TElem elem = *it;
 	while (res != NULL) {
 	    if (res->type == XML_ELEMENT_NODE) {
-		NodeType type = GetType((void*) res);
+		TNodeType type = GetType((void*) res);
 		char *name = (char*) xmlGetProp(res, (const xmlChar *) KNodeAttrsNames[ENa_Id].c_str());
 		if (elem.first == type && elem.second.compare(name) == 0) {
 		    break;
@@ -317,44 +318,44 @@ void* CAE_ChromoMdlX::Set(CAE_ChromoMdlX& aMdl, const void* aNode)
     return node;
 }
 
-NodeType CAE_ChromoMdlX::GetType(const string& aId)
+TNodeType CAE_ChromoMdlX::GetType(const string& aId)
 {
     return (KNodeTypes.count(aId) == 0) ? ENt_Unknown: KNodeTypes[aId];
 }
 /*
-string CAE_ChromoMdlX::GetTypeId(NodeType aType)
+string CAE_ChromoMdlX::GetTypeId(TNodeType aType)
 {
     return (aType == ENt_Unknown) ? "" : KNodeTypesNames[aType];
 }
 */
 
-NodeType CAE_ChromoMdlX::GetType(const void* aHandle)
+TNodeType CAE_ChromoMdlX::GetType(const void* aHandle)
 {
     xmlNodePtr node = (xmlNodePtr) aHandle;
     const char* type_name = (const char*) node->name;
     return (KNodeTypes.count(type_name) == 0) ? ENt_Unknown: KNodeTypes[type_name];
 }
 
-void *CAE_ChromoMdlX::GetFirstChild(const void *aHandle, NodeType aType)
+void *CAE_ChromoMdlX::GetFirstChild(const void *aHandle, TNodeType aType)
 {
     xmlNodePtr node = (xmlNodePtr) aHandle;
     _FAP_ASSERT(node != NULL);
     xmlNodePtr res = node->children;
     if (res != NULL) {
-	NodeType type = GetType((void*) res);
+	TNodeType type = GetType((void*) res);
 	if ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))
 	    res = (xmlNodePtr) Next(res, aType);
     }
     return res;
 }
 
-void *CAE_ChromoMdlX::GetLastChild(const void *aHandle, NodeType aType)
+void *CAE_ChromoMdlX::GetLastChild(const void *aHandle, TNodeType aType)
 {
     xmlNodePtr node = (xmlNodePtr) aHandle;
     _FAP_ASSERT(node != NULL);
     xmlNodePtr res = node->last;
     if (res != NULL) {
-	NodeType type = GetType((void*) res);
+	TNodeType type = GetType((void*) res);
 	if ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))
 	    res = (xmlNodePtr) Prev(res, aType);
     }
@@ -378,12 +379,12 @@ void* CAE_ChromoMdlX::Parent(const void* aHandle)
     return ((xmlNodePtr) aHandle)->parent;
 }
 
-void *CAE_ChromoMdlX::Next(const void *aHandle, NodeType aType)
+void *CAE_ChromoMdlX::Next(const void *aHandle, TNodeType aType)
 {
     _FAP_ASSERT(aHandle!= NULL);
     xmlNodePtr res = ((xmlNodePtr) aHandle)->next;
     if (res != NULL) {
-	NodeType type = GetType((void*) res);
+	TNodeType type = GetType((void*) res);
 	while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown)))) {
 	    res = res->next;
 	    if (res != NULL)
@@ -405,12 +406,12 @@ void* CAE_ChromoMdlX::NextText(const void* aHandle)
     return res;
 }
 
-void *CAE_ChromoMdlX::Prev(const void *aHandle, NodeType aType)
+void *CAE_ChromoMdlX::Prev(const void *aHandle, TNodeType aType)
 {
     _FAP_ASSERT(aHandle!= NULL);
     xmlNodePtr res = ((xmlNodePtr) aHandle)->prev;
     if (res != NULL) {
-	NodeType type = GetType((void*) res);
+	TNodeType type = GetType((void*) res);
 	while ((res != NULL) && ((res->type != XML_ELEMENT_NODE) || ((aType != ENt_Unknown) ? (type != aType) : (type == ENt_Unknown))))
 	    res = res->prev;
     }
@@ -474,9 +475,9 @@ TNodeAttr CAE_ChromoMdlX::GetAttrNat(const void* aHandle, TNodeAttr aAttr)
     return res;
 }
 
-NodeType CAE_ChromoMdlX::GetAttrNt(const void* aHandle, TNodeAttr aAttr)
+TNodeType CAE_ChromoMdlX::GetAttrNt(const void* aHandle, TNodeAttr aAttr)
 {
-    NodeType res = ENt_Unknown;
+    TNodeType res = ENt_Unknown;
     char* str = GetAttr(aHandle, aAttr);
     if (str != NULL && KNodeTypes.count(str) > 0) {
 	res = KNodeTypes[str];
@@ -486,7 +487,7 @@ NodeType CAE_ChromoMdlX::GetAttrNt(const void* aHandle, TNodeAttr aAttr)
 
 }
 
-void* CAE_ChromoMdlX::AddChild(void* aParent, NodeType aNode)
+void* CAE_ChromoMdlX::AddChild(void* aParent, TNodeType aNode)
 {
     string name = KNodeTypesNames[aNode];
     xmlNodePtr node = xmlNewNode(NULL, (const xmlChar*) name.c_str());
@@ -525,7 +526,7 @@ void* CAE_ChromoMdlX::AddNext(const void* aPrev, const void* aHandle, TBool aCop
     return xmlAddNextSibling((xmlNodePtr) aPrev, node);
 }
 
-void* CAE_ChromoMdlX::AddNext(const void* aPrev, NodeType aNode)
+void* CAE_ChromoMdlX::AddNext(const void* aPrev, TNodeType aNode)
 {
     string name = KNodeTypesNames[aNode];
     xmlNodePtr node = xmlNewNode(NULL, (const xmlChar*) name.c_str());
@@ -543,7 +544,7 @@ void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, const char* aVal)
     }
 }
 
-void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, NodeType aVal)
+void CAE_ChromoMdlX::SetAttr(void* aNode, TNodeAttr aType, TNodeType aVal)
 {
     SetAttr(aNode, aType, KNodeTypesNames[aVal].c_str());
 }
@@ -647,7 +648,7 @@ void CAE_ChromoMdlX::MoveNextTo(void* aHandle, void* aDest)
 // Chromo base
 //*********************************************************
 
-void MAE_Chromo::ParseTname(const string& aTname, NodeType& aType, string& aName)
+void MAE_Chromo::ParseTname(const string& aTname, TNodeType& aType, string& aName)
 {
     size_t tpos = aTname.find("%");
     if (tpos != string::npos) {
@@ -667,7 +668,7 @@ TBool MAE_Chromo::ComparePath(const string& aS1, const string& aS2)
     TBool res = ETrue;
     size_t pos1 = aS1.find_first_of(KPathSep);
     size_t pos2 = aS2.find_first_of(KPathSep);
-    NodeType type1 = ENt_Unknown, type2 = ENt_Unknown;
+    TNodeType type1 = ENt_Unknown, type2 = ENt_Unknown;
     string elem1 = (pos1 != string::npos) ? aS1.substr(0, pos1) : aS1;
     string elem2 = (pos2 != string::npos) ? aS2.substr(0, pos2) : aS2;
     string name1, name2;
@@ -706,12 +707,12 @@ TBool MAE_Chromo::ReplacePathElem(string& aPath, const string& aPathTempl, const
     return res;
 }
 
-string MAE_Chromo::GetTypeId(NodeType aType)
+string MAE_Chromo::GetTypeId(TNodeType aType)
 {
     return (aType == ENt_Unknown) ? "" : KNodeTypesNames[aType];
 }
 
-string MAE_Chromo::GetTName(NodeType aType, const string& aName)
+string MAE_Chromo::GetTName(TNodeType aType, const string& aName)
 {
     if (aType == ENt_Object) {
 	return aName;
@@ -772,7 +773,7 @@ class CAE_ChromoX: public CAE_ChromoBase
 	virtual void Set(const char *aFileName);
 	virtual TBool Set(const string& aUri);
 	virtual void Set(const CAE_ChromoNode& aRoot);
-	virtual void Init(NodeType aRootType);
+	virtual void Init(TNodeType aRootType);
 	virtual void Reset();
 	virtual void Save(const string& aFileName) const;
     private:
@@ -829,7 +830,7 @@ void CAE_ChromoX::Reset()
     iMdl.Reset();
 }
 
-void CAE_ChromoX::Init(NodeType aRootType)
+void CAE_ChromoX::Init(TNodeType aRootType)
 {
     void *root = iMdl.Init(aRootType);
     iRootNode = CAE_ChromoNode(iMdl, root);
@@ -951,7 +952,7 @@ const TTransInfo* CAE_ProviderGen::GetTransf(const char *aName) const
     for (int i = 0; i < count; i++)
     {
 	const TTransInfo* trans =   static_cast<const TTransInfo*>(iTransfs->at(i));
-	if (strcmp(trans->iId, aName) == 0)
+	if (strcmp(trans->Name().c_str(), aName) == 0)
 	{
 	    res = trans;
 	    break;

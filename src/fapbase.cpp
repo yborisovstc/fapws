@@ -45,6 +45,8 @@ const TInt KNameSeparator  = '.';
 const TInt KNameSeparatorLen = 1;
 const TInt KNameMaxLen = 50;
 
+#if 0
+#endif
 // Parameters of XML spec
 const char *KXTransAttr_State = "state";
 const char *KXTransAttr_Type = "type";
@@ -53,9 +55,6 @@ const char *KXTransAttr_LogData = "id";
 const char *KXStateAttr_Transf = "transf";
 const char *KXStateAttr_Init = "init";
 const char *KXStateInpAttr_Id = "id";
-
-// Length of bite automata word 
-const int KBaWordLen = 32;
 
 void Panic(TInt aRes)
 {
@@ -67,12 +66,24 @@ void Panic(TInt aRes)
 // Uri conforms to RFC 3986 
 // Query syntax: (attr_name '=' attr_value) *( ('&' | '|')  (attr_name '=' attr_value))  
 
-map<string, NodeType> DesUri::iEbNameToNType;
+map<string, TNodeType> DesUri::iEbNameToNType;
+map<TLeBase, string> DesUri::iLeventNames;
+map<string, TLeBase> DesUri::iLevents;
 
-extern map<string, NodeType> KNodeTypes;
-extern map<NodeType, string> KNodeTypesNames;
+extern map<string, TNodeType> KNodeTypes;
+extern map<TNodeType, string> KNodeTypesNames;
 extern map<TNodeAttr, string> KNodeAttrsNames;
 extern map<string, TNodeAttr> KNodeAttrs;
+
+const string& DesUri::NodeAttrName(TNodeAttr aAttr)
+{
+    return KNodeAttrsNames[aAttr];
+}
+
+TNodeAttr DesUri::NodeAttr(const string& aAttrName)
+{
+    return KNodeAttrs.count(aAttrName) > 0 ? KNodeAttrs[aAttrName] : ENa_Unknown;
+}
 
 DesUri::DesUri(const string& aUri): iUri(aUri)
 {
@@ -85,12 +96,17 @@ DesUri::DesUri(): iUri()
     Construct();
 }
 
-DesUri::DesUri(CAE_Base* aElem, CAE_Base* aBase)
+DesUri::DesUri(CAE_NBase* aElem, CAE_NBase* aBase)
 {
     Construct();
     PrependElem(aElem, ETrue, aBase);
 }
 
+DesUri::DesUri(TNodeType aType, const string& aName)
+{
+    Construct();
+    AppendElem(aType, aName);
+}
 
 void DesUri::Construct()
 {
@@ -98,8 +114,25 @@ void DesUri::Construct()
     {
 	iEbNameToNType[CAE_Object::Type()] = ENt_Object;
     }
+    if (iLeventNames.size() == 0)
+    {
+	iLeventNames[KBaseLe_None] = "none";
+	iLeventNames[KBaseLe_Creation] = "cre";
+	iLeventNames[KBaseLe_Updated] = "upd";
+	iLeventNames[KBaseLe_Trans] = "tran";
+	iLeventNames[KBaseLe_Any] = "any";
+
+	for (map<TLeBase, string>::const_iterator it = iLeventNames.begin(); it != iLeventNames.end(); it++) {
+	    iLevents[it->second] = it->first;
+	}
+    }
 }
 
+const string& DesUri::LeventName(TLeBase aEvent) 
+{ 
+    if (iLeventNames.size() == 0) Construct(); 
+    return iLeventNames[aEvent];
+};
 
 void DesUri::Parse()
 {
@@ -113,7 +146,7 @@ void DesUri::Parse()
     while (!elem.empty()) {
 	size_t type_end = elem.find_first_of(':');
 	size_t name_beg = 0;
-	NodeType type;
+	TNodeType type;
 	if (type_end == string::npos) {
 	    type = ENt_Object;
 	}
@@ -137,14 +170,29 @@ void DesUri::Parse()
     if (query_beg != string::npos) {
 	// Just one condition for now
 	string query = iUri.substr(query_beg+1);
-	size_t attr_beg = 0;
-	size_t attr_end = query.find_first_of('=', 0);
-	size_t val_beg = attr_end + 1;
-	size_t val_end = string::npos;
-	string attrs = query.substr(attr_beg, attr_end);
-	string val = query.substr(val_beg, val_end);
-	TNodeAttr attr = KNodeAttrs.count(attrs) > 0 ? KNodeAttrs[attrs] : ENa_Unknown;
-	AppendQueryElem(EQop_Unknown, attr, val);
+	size_t cond_beg = 0;
+	size_t cond_end = query.find_first_of("&", cond_beg);
+	string cond = query.substr(cond_beg, cond_end);
+	TQueryOpr op = EQop_Unknown;
+	while (cond_beg != string::npos && !cond.empty()) {
+	    size_t attr_beg = 0;
+	    size_t attr_end = cond.find_first_of('=', 0);
+	    size_t val_beg = attr_end + 1;
+	    size_t val_end = string::npos;
+	    string attrs = cond.substr(attr_beg, attr_end);
+	    string val = cond.substr(val_beg, val_end);
+	    TNodeAttr attr = KNodeAttrs.count(attrs) > 0 ? KNodeAttrs[attrs] : ENa_Unknown;
+	    AppendQueryElem(op, attr, val);
+	    char ops = cond_end == string::npos ? ' ' : query.at(cond_end);
+	    op = EQop_Unknown;
+	    if (ops == '&') 
+		op = EQop_And;
+	    cond_beg = cond_end == string::npos ? string::npos : cond_end + 1;
+	    if (cond_beg != string::npos) {
+		cond_end = query.find_first_of("&", cond_beg);
+		cond = query.substr(cond_beg, cond_end);
+	    }
+	}
     }
 }
 
@@ -178,7 +226,7 @@ string DesUri::GetUri(vector<TElem>::const_iterator aStart) const
     return res;
 }
 
-NodeType DesUri::GetType() const
+TNodeType DesUri::GetType() const
 {
     TInt size = iElems.size();
     return size == 0 ? ENt_Unknown : iElems.at(size -1).first;
@@ -190,33 +238,22 @@ string DesUri::GetName() const
     return size == 0 ? string() : iElems.at(size -1).second;
 }
 
-void DesUri::AppendElem(NodeType aType, const string& aName)
+void DesUri::AppendElem(TNodeType aType, const string& aName)
 {
     iElems.push_back(TElem(aType, aName));
 }
 
-void DesUri::PrependElem(NodeType aType, const string& aName)
+void DesUri::PrependElem(TNodeType aType, const string& aName)
 {
     iElems.insert(iElems.begin(), TElem(aType, aName));
 }
 
 // TODO [YB] To redesign the run-time model basing on treee. To have method of prepending uri in tree node base class
-void DesUri::PrependElem(CAE_Base* aElem, TBool aRec, CAE_Base* aBase)
+void DesUri::PrependElem(CAE_NBase* aElem, TBool aRec, CAE_NBase* aBase)
 {
     if (aElem != aBase) {
-	CAE_Object* obj = aElem->GetFbObj(obj);
-	CAE_Base* base = NULL;
-	if (obj != NULL) {
-	    base = obj->iMan;
-	    PrependElem(ENt_Object, obj->InstName());
-	}
-	else {
-	    CAE_StateBase* state = aElem->GetFbObj(state);
-	    if (state !=NULL) {
-		base = state->iMan;
-		PrependElem(ENt_State, state->InstName());
-	    }
-	}
+	CAE_NBase* base = aElem->Owner();
+	PrependElem(aElem->NodeType(), aElem->Name());
 	if (aRec && base != NULL && base != aBase) {
 	    PrependElem(base, aRec, aBase);
 	}
@@ -228,6 +265,35 @@ void DesUri::AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aVal
     iQueryElems.push_back(TQueryElem(aOpr, TQueryCnd(aAttr, aValue)));
 }
 
+// Node base
+
+void *CAE_NBase::DoGetFbObj(const char *aName)
+{
+    return (strcmp(aName, Type()) == 0) ? this : NULL;
+}
+
+TBool CAE_NBase::ChangeAttr(TNodeAttr aAttr, const string& aVal) 
+{ 
+    TBool res = EFalse;
+    if (aAttr == ENa_Id) {
+	// Re-register in owner
+	// TODO [YB] Consider nodifying of attr change
+	if (Owner() != NULL) {
+	    Owner()->OnElemDeleting(this);
+	    iInstName = aVal;
+	    Owner()->OnElemAdding(this);
+	    res = ETrue;
+	}
+    }
+    return res;
+};
+
+// Log spec
+
+TLogSpecBase::~TLogSpecBase()
+{
+    Owner()->OnElemDeleting(this);
+}
 
 // Notifier base
 
@@ -324,6 +390,8 @@ TBool CAE_ConnSlot::IsEmpty() const
     return res;
 }
 
+// Connection point base
+
 TBool CAE_ConnPointBase::Disextend()
 {
     TBool res = ETrue;
@@ -343,6 +411,17 @@ TBool CAE_ConnPointBase::SetDisextended()
 }
 
 
+void *CAE_ConnPointBase::DoGetFbObj(const char *aName)
+{
+    void* res = NULL;
+    if (strcmp(aName, Type()) == 0) {
+	res = this;
+    }
+    else {
+    }
+    return res;
+}
+
 /*
 CAE_ConnPoint::CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): 
     iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
@@ -351,8 +430,8 @@ CAE_ConnPoint::CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsT
 }
 */
 
-CAE_ConnPoint::CAE_ConnPoint(const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
-	const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): CAE_ConnPointBase(aName, aMan),
+CAE_ConnPoint::CAE_ConnPoint(TNodeType aNodeType, const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
+	const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): CAE_ConnPointBase(aNodeType, aName, aMan),
     iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
 {
     iSrcs = new CAE_ConnSlot(iSrcsTempl);
@@ -366,23 +445,8 @@ CAE_ConnPoint::~CAE_ConnPoint()
 
 void *CAE_ConnPoint::DoGetFbObj(const char *aName)
 {
-    return (strcmp(aName, Type()) == 0) ? this : NULL;
+    return (strcmp(aName, Type()) == 0) ? this : CAE_ConnPointBase::DoGetFbObj(aName);
 }
-
-/*
-TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint) 
-{
-    TBool res = EFalse;
-    // Adding new slot
-    CAE_ConnSlot *slot = new CAE_ConnSlot(iDestsTempl);
-    // Copy Srcs from connected point to created slot
-    res = slot->Set(*(aConnPoint->Srcs()));
-    if (res) {
-	iDests.push_back(slot);
-    }
-    return res;
-}
-*/
 
 TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint) 
 {
@@ -540,30 +604,6 @@ TBool CAE_ConnPoint::Disconnect()
     return res;
 }
 
-#if 0
-    TBool CAE_ConnPoint::Disconnect()
-    {
-    TBool res = ETrue;
-    // Go thru dests and disconnect any pins connected to pair
-    for (vector<CAE_ConnSlot*>::iterator ids = iDests.begin(); ids != iDests.end(); ids++) {
-	CAE_ConnSlot& dest = *(*ids);
-	for (map<string, string>::iterator idt = iDestsTempl.begin(); idt != iDestsTempl.end(); idt++) {
-	    string did = idt->first;
-	    CAE_Base* pin = dest.Pins()[did];
-	    if (pin != NULL) {
-		// Activate srcs to be disconnected 
-		CAE_EBase* srce = pin->GetFbObj(srce);
-		if (srce != NULL) {
-		    srce->SetActive();
-		}
-		dest.Pins()[did] = NULL;
-	    }
-	}
-    }
-    return res;
-}
-#endif
-
 TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint) 
 {
     _FAP_ASSERT(0);
@@ -598,7 +638,15 @@ TBool CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
 
 void *CAE_ConnPointExt::DoGetFbObj(const char *aName)
 {
-    return (strcmp(aName, Type()) == 0) ? this : ((iRef != NULL) ? iRef->GetFbObj(aName) : NULL);
+    void* res = NULL;
+    if (strcmp(aName, Type()) == 0) 
+	res = this;
+    else { 
+	res = CAE_ConnPointBase::DoGetFbObj(aName);
+	if (res == NULL && iRef != NULL)
+	    res = iRef->GetFbObj(aName);
+    }
+    return res;
 }
 
 // TODO [YB] Is it used?
@@ -821,7 +869,7 @@ TBool CAE_ConnPointExtC::SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOn
 
 void *CAE_ConnPointExtC::DoGetFbObj(const char *aName)
 {
-    return (strcmp(aName, Type()) == 0) ? this : NULL;
+    return (strcmp(aName, Type()) == 0) ? this : CAE_ConnPointBase::DoGetFbObj(aName);
 }
 
 TInt CAE_ConnPointExtC::SlotTempl::SrcCnt(const char* aName) {return iSrcs.count(aName);};
@@ -838,18 +886,101 @@ CAE_ConnPointExtC::Slot::Slot(const SlotTempl& aTempl)
     }
 }
 
-// Extention
+// Connection base
 
-CAE_Ext::CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair): CAE_NBase(ENt_Cext, aPoint->Name() + "@" + aPair->Name()), 
+CAE_ConnBase::CAE_ConnBase(TNodeType aNodeType, CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner): 
+    CAE_NBase(aNodeType, aPoint->Name(), aOwner), 
     iPoint(aPoint), iPair(aPair)
 {
+}
+
+CAE_ConnBase::~CAE_ConnBase()
+{
+    Owner()->OnElemDeleting(this);
+}
+
+TBool CAE_ConnBase::IsMetQuery(const DesUri& aUri)
+{
+    TBool res = ETrue;
+    const vector<DesUri::TQueryElem>& qr = aUri.QueryElems();
+    for (vector<DesUri::TQueryElem>::const_iterator it = qr.begin(); it != qr.end(); it++) {
+	DesUri::TQueryOpr op = it->first;
+	TBool lres = EFalse;
+	TNodeAttr attr = it->second.first;
+	const string& attrname = it->second.second;
+	if (attr == ENa_Id) {
+	    DesUri puri(iPoint, Owner());
+	    lres = attrname.compare(puri.GetUri()) == 0;
+	}
+	else if (attr == ENa_ConnPair) {
+	    DesUri pairuri(iPair, Owner());
+	    lres = attrname.compare(pairuri.GetUri()) == 0;
+	}
+	if (op == DesUri::EQop_Unknown) {
+	    res = lres;
+	}
+	else if (op == DesUri::EQop_And) {
+	    res = res && lres;
+	}
+    }
+    return res;
+}
+
+// Extention 
+
+CAE_Ext::CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner): 
+    CAE_ConnBase(ENt_Cext, aPoint, aPair, aOwner) 
+{
+    iIsValid =  Connect();
+}
+
+CAE_Ext::~CAE_Ext()
+{
+    if (iIsValid) {
+	Disconnect();
+    }
+}
+
+TBool CAE_Ext::Connect()
+{
+    return (iPoint->Extend(iPair) && iPair->SetExtended(iPoint));
+}
+
+TBool CAE_Ext::Disconnect()
+{
+    return iPoint->Disextend(iPair, ETrue) && iPair->SetDisextended();
+}
+
+// Connection 
+
+CAE_Conn::CAE_Conn(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner): 
+    CAE_ConnBase(ENt_Conn, aPoint, aPair, aOwner) 
+{
+    iIsValid =  Connect();
+}
+
+CAE_Conn::~CAE_Conn()
+{
+    if (iIsValid) {
+	Disconnect();
+    }
+}
+
+TBool CAE_Conn::Connect()
+{
+    return (iPoint->Connect(iPair) && iPair->Connect(iPoint));
+}
+
+TBool CAE_Conn::Disconnect()
+{
+    return iPoint->Disconnect(iPair, ETrue) && iPair->Disconnect(iPoint, ETrue);
 }
 
 
 // CAE_EBase
 
-CAE_EBase::CAE_EBase(NodeType aNodeType, const string& aInstName, CAE_Object* aMan): CAE_NBase(aNodeType, aInstName), 
-	iTypeName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iQuiet(EFalse), iLogSpec(NULL)
+CAE_EBase::CAE_EBase(TNodeType aNodeType, const string& aInstName, CAE_Object* aMan): CAE_NBase(aNodeType, aInstName), 
+	iTypeName(NULL), iMan(aMan), iUpdated(ETrue), iActive(ETrue), iQuiet(EFalse)
 {
 };
 
@@ -880,45 +1011,38 @@ FAPWS_API CAE_EBase::~CAE_EBase()
 {
     if (iTypeName != NULL)
 	free(iTypeName);
-    if (iLogSpec != NULL)
-	delete iLogSpec;
+    for (map<string, TLogSpecBase*>::reverse_iterator it = iLogSpec.rbegin(); it != iLogSpec.rend(); ) {
+	map<string, TLogSpecBase*>::reverse_iterator nit = it;
+	nit++;
+	delete (it->second);
+	it = nit;
+    }
+    iLogSpec.clear();
 }
 
-void CAE_EBase::AddLogSpec(TInt aEvent, TInt aData)
+void CAE_EBase::AddLogSpec(TLeBase aEvent, TInt aData)
 {
-    if (iLogSpec == NULL)
-    {
-	iLogSpec = new vector<TLogSpecBase>;
-    }
-    _FAP_ASSERT (iLogSpec != NULL);
-    iLogSpec->push_back(TLogSpecBase(aEvent, aData));
+    TLogSpecBase* logspec = new TLogSpecBase(aEvent, aData, this);
+    iLogSpec[logspec->Name()] = logspec;
 }
 
 void CAE_EBase::RemLogSpec()
 {
-    if (iLogSpec != NULL) {
-	iLogSpec->clear();
-    }
+	iLogSpec.clear();
 }
 
-TInt CAE_EBase::GetLogSpecData(TInt aEvent) const
+TInt CAE_EBase::GetLogSpecData(TLeBase aEvent) const
 {	
-    TInt res = KBaseDa_None;
-    for (TInt i = 0; iLogSpec && i < iLogSpec->size(); i++)
-    {
-	const TLogSpecBase& spec = iLogSpec->at(i);
-	if (spec.iEvent == aEvent) {
-	    res = spec.iData; break;
-	}
-    }
-    return res;
+    const string& ename = DesUri::LeventName(aEvent);
+    map<string, TLogSpecBase*>::const_iterator it = iLogSpec.find(ename);
+    return it != iLogSpec.end() ? it->second->iData: KBaseDa_None;
 }
 
 const char* CAE_EBase::MansName(TInt aLevel) const 
 { 
     CAE_EBase *man = iMan; 
     for (TInt i=aLevel; i > 0 && man != NULL && man->iMan != NULL; i--) man = man->iMan;
-    return (man == NULL)? "": man->InstName().c_str();
+    return (man == NULL)? "": man->Name().c_str();
 }
 
 // From CAE_Base
@@ -930,7 +1054,39 @@ void *CAE_EBase::DoGetFbObj(const char *aName)
 	return NULL;
 }
 
-TTransInfo::TTransInfo(const string& aETrans): iFun(NULL), iOpInd(0), iHandle(NULL), iId(NULL)
+CAE_NBase* CAE_EBase::GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase)
+{
+    CAE_NBase* res = NULL;
+    vector<DesUri::TElem>::const_iterator it = aPathBase;
+    DesUri::TElem elem = *it;
+    if (elem.first == ENt_Object) {
+	if (elem.second.compare("..") == 0) {
+	    res = iMan->GetNode(aUri, ++it);
+	}
+    }
+    else if (elem.first == ENt_Logspec) {
+	res = iLogSpec.count(elem.second) > 0 ? iLogSpec[elem.second] : NULL;
+    }
+    if (res != NULL && ++it != aUri.Elems().end()) {
+	res = res->GetNode(aUri, it);
+    }
+    return res;
+}
+
+void CAE_EBase::OnElemDeleting(CAE_NBase* aElem)
+{
+    TNodeType nt = aElem->NodeType();
+    if (nt == ENt_Logspec) {
+	map<string, TLogSpecBase*>::iterator it = iLogSpec.find(aElem->Name());
+	if (it != iLogSpec.end()) {
+	    iLogSpec.erase(it); 
+	}
+    }
+}
+
+// Trans inofo
+
+TTransInfo::TTransInfo(const string& aETrans, CAE_NBase* aOwner): CAE_NBase(ENt_Trans, aOwner), iFun(NULL), iOpInd(0)
 {
     FormatEtrans(aETrans, iETrans);
 }
@@ -955,6 +1111,12 @@ void TTransInfo::FormatEtrans(const string& aTrans, string& aRes)
     };
 }
 
+TBool TTransInfo::ChangeCont(const string& aVal)
+{
+    iETrans.erase();
+    FormatEtrans(aVal, iETrans);
+}
+
 // ******************************************************************************
 // CAE_StateBase - state base
 // ******************************************************************************
@@ -969,8 +1131,10 @@ CAE_StateBase::CAE_StateBase(const char* aInstName, CAE_Object* aMan,  TTransInf
 
 CAE_StateBase::~CAE_StateBase()
 {
-    if (iMan != NULL)
-	iMan->UnregisterState(this);
+//    if (iMan != NULL)
+//	iMan->UnregisterState(this);
+    if (Owner() != NULL)
+	Owner()->OnElemDeleting(this);
     // Delete inputs and outputs
     for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++) {
 	CAE_ConnPointBase* cpoint = i->second;
@@ -983,6 +1147,33 @@ CAE_StateBase::~CAE_StateBase()
     }
 }
 
+void CAE_StateBase::OnElemDeleting(CAE_NBase* aElem)
+{
+    TNodeType nt = aElem->NodeType();
+    if (nt == ENt_Stinp) {
+	map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aElem->Name());
+	_FAP_ASSERT(it != iInputs.end());
+	iInputs.erase(it);
+    }
+    else {
+	CAE_EBase::OnElemDeleting(aElem);
+    }
+}
+
+void CAE_StateBase::OnElemAdding(CAE_NBase* aElem)
+{
+    _FAP_ASSERT(aElem != NULL);
+    TNodeType nt = aElem->NodeType();
+    if (nt == ENt_Stinp) {
+	CAE_ConnPointBase* elem = aElem->GetFbObj(elem);
+	_FAP_ASSERT(elem != NULL && iInputs.count(elem->Name()) == 0);
+	iInputs.insert(pair<string, CAE_ConnPointBase*>(elem->Name(), elem));
+    }
+    else {
+	CAE_EBase::OnElemAdding(aElem);
+    }
+}
+
 void CAE_StateBase::ConstructL()
 {
     if (iMan)
@@ -990,11 +1181,11 @@ void CAE_StateBase::ConstructL()
     CAE_ConnSlot::Template dt, st;
     dt["_1"]  = "State";
     st["_1"]  = "State";
-    CAE_ConnPoint *outp = new CAE_ConnPoint("output", this, st, dt); 
+    CAE_ConnPoint *outp = new CAE_ConnPoint(ENt_Soutp, "output", this, st, dt); 
     iOutput = outp;
     outp->Srcs()->SetPin("_1", this);
     if (Logger())
-	Logger()->WriteFormat("State created:: Name: %s", InstName().c_str());
+	Logger()->WriteFormat("State created:: Name: %s", Name().c_str());
 }
 
 CAE_StateBase::mult_point_inp_iterator CAE_StateBase::MpInput_begin(const char *aName) 
@@ -1019,13 +1210,13 @@ void CAE_StateBase::LogUpdate(TInt aLogData)
     if (buf_new == NULL)
 	buf_new = strdup("undefined");
     if (aLogData & KBaseDa_New && aLogData & KBaseDa_Curr)
-	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <= %s", MansName(1), MansName(0), InstName().c_str(), buf_new, buf_cur);
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <= %s", MansName(1), MansName(0), Name().c_str(), buf_new, buf_cur);
     else if (aLogData & KBaseDa_New)
-	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s", MansName(1), MansName(0), InstName().c_str(), buf_new);
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s", MansName(1), MansName(0), Name().c_str(), buf_new);
     // Loggin inputs
     if (aLogData & KBaseDa_Dep)
     {
-	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <<<<< ", MansName(1), MansName(0), InstName().c_str(), buf_new);
+	Logger()->WriteFormat("Updated state [%s.%s.%s]: %s <<<<< ", MansName(1), MansName(0), Name().c_str(), buf_new);
 	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
@@ -1050,11 +1241,11 @@ void CAE_StateBase::LogTrans(TInt aLogData)
     char *buf_cur = DataToStr(ETrue);
     char *buf_new = DataToStr(EFalse);
     if (aLogData & KBaseDa_Curr)
-	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s", MansName(1), MansName(0), InstName().c_str(), buf_cur);
+	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s", MansName(1), MansName(0), Name().c_str(), buf_cur);
     // Loggin inputs
     if (aLogData & KBaseDa_Dep)
     {
-	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s via ", MansName(1), MansName(0), InstName().c_str(), buf_cur);
+	Logger()->WriteFormat("Transf state [%s.%s.%s]: ?? <= %s via ", MansName(1), MansName(0), Name().c_str(), buf_cur);
 	for (map<string, CAE_ConnPointBase*>::iterator i = iInputs.begin(); i != iInputs.end(); i++)
 	{
 	    CAE_ConnPoint* cpoint = i->second->GetFbObj(cpoint);
@@ -1077,7 +1268,7 @@ CAE_StateBase* CAE_StateBase::Input(const char* aName)
     CAE_StateBase *res = NULL;
     map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aName);
     if (it == iInputs.end()) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName().c_str(), aName);
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), Name().c_str(), aName);
     }
     else {
 	CAE_ConnPoint *inp = it->second->GetFbObj(inp);
@@ -1086,7 +1277,7 @@ CAE_StateBase* CAE_StateBase::Input(const char* aName)
 	    res = (refb != NULL) ? refb->GetFbObj(res) : NULL;
 	}
 	if (res == NULL) {
-	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName().c_str(), aName);
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), Name().c_str(), aName);
 	}
     }
     return res;
@@ -1096,13 +1287,13 @@ void CAE_StateBase::AddInputL(const char* aName)
 {
     TBool exists = iInputs.find(aName) != iInputs.end();
     if (exists) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), InstName().c_str(), aName);
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already exists", MansName(1), MansName(0), Name().c_str(), aName);
 	_FAP_ASSERT(!exists);
     }
     CAE_ConnSlot::Template dt, st;
     st["_1"]  = "State";
     dt["_1"]  = "State";
-    CAE_ConnPoint *cpoint = new CAE_ConnPoint(aName, this, st, dt);
+    CAE_ConnPoint *cpoint = new CAE_ConnPoint(ENt_Stinp, aName, this, st, dt);
     cpoint->Srcs()->SetPin("_1", this);
     pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
     bool bres = res.second;
@@ -1122,7 +1313,7 @@ void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState)
     TBool exists = iInputs.find(name) != iInputs.end();
     if (!exists) {
 	if (Logger())
-	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName().c_str(), name);
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), Name().c_str(), name);
 	_FAP_ASSERT(name);
     }
     // For extended input add the input because only template input was added on creation
@@ -1133,7 +1324,7 @@ void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState)
     CAE_ConnPointBase *out = aState->Output();
     if (!inp->Connect(out) || !out->Connect(inp)) {
 	if (Logger())
-	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), InstName().c_str(), aName);
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] already connected", MansName(1), MansName(0), Name().c_str(), aName);
 	_FAP_ASSERT(EFalse);
 	    };
     free(name);
@@ -1228,11 +1419,50 @@ multimap<string, CSL_ExprBase*>::iterator CAE_StateBase::GetExprs(const string& 
 
 CAE_NBase* CAE_StateBase::GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase)
 {
+    CAE_NBase* res = NULL;
+    vector<DesUri::TElem>::const_iterator it = aPathBase;
+    DesUri::TElem elem = *it;
+    if (elem.first == ENt_Object) {
+	if (elem.second.compare("..") == 0) {
+	    res = iMan->GetNode(aUri, ++it);
+	}
+    }
+    else if (elem.first == ENt_Stinp) {
+	res = iInputs.count(elem.second) > 0 ? iInputs[elem.second] : NULL;
+    }
+    else if (elem.first == ENt_Soutp) {
+	res = iOutput;
+    }
+    else if (elem.first == ENt_Trans) {
+	res = &iTrans;
+    }
+    else  {
+	res = CAE_EBase::GetNode(aUri, aPathBase);
+    }
+    if (res != NULL && ++it != aUri.Elems().end()) {
+	res = res->GetNode(aUri, it);
+    }
+    return res;
 }
 
 void CAE_StateBase::RmNode(const DesUri& aUri)
 {
 }
+
+TBool CAE_StateBase::ChangeAttr(TNodeAttr aAttr, const string& aVal) 
+{ 
+    TBool res = EFalse;
+    if (aAttr == ENa_StInit) {
+	SetFromStr(aVal.c_str());
+	Confirm();
+	res = ETrue;
+    }
+    else {
+	res = CAE_EBase::ChangeAttr(aAttr, aVal);
+    }
+    return res;
+};
+
 
 // ******************************************************************************
 // CAE_State - state handling owned data
@@ -1479,7 +1709,7 @@ TBool CAE_ChromoNode::AttrBool(TNodeAttr aAttr) const
     return (attr == "yes"); 
 };
 
-void CAE_ChromoNode::ParseTname(const string& aTname, NodeType& aType, string& aName)
+void CAE_ChromoNode::ParseTname(const string& aTname, TNodeType& aType, string& aName)
 {
     size_t tpos = aTname.find("%");
     if (tpos != string::npos) {
@@ -1508,7 +1738,7 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Parent()
 CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName) 
 { 
     Iterator res = End();
-    NodeType type = ENt_Unknown;
+    TNodeType type = ENt_Unknown;
     size_t pos = aName.find(".");
     string tname = aName.substr(0, pos);
     string name;
@@ -1529,7 +1759,7 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(const string& aName)
 // TODO [YB] Node name should not contain ".". Reconsider nodes "conn" etc.
 // TODO [YB] Unclear logic of find. We find recursivelly here, but what is type in this case. Acc to logic all the 
 // hierarhy level should be same type. What is sence of that?
-CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aName) 
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(TNodeType aType, const string& aName) 
 { 
     CAE_ChromoNode::Iterator res = End();
     size_t pos = aName.find("/");
@@ -1545,7 +1775,7 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aNam
     return res;
 };
 
-CAE_ChromoNode::Const_Iterator CAE_ChromoNode::Find(NodeType aType, const string& aName) const
+CAE_ChromoNode::Const_Iterator CAE_ChromoNode::Find(TNodeType aType, const string& aName) const
 { 
     CAE_ChromoNode::Const_Iterator res = End();
     for (CAE_ChromoNode::Const_Iterator it = Begin(); it != End(); it++) {
@@ -1556,7 +1786,7 @@ CAE_ChromoNode::Const_Iterator CAE_ChromoNode::Find(NodeType aType, const string
     return res;
 };
 
-CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal)
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(TNodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal)
 {
     CAE_ChromoNode::Iterator res = End();
     for (CAE_ChromoNode::Iterator it = Begin(); it != End(); it++) {
@@ -1569,7 +1799,7 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, TNodeAttr aAttr, c
     return res;
 };
 
-CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal)
+CAE_ChromoNode::Iterator CAE_ChromoNode::Find(TNodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal)
 {
     CAE_ChromoNode::Iterator res = End();
     for (CAE_ChromoNode::Iterator it = Begin(); it != End(); it++) {
@@ -1589,7 +1819,7 @@ CAE_ChromoNode::Iterator CAE_ChromoNode::Find(NodeType aType, const string& aNam
 
 FAPWS_API CAE_Object::CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv):
     CAE_EBase(ENt_Object, aInstName, aMan), iChromX(NULL), iEnv(aEnv), iMut(NULL), iChromo(NULL), iChromoIface(*this),
-    iCtrl(*this), iOpv(NULL)
+    iCtrl(*this), iOpv(NULL), iTransSrc(this)
 {
     if (iMan != NULL) 
 	iMan->RegisterCompL(this);
@@ -1620,23 +1850,6 @@ FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, 
     return self;
 }
 
-FAPWS_API CAE_Object* CAE_Object::NewL(const char* aInstName, CAE_Object* aMan, const void* aChrom, MAE_Env* aEnv)
-{
-	CAE_Object* self = new CAE_Object(aInstName, aMan, aEnv);
-	self->SetChromosome(EChromOper_Copy, aChrom);
-	// TODO [YB] To add chrom mutation
-	self->ConstructL(NULL);
-	return self;
-}
-
-FAPWS_API void CAE_Object::SetChromosome(TChromOper aOper, const void* aChrom1, const char* aChrom2)
-{
-    if (aChrom1 != NULL)
-    {
-	iEnv->Chman()->CopySpec(aChrom1, &iChromX);	
-    }
-}
-
 void CAE_Object::Construct()
 {
     iMut = iEnv->Provider()->CreateChromo();
@@ -1648,34 +1861,19 @@ void CAE_Object::Construct()
     croot.SetAttr(ENa_Type, "none");
 }
 
-// On construction phase object is created from given chromosome
-// If chromosome isn't given and provider exists then chromosome is created randomly
-// There is restrictions of mutation implemented on construction phase:
-// If there is the locus with the unallowed allele then it's considered as mutation
-// and the allele is generated randomly in the legal value interval   
-
-// TODO [YB] Do we need ConstructL? It's just wrapper of ConstructFromChromXL
-void CAE_Object::ConstructL(const void* aChrom)
-{
-    if (aChrom != NULL)
-	ConstructFromChromXL(aChrom);
-    else if (iChromX != NULL)
-	ConstructFromChromXL(iChromX);
-}
-
 void  CAE_Object::RegisterCompL(CAE_EBase* aComp) 
 { 
     CAE_Object* comp = aComp->GetFbObj(comp);
     if (comp != NULL) {
-	_FAP_ASSERT(iComps.count(aComp->InstName()) == 0);
-	iComps.insert(pair<string, CAE_Object*>(comp->InstName(), comp));
+	_FAP_ASSERT(iComps.count(aComp->Name()) == 0);
+	iComps.insert(pair<string, CAE_Object*>(comp->Name(), comp));
 	iCompsOrd.push_back(comp);
     }
     else {
 	CAE_StateBase* state = aComp->GetFbObj(state);
 	_FAP_ASSERT(state != NULL);
-	_FAP_ASSERT(iStates.count(aComp->InstName()) == 0);
-	iStates.insert(pair<string, CAE_StateBase*>(state->InstName(), state));
+	_FAP_ASSERT(iStates.count(aComp->Name()) == 0);
+	iStates.insert(pair<string, CAE_StateBase*>(state->Name(), state));
     }
     aComp->SetMan(this);
     if (aComp->IsUpdated()) SetUpdated();
@@ -1703,294 +1901,16 @@ void CAE_Object::Activate()
     }
 }
 
-// TODO [YB] To support referencing to object in spec instead of direct definition
-// TODO [YB] To add object proxy state 
-FAPWS_API void CAE_Object::ConstructFromChromXL(const void* aChromX)
-{
-    MAE_ChroMan *chman = iEnv->Chman();
-    MAE_Provider *prov = iEnv->Provider();
-    _FAP_ASSERT(chman != NULL);
-    char *name = chman->GetName((void *) aChromX);
-    char *type = chman->GetType((void *) aChromX);
-    if (InstName().empty() && name != NULL && strlen(name) != 0)
-    {
-	SetName(name);
-    }
-    if (iTypeName == NULL && type != NULL && strlen(type) != 0)
-    {
-	SetType(type);
-    }
-    Logger()->WriteFormat("Object constructing. Name: %s, Parent: %s", InstName().c_str(), TypeName());
-    // Pass thru children
-    void *child = NULL;
-    // Go thru children list in spec and create the children
-    for (child = chman->GetChild((void *) aChromX); child != NULL; child = chman->GetNext(child))
-    {
-	TCaeElemType ftype = chman->FapType(child);
-	// TODO [YB] Incorrect approach for creating subsystem. It should be created clean or cloned and then mutated.
-	if (ftype == ECae_Object)
-	{
-	    char *sparent = chman->GetStrAttr(child, KXTransAttr_Type);
-	    char *sname = chman->GetName(child); 
-	    // TODO [YB] To propagate quiet to all hierarchy
-	    char *squiet = chman->GetStrAttr(child, "quiet");
-	    if (strcmp(sparent, "none") == 0) {
-		CAE_Object *obj = CAE_Object::NewL(NULL, this, child, iEnv);
-		if (obj == NULL) {
-		    Logger()->WriteFormat("ERROR: Creating object [%s]", sname);
-		}
-		else {
-		    obj->SetQuiet(squiet != NULL);
-		    if (squiet != NULL) {
-			Logger()->WriteFormat("ATTENTION: Object [%s] created as quiet", sname);
-		    }
-		}
-	    }
-	    else {
-		CAE_Object *parent = GetComp(sparent);
-		if (parent == NULL) {
-		    Logger()->WriteFormat("ERROR: Creating object [%s] - parent [%s] not found", sname, sparent);
-		}
-		else {
-		    parent->CreateNewL(child, sname, this);
-		}
-	    }
-	}
-	else if (ftype == ECae_State)
-	{
-	    CAE_StateBase *state = NULL;
-	    TCaeMut mut = chman->MutType(child);
-	    _FAP_ASSERT(mut != ECaeMut_None);
-	    char *stype = chman->GetStrAttr(child, KXTransAttr_Type);
-	    char *name = chman->GetName(child); 
-	    int len = chman->GetLen(child); 
-	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
-	    const TTransInfo *trans = NULL;
-	    if (transf_name != NULL)
-	    {
-		trans = prov->GetTransf(transf_name);
-		if (trans == NULL)
-		    Logger()->WriteFormat("ERROR: Transition [%s] not found", name);
-		_FAP_ASSERT(trans != NULL);
-	    }
-	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
-	    if (mut == ECaeMut_Add) {
-		state = prov->CreateStateL(stype, name, this);  
-		if (state == NULL)
-		    Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
-	    }
-	    else if (mut == ECaeMut_Change) {
-		state = (CAE_StateBase *) FindByName(name);
-		if (state == NULL)
-		    Logger()->WriteFormat("ERROR: Changing state [%s]: state not found", name);
-	    }
-	    else /* mut == ECaeMut_Del */ {
-	    }
-	    if (state != NULL)
-	    {
-		if (trans != NULL)
-		    state->SetTrans(*trans);
-		// Go thru state elements
-		for (void *stelem = chman->GetChild(child); stelem != NULL; stelem = chman->GetNext(stelem))
-		{
-		    TCaeElemType stetype = chman->FapType(stelem);
-		    if (stetype == ECae_Logspec)
-		    {
-			// Set logspec 
-			char *sevent = chman->GetStrAttr(stelem, KXTransAttr_LogEvent);
-			TInt event = LsEventFromStr(sevent);
-			// Get logging data
-			TInt ldata = 0;
-			for (void *lselem = chman->GetChild(stelem); lselem != NULL; lselem = chman->GetNext(lselem))
-			{
-			    TCaeElemType lstype = chman->FapType(lselem);
-			    if (lstype == ECae_Logdata)
-			    {
-				char *sdata = chman->GetStrAttr(lselem, KXTransAttr_LogData);
-				TInt data = LsDataFromStr(sdata);
-				ldata |= data;
-			    }
-			    else
-			    {
-				Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(lselem));
-			    }
-			}
-			state->AddLogSpec(event, ldata);
-		    }
-		    else if (stetype == ECae_Stinp) {
-			// Set inputs
-			char *sinpid = chman->GetStrAttr(stelem, KXStateInpAttr_Id);
-			if (sinpid == NULL)
-			    Logger()->WriteFormat("ERROR: Creating state [%s]: empty input name", name);
-			else {
-			    CreateStateInp(stelem, state);
-			    //state->AddInputL(sinpid);
-			}
-		    }
-		    else
-		    {
-			Logger()->WriteFormat("ERROR: Unknown type [%s]", chman->GetName(stelem));
-		    }
-		}
-		if (init != NULL) {
-		    state->SetFromStr(init);
-		    state->Confirm();
-		}
-	    }
-	}
-	// State mutation
-	// TODO [YB] This is obsolete - to remove
-	else if (ftype == ECae_State_Mut)
-	{
-	    char *name = chman->GetName(child); 
-	    char *transf_name = chman->GetStrAttr(child, KXStateAttr_Transf);
-	    char *init = chman->GetStrAttr(child, KXStateAttr_Init);
-	    CAE_StateBase* state = (CAE_StateBase *) FindByName(name);
-	    if (state == NULL) {
-		Logger()->WriteFormat("ERROR: Mutating state [%s]: state not found", name);
-	    }
-	    if (init != NULL) {
-		state->SetFromStr(init);
-		state->Confirm();
-	    }
-	}
-	// Object input
-	else if (ftype == ECae_Stinp) {
-	    CreateConn(child, iInputs);
-	}
-	// Object output
-	else if (ftype == ECae_Soutp) {
-	    CreateConn(child, iOutputs);
-	}
-	// Connection
-	else if (ftype == ECae_Conn)
-	{
-	    char *p1_name = chman->GetStrAttr(child,"id"); 
-	    char *p2_name = chman->GetStrAttr(child,"pair"); 
-	    if ((p1_name != NULL) && (p2_name != NULL))
-	    {
-		CAE_ConnPointBase* p1 = GetConn(p1_name);
-		CAE_ConnPointBase* p2 = GetConn(p2_name);
-		if ((p1 != NULL) && (p2 != NULL))
-		{
-		    if (!p1->Connect(p2) || ! p2->Connect(p1))
-		    {
-			Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: failure", p1_name, p2_name);
-		    }
-		}
-		else if (p2 == NULL) {
-		    Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: [%s] not found", p1_name, p2_name, p2_name);
-		}
-		else {
-		    Logger()->WriteFormat("ERROR: Connecting [%s] <> [%s]: [%s] not found", p1_name, p2_name, p1_name);
-		}
-	    }
-	}
-	// Connecting extention
-	else if (ftype == ECae_Cext)
-	{
-	    char *p1_name = chman->GetStrAttr(child,"id"); 
-	    char *p2_name = chman->GetStrAttr(child,"pair"); 
-	    if ((p1_name != NULL) && (p2_name != NULL))
-	    {
-		CAE_ConnPointBase* p1 = GetConn(p1_name);
-		CAE_ConnPointBase* p2 = GetConn(p2_name);
-		if ((p1 != NULL) && (p2 != NULL))
-		{
-		    if (!p1->Extend(p2) && !p2->Extend(p1))
-		    {
-			Logger()->WriteFormat("ERROR: Extention [%s] <- [%s]: failure", p1_name, p2_name);
-		    }
-		}
-		else if (p2 == NULL) {
-		    Logger()->WriteFormat("ERROR: Extending [%s] <-  [%s]: [%s] not found", p1_name, p2_name, p2_name);
-		}
-		else {
-		    Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: [%s] not found", p1_name, p2_name, p1_name);
-		}
-	    }
-	}
-	// Custom Connecting extention
-	else if (ftype == ECae_Cextc)
-	{
-	    char *exname = chman->GetStrAttr(child,"id"); 
-	    if (exname != NULL)
-	    {
-		CAE_ConnPointBase* epb = GetConn(exname);
-		CAE_ConnPointExtC* ep = epb->GetFbObj(ep);
-		if (ep != NULL) {
-		    // Create slog
-		    CAE_ConnPointExtC::Slot slot(ep->Templ());
-		    // Go thru custom extention elements
-		    for (void *elem = chman->GetChild(child); elem != NULL; elem = chman->GetNext(elem))
-		    {
-			TCaeElemType etype = chman->FapType(elem);
-			if (etype == ECae_CextcSrc)
-			{
-			    char *pin_name = chman->GetStrAttr(elem,"id"); 
-			    char *pair_name = chman->GetStrAttr(elem,"pair"); 
-			    CAE_ConnPointBase* pairb = GetConn(pair_name);
-			    if (ep->Templ().Srcs().count(pin_name) > 0) {
-				if (pairb != NULL) {
-				    // [YB] So far the default pin in pair is used
-				    slot.Srcs()[pin_name] = CAE_ConnPointExtC::Slot::slot_elem(pairb, "_1");
-				}
-				else {
-				    Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s]: pair [%s] not found", exname, pin_name, pair_name);
-				}
-			    }
-			    else {
-				Logger()->WriteFormat("ERROR: Custom extenion [%s]: pin [%s]  not found", exname, pin_name);
-			    }
-			}
-			else if (etype == ECae_CextcDest)
-			{
-			    char *pin_name = chman->GetStrAttr(elem,"id"); 
-			    char *pair_name = chman->GetStrAttr(elem,"pair"); 
-			    CAE_ConnPointBase* pairb = GetConn(pair_name);
-			    if (ep->Templ().Dests().count(pin_name) > 0) {
-				if (pairb != NULL) {
-				    // [YB] So far the default pin in pair is used
-				    slot.Dests()[pin_name] = CAE_ConnPointExtC::Slot::slot_elem(pairb, "_1");
-				}
-				else {
-				    Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s]: pair [%s] not found", exname, pin_name, pair_name);
-				}
-			    }
-			    else {
-				Logger()->WriteFormat("ERROR: Custom extenion [%s]: pin [%s]  not found", exname, pin_name);
-			    }
-			}
-			else {
-			    Logger()->WriteFormat("ERROR: Custom extenion [%s]: unknown spec element", exname);
-			}
-
-		    }
-		    // Add the slot
-		    ep->Slots().push_back(slot);
-		}
-		else {
-		    Logger()->WriteFormat("ERROR: Custom extenion [%s] : conn point not found", exname);
-		}
-	    }
-	}
-	else
-	{
-	    // TODO Exception to be raised
-	}
-    }
-}
-
 void CAE_Object::CreateStateInp(void* aSpecNode, CAE_StateBase *aState) 
 {
     TBool r_dest_spec = EFalse;
     MAE_ChroMan *chman = iEnv->Chman();
     char *name = chman->GetStrAttr(aSpecNode, KXStateInpAttr_Id);
     if (name == NULL)
-	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName().c_str(), name);
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", Name().c_str(), name);
     else {
 	if (aState->Inputs().count(name) > 0) {
-	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName().c_str(), name);
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), Name().c_str(), name);
 	    _FAP_ASSERT(EFalse);
 	}
 	CAE_ConnSlot::Template st, dt;
@@ -2012,7 +1932,7 @@ void CAE_Object::CreateStateInp(void* aSpecNode, CAE_StateBase *aState)
 	if (!r_dest_spec) {
 	    dt["_1"] = "State";
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint(name, aState, st, dt);
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(ENt_Stinp, name, aState, st, dt);
 	cpoint->Srcs()->SetPin("_1", aState);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
@@ -2024,10 +1944,10 @@ void CAE_Object::CreateStateInp(const CAE_ChromoNode& aSpec, CAE_StateBase *aSta
     const string sname = aSpec.Name();
     const char *name = sname.c_str();
     if (sname.empty())
-	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName().c_str(), name);
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", Name().c_str(), name);
     else {
 	if (aState->Inputs().count(name) > 0) {
-	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName().c_str(), name);
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), Name().c_str(), name);
 	    _FAP_ASSERT(EFalse);
 	}
 	CAE_ConnSlot::Template st, dt;
@@ -2048,28 +1968,28 @@ void CAE_Object::CreateStateInp(const CAE_ChromoNode& aSpec, CAE_StateBase *aSta
 	if (!r_dest_spec) {
 	    dt["_1"] = "State";
 	}
-	CAE_ConnPoint *cpoint = new CAE_ConnPoint(name, aState, st, dt);
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(ENt_Stinp, name, aState, st, dt);
 	cpoint->Srcs()->SetPin("_1", aState);
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aState->Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
     }
 }
 
 
-void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns) 
+void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp) 
 {
     MAE_ChroMan *chman = iEnv->Chman();
     char *name = chman->GetStrAttr(aSpecNode, KXStateInpAttr_Id);
     if (name == NULL)
-	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName().c_str(), name);
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", Name().c_str(), name);
     else {
 	if (aConns.count(name) > 0) {
-	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName().c_str(), name);
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), Name().c_str(), name);
 	    _FAP_ASSERT(EFalse);
 	}
 	CAE_ConnPointBase* cp = NULL;
 	if (chman->GetChild(aSpecNode) != NULL) {
 	    // There are pins spec - Commutating extender
-	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(name, this);
+	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(aInp? ENt_Stinp: ENt_Soutp, name, this);
 	    cp = cpoint;
 	    for (void *elem = chman->GetChild(aSpecNode); elem != NULL; elem = chman->GetNext(elem)) {
 		TCaeElemType etype = chman->FapType(elem);
@@ -2087,27 +2007,27 @@ void CAE_Object::CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aC
 	}
 	else {
 	    // Simple extender
-	    cp = new CAE_ConnPointExt(name, this);
+	    cp = new CAE_ConnPointExt(aInp? ENt_Stinp: ENt_Soutp, name, this);
 	}
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(name, cp));
     }
 }
 
-void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns) 
+void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp) 
 {
     const string sname = aSpecNode.Name();
     const char* name = sname.c_str();
     if (sname.empty())
-	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", InstName().c_str(), name);
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", Name().c_str(), name);
     else {
 	if (aConns.count(sname) > 0) {
-	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), InstName().c_str(), name);
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), Name().c_str(), name);
 	    _FAP_ASSERT(EFalse);
 	}
 	CAE_ConnPointBase* cp = NULL;
 	if ((aSpecNode.Find(ENt_CpSource) != aSpecNode.End()) || (aSpecNode.Find(ENt_CpDest) != aSpecNode.End()))  {
 	    // There are pins spec - Commutating extender
-	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(sname, this);
+	    CAE_ConnPointExtC *cpoint = new CAE_ConnPointExtC(aInp? ENt_Stinp: ENt_Soutp, sname, this);
 	    for (CAE_ChromoNode::Const_Iterator it = aSpecNode.Begin(); it != aSpecNode.End(); it++) {
 		CAE_ChromoNode node = (*it);
 		if (node.Type() == ENt_CpSource) {
@@ -2121,7 +2041,7 @@ void CAE_Object::AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPo
 	}
 	else {
 	    // Simple extender
-	    cp = new CAE_ConnPointExt(sname, this);
+	    cp = new CAE_ConnPointExt(aInp? ENt_Stinp: ENt_Soutp, sname, this);
 	}
 	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = aConns.insert(pair<string, CAE_ConnPointBase*>(sname, cp));
     }
@@ -2160,6 +2080,57 @@ FAPWS_API CAE_Object::~CAE_Object()
 	iChromo = NULL;
     }
 };
+
+void CAE_Object::OnElemDeleting(CAE_NBase* aElem)
+{
+    TNodeType nt = aElem->NodeType();
+    if (nt == ENt_Cext) {
+	for (vector<CAE_Ext*>::iterator it = iExts.begin(); it != iExts.end(); it++) {
+	    if (*it == aElem) {
+		iExts.erase(it); break;
+	    }
+	}
+    }
+    else if (nt == ENt_Conn) {
+	for (vector<CAE_Conn*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+	    if (*it == aElem) {
+		iConns.erase(it); break;
+	    }
+	}
+    }
+    else if (nt == ENt_State) {
+	map<string, CAE_StateBase*>::iterator it = iStates.find(aElem->Name());
+	_FAP_ASSERT(it != iStates.end());
+	iStates.erase(it);
+    }
+    else if (nt == ENt_Object) {
+	map<string, CAE_Object*>::iterator it = iComps.find(aElem->Name());
+	_FAP_ASSERT(it != iComps.end());
+	iComps.erase(it);
+    }
+    else {
+	CAE_NBase::OnElemDeleting(aElem);
+    }
+}
+
+void CAE_Object::OnElemAdding(CAE_NBase* aElem)
+{
+    _FAP_ASSERT(aElem != NULL);
+    TNodeType nt = aElem->NodeType();
+    if (nt == ENt_State) {
+	CAE_StateBase* elem = aElem->GetFbObj(elem);
+	_FAP_ASSERT(elem != NULL && iStates.count(elem->Name()) == 0);
+	iStates.insert(pair<string, CAE_StateBase*>(elem->Name(), elem));
+    }
+    else if (nt == ENt_Object) {
+	CAE_Object* elem = aElem->GetFbObj(elem);
+	_FAP_ASSERT(elem != NULL && iComps.count(elem->Name()) == 0);
+	iComps.insert(pair<string, CAE_Object*>(elem->Name(), elem));
+    }
+    else {
+	CAE_NBase::OnElemAdding(aElem);
+    }
+}
 
 TInt CAE_Object::LsEventFromStr(const char *aStr)
 {
@@ -2212,7 +2183,7 @@ void CAE_Object::Confirm()
 	    // Log muta spec
 	    TInt logdata = GetLogSpecData(KBaseLe_Updated);
 	    if (logdata != KBaseDa_None) {
-		Logger()->WriteFormat("Updated object [%s.%s.%s]:", MansName(1), MansName(0), InstName().c_str());
+		Logger()->WriteFormat("Updated object [%s.%s.%s]:", MansName(1), MansName(0), Name().c_str());
 		iMut->Root().Dump(Logger());
 	    }
 	    Mutate();
@@ -2270,7 +2241,7 @@ CAE_Object* CAE_Object::AddObject(const CAE_ChromoNode& aNode)
 		string frag;
 		CAE_ChromoBase::GetFrag(sparent, frag);
 		if (frag.empty()) {
-		    sparfull.append(string("#") + parent->InstName());
+		    sparfull.append(string("#") + parent->Name());
 		}
 	    }
 	}
@@ -2364,7 +2335,7 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 			Logger()->WriteFormat("ERROR: Unknown type [%s]", aname.c_str());
 		    }
 		}
-		state->AddLogSpec(event, ldata);
+		state->AddLogSpec((TLeBase) event, ldata);
 	    }
 	    else if (stelem.Type() == ENt_Stinp) {
 		// Set inputs
@@ -2398,6 +2369,36 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 		state->Confirm();
 	    }
 	}
+    }
+}
+
+void CAE_Object::AddConn_v1(const CAE_ChromoNode& aSpec)
+{
+    string sname = aSpec.Name();
+    string spair = aSpec.Attr(ENa_ConnPair);
+    const char *p1_name = sname.c_str(); 
+    const char *p2_name = spair.c_str(); 
+    CAE_NBase* np1 = CAE_NBase::GetNode(sname);
+    CAE_NBase* np2 = CAE_NBase::GetNode(spair);
+    if ((np1 != NULL) && (np2 != NULL))
+    {
+	CAE_ConnPointBase* p1 = np1->GetFbObj(p1);
+	CAE_ConnPointBase* p2 = np2->GetFbObj(p2);
+	if ((p1 != NULL) && (p2 != NULL)) {
+	    CAE_Conn* conn = new CAE_Conn(p1, p2, this);
+	    if (conn != NULL && conn->IsValid()) {
+		iConns.push_back(conn);
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Connecting [%s] <- [%s]: failure", p1_name, p2_name);
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Connecting [%s] <- [%s]: point [%s] not found", p1_name, p2_name, (p1 == NULL) ? p1_name: p2_name);
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Connecting [%s] <- [%s]: node [%s] not found", p1_name, p2_name, (np1 == NULL) ? p1_name: p2_name);
     }
 }
 
@@ -2435,108 +2436,34 @@ void CAE_Object::AddTrans(const CAE_ChromoNode& aSpec)
 // TODO [YB] To migrate to node base class method "RmNode"
 void CAE_Object::RmNode(const DesUri& aUri)
 {
-    NodeType type = aUri.GetType();
+    TNodeType type = aUri.GetType();
     string name = aUri.GetName();
     string suri = aUri.GetUri();
-    if (type == ENt_State || type == ENt_Object) {
-	CAE_NBase* node = CAE_NBase::GetNode(aUri);
-	if (node != NULL) {
-	    delete node;
-	}
-	else {
-	    Logger()->WriteFormat("ERROR: Deleting [%s] - cannot find node", suri.c_str());
+    CAE_NBase* node = CAE_NBase::GetNode(aUri);
+    if (node != NULL) {
+	delete node;
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Deleting [%s] - cannot find node", suri.c_str());
+    }
+}
+
+void CAE_Object::ChangeAttr_v2(const CAE_ChromoNode& aSpec)
+{
+    string snode = aSpec.Attr(ENa_MutNode);
+    string mattrs = aSpec.Attr(ENa_MutChgAttr);
+    string mval = aSpec.Attr(ENa_MutChgVal);
+    DesUri unode(snode);
+    CAE_NBase* node = CAE_NBase::GetNode(unode);
+    if (node != NULL) {
+	TBool res = node->ChangeAttr(DesUri::NodeAttr(mattrs), mval);
+	if (!res) {
+	    Logger()->WriteFormat("ERROR: Changing [%s] - failure", snode.c_str());
 	}
     }
-#if 0
-    if (type == ENt_State) {
-	CAE_Object* comp = GetComp(snode);
-	if (comp->iStates.count(name) != 0) {
-	    CAE_StateBase* state = comp->iStates[name];
-	    comp->iStates.erase(name);
-	    delete state;
-	}
-	else {
-	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find [%s]", InstName(), name.c_str());
-	}
+    else {
+	Logger()->WriteFormat("ERROR: Changing [%s] - cannot find node", snode.c_str());
     }
-    else if (type == ENt_Object) {
-	CAE_Object* elem = GetComp(snode);
-	if (elem != NULL) {
-	    elem->iMan->UnregisterComp(elem);
-	    delete elem;
-	}
-	else {
-	    Logger()->WriteFormat("ERROR: Deleting comp from  [%s] - cannot find [%s]", InstName(), name.c_str());
-	}
-    }
-    else if (type == ENt_Conn) {
-	CAE_Object* comp = GetComp(snode);
-	TNodeAttr mattr = ENa_Unknown;
-	string attval;
-	if (!unode.QueryElems().empty()) {
-	    mattr = unode.QueryElems().at(0).second.first;
-	    attval = unode.QueryElems().at(0).second.second;
-	}
-	if (mattr == ENa_ConnPair) {
-	    string pairname = attval;
-	    CAE_ConnPointBase* conn = GetConn(name.c_str());
-	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
-	    if (conn != NULL && pair != NULL) {
-		if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
-		{
-		    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName(), name.c_str(), pairname.c_str());
-		}
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName(), 
-			name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
-	    }
-	}
-	else if (mattr == ENa_Unknown) {
-	    CAE_ConnPointBase* conn = GetConn(name.c_str());
-	    if (conn != NULL) {
-		if (!conn->Disconnect())
-		{
-		    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]:  failed", name.c_str(), InstName());
-		}
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: cannot find", name.c_str(), InstName()); 
-	    }
-	}
-	else {
-	    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
-	}
-    }
-    else if (type == ENt_Cext) {
-	// Has not be completed. Waiting for migration no node run-time arch to minimize getting connection node.
-	_FAP_ASSERT(0);
-	CAE_Object* comp = GetComp(snode);
-	TNodeAttr mattr = ENa_Unknown;
-	string attval;
-	if (!unode.QueryElems().empty()) {
-	    mattr = unode.QueryElems().at(0).second.first;
-	    attval = unode.QueryElems().at(0).second.second;
-	}
-	if (mattr == ENa_ConnPair) {
-	    string pairname = attval;
-	    CAE_ConnPointBase* ext = GetConn(name.c_str());
-	    CAE_ConnPointBase* pair = GetConn(pairname.c_str());
-	    if (ext != NULL && pair != NULL) {
-		if (!ext->Disextend(pair) || !pair->SetDisextended(ext)) {
-		    Logger()->WriteFormat("ERROR: Deleting extention from  [%s - %s] - failed", name.c_str(), pairname.c_str());
-		}
-	    }
-	    else {
-		Logger()->WriteFormat("ERROR: Deleting extention from  [%s] - cannot find point [%s]", InstName(), 
-			(ext == NULL ? name : pairname).c_str());
-	    }
-	}
-	else {
-	    Logger()->WriteFormat("ERROR: Deleting extention [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName()); 
-	}
-    }
-#endif
 }
 
 // TODO [YB] For now it is not possible to have "multipoint" output that extends multiple output conn points. To implement.
@@ -2566,6 +2493,36 @@ void CAE_Object::AddExt(const CAE_ChromoNode& aSpec)
     }
 }
 
+void CAE_Object::AddExt_v1(const CAE_ChromoNode& aSpec)
+{
+    string sname = aSpec.Name();
+    string spair = aSpec.Attr(ENa_ConnPair);
+    const char *p1_name = sname.c_str(); 
+    const char *p2_name = spair.c_str(); 
+    CAE_NBase* np1 = CAE_NBase::GetNode(sname);
+    CAE_NBase* np2 = CAE_NBase::GetNode(spair);
+    if ((np1 != NULL) && (np2 != NULL))
+    {
+	CAE_ConnPointBase* p1 = np1->GetFbObj(p1);
+	CAE_ConnPointBase* p2 = np2->GetFbObj(p2);
+	if ((p1 != NULL) && (p2 != NULL)) {
+	    CAE_Ext* ext = new CAE_Ext(p1, p2, this);
+	    if (ext != NULL && ext->IsValid()) {
+		iExts.push_back(ext);
+	    }
+	    else {
+		Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: failure", p1_name, p2_name);
+	    }
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: point [%s] not found", p1_name, p2_name, (p1 == NULL) ? p1_name: p2_name);
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Extending [%s] <- [%s]: node [%s] not found", p1_name, p2_name, (np1 == NULL) ? p1_name: p2_name);
+    }
+}
+
 // TODO [YB] There is functionality in ExtC of extending multiple connection point
 // But this functionality missed in simple extender
 void CAE_Object::AddExtc(const CAE_ChromoNode& aSpec)
@@ -2583,7 +2540,7 @@ void CAE_Object::AddExtc(const CAE_ChromoNode& aSpec)
 	    for (CAE_ChromoNode::Const_Iterator elemit = aSpec.Begin(); elemit != aSpec.End(); elemit++)
 	    {
 		CAE_ChromoNode elem = *elemit;
-		NodeType etype = elem.Type();
+		TNodeType etype = elem.Type();
 		if (etype == ENt_CextcSrc)
 		{
 		    string spin_name = elem.Name();
@@ -2638,10 +2595,82 @@ void CAE_Object::AddExtc(const CAE_ChromoNode& aSpec)
     }
 }
 
+void CAE_Object::AddExtc_v1(const CAE_ChromoNode& aSpec)
+{
+    string stexname = aSpec.Name();
+    const char *exname = stexname.c_str(); 
+    if (!stexname.empty())
+    {
+	CAE_NBase* epn = CAE_NBase::GetNode(stexname);
+	CAE_ConnPointExtC* ep = epn != NULL? epn->GetFbObj(ep): NULL;
+	if (ep != NULL) {
+	    // Create slog
+	    CAE_ConnPointExtC::Slot slot(ep->Templ());
+	    // Go thru custom extention elements
+	    for (CAE_ChromoNode::Const_Iterator elemit = aSpec.Begin(); elemit != aSpec.End(); elemit++)
+	    {
+		CAE_ChromoNode elem = *elemit;
+		TNodeType etype = elem.Type();
+		if (etype == ENt_CextcSrc)
+		{
+		    string spin_name = elem.Name();
+		    const char *pin_name = spin_name.c_str(); 
+		    string spair_name = elem.Attr(ENa_ConnPair);
+		    const char *pair_name = spair_name.c_str(); 
+		    CAE_NBase* pairn = CAE_NBase::GetNode(spair_name);
+		    CAE_ConnPointBase* pairb = pairn != NULL ? pairn->GetFbObj(pairb): NULL;
+		    if (ep->Templ().Srcs().count(pin_name) > 0) {
+			if (pairb != NULL) {
+			    // [YB] So far the default pin in pair is used
+			    slot.Srcs()[pin_name] = CAE_ConnPointExtC::Slot::slot_elem(pairb, "_1");
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s]: pair [%s] not found", exname, pin_name, pair_name);
+			}
+		    }
+		    else {
+			Logger()->WriteFormat("ERROR: Custom extenion [%s]: pin [%s]  not found", exname, pin_name);
+		    }
+		}
+		else if (etype == ENt_CextcDest)
+		{
+		    string spin_name = elem.Name();
+		    const char *pin_name = spin_name.c_str(); 
+		    string spair_name = elem.Attr(ENa_ConnPair);
+		    const char *pair_name = spair_name.c_str(); 
+		    CAE_NBase* pairn = CAE_NBase::GetNode(spair_name);
+		    CAE_ConnPointBase* pairb = pairn != NULL ? pairn->GetFbObj(pairb): NULL;
+		    if (ep->Templ().Dests().count(pin_name) > 0) {
+			if (pairb != NULL) {
+			    // [YB] So far the default pin in pair is used
+			    slot.Dests()[pin_name] = CAE_ConnPointExtC::Slot::slot_elem(pairb, "_1");
+			}
+			else {
+			    Logger()->WriteFormat("ERROR: Custom extenion [%s],[%s]: pair [%s] not found", exname, pin_name, pair_name);
+			}
+		    }
+		    else {
+			Logger()->WriteFormat("ERROR: Custom extenion [%s]: pin [%s]  not found", exname, pin_name);
+		    }
+		}
+		else {
+		    Logger()->WriteFormat("ERROR: Custom extenion [%s]: unknown spec element", exname);
+		}
+
+	    }
+	    // Add the slot
+	    ep->Slots().push_back(slot);
+	}
+	else {
+	    Logger()->WriteFormat("ERROR: Custom extenion [%s] : conn point not found", exname);
+	}
+    }
+}
+
 
 void CAE_Object::ChangeChromoAttr(CAE_ChromoNode& aMutSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr)
 {
-    NodeType ntype = aMutSpec.AttrNtype(ENa_Type);
+    TNodeType ntype = aMutSpec.AttrNtype(ENa_Type);
     string nname = aMutSpec.Name();
     TNodeAttr mattr = aMutSpec.AttrNatype(ENa_MutChgAttr);
     string mattrs = aMutSpec.Attr(ENa_MutChgAttr);
@@ -2656,16 +2685,6 @@ void CAE_Object::ChangeChromoAttr(CAE_ChromoNode& aMutSpec, CAE_ChromoNode& aCtx
 		CAE_ChromoNode parent1 = *(aCurr.Parent());
 		if (parent1.Type() == ENt_Object) {
 		    // Change the name in extensions subject (current level)
-		    // Seems direct changing here (not via mut) is more efective, using it for now
-#if 0
-		    CAE_ChromoNode chenode = aMutSpec.AddNext(ENt_MutChange);
-		    chenode.SetAttr(ENa_Type, ENt_Cext);
-		    chenode.SetAttr(ENa_Id, curval);
-		    chenode.SetAttr(ENa_MutChgAttr, ENa_Id);
-		    chenode.SetAttr(ENa_MutChgVal, mval);
-		    DoMutationMut(chenode, aCtxNode, NULL, EFalse);
-		    chenode.Rm();
-#endif
 		    CAE_ChromoNode::Iterator chenodei = parent1.Find(ENt_Cext, ENa_Id, curval);
 		    if (chenodei != parent1.End()) {
 			CAE_ChromoNode chenode = *chenodei;
@@ -2741,7 +2760,7 @@ void CAE_Object::ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& a
 void CAE_Object::ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
     string tname = aSpec.Attr(ENa_MutNode);
-    NodeType ntype = ENt_Unknown;
+    TNodeType ntype = ENt_Unknown;
     string nname;
     iChromo->Root().ParseTname(tname, ntype, nname);
     string mval = aSpec.Attr(ENa_MutChgVal);
@@ -2765,7 +2784,7 @@ void CAE_Object::ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 void CAE_Object::ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
     string tname = aSpec.Attr(ENa_MutNode);
-    NodeType ntype = ENt_Unknown;
+    TNodeType ntype = ENt_Unknown;
     string nname;
     iChromo->Root().ParseTname(tname, ntype, nname);
     string mval = aSpec.Attr(ENa_MutChgVal);
@@ -2788,7 +2807,7 @@ void CAE_Object::ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 
 void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
-    NodeType ntype = aSpec.AttrNtype(ENa_Type);
+    TNodeType ntype = aSpec.AttrNtype(ENa_Type);
     string nname = aSpec.Name();
     TNodeAttr mattr = aSpec.AttrNatype(ENa_MutChgAttr);
     string mattrs = aSpec.Attr(ENa_MutChgAttr);
@@ -2815,13 +2834,13 @@ void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 #if 0
 		    MAE_Provider *prov = iEnv->Provider();
 		    state->SetType(mval.c_str());
-		    newstate = prov->CreateStateL(mval.c_str(), state->InstName(), this);  
+		    newstate = prov->CreateStateL(mval.c_str(), state->Name(), this);  
 		    iStates[mval] = newstate;
 		    delete state;
 #endif
 		}
 		else {
-		    Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName().c_str(), mattrs.c_str());
+		    Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->Name().c_str(), mattrs.c_str());
 		}
 	    }
 	    else {
@@ -2886,7 +2905,7 @@ void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 		obj->SetQuiet(mval.compare("yes") == 0);
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName().c_str(), mattrs.c_str());
+		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->Name().c_str(), mattrs.c_str());
 	    }
 	}
 	else {
@@ -2910,13 +2929,13 @@ void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 		    cps[mval] = cp;
 		}
 		else {
-		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->InstName().c_str(), nname.c_str());
+		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->Name().c_str(), nname.c_str());
 		}
 
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->InstName().c_str());
+	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->Name().c_str());
 	}
     }
     else if (ntype == ENt_Trans)
@@ -2936,7 +2955,7 @@ void CAE_Object::ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 
 void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
-    NodeType ntype = aSpec.AttrNtype(ENa_Type);
+    TNodeType ntype = aSpec.AttrNtype(ENa_Type);
     string nname = aSpec.Name();
     TNodeAttr mattr = aSpec.AttrNatype(ENa_MutChgAttr);
     string mattrs = aSpec.Attr(ENa_MutChgAttr);
@@ -2960,7 +2979,7 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 		state->SetType(mval.c_str());
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->InstName().c_str(), mattrs.c_str());
+		Logger()->WriteFormat("ERROR: Changing state [%s] - changing attr [%s] not supported", state->Name().c_str(), mattrs.c_str());
 	    }
 	}
 	else {
@@ -3017,7 +3036,7 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 		iComps[mval] = obj;
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->InstName().c_str(), mattrs.c_str());
+		Logger()->WriteFormat("ERROR: Changing object [%s] - changing attr [%s] not supported", obj->Name().c_str(), mattrs.c_str());
 	    }
 	}
 	else {
@@ -3041,13 +3060,13 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 		    cps[mval] = cp;
 		}
 		else {
-		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->InstName().c_str(), nname.c_str());
+		    Logger()->WriteFormat("ERROR: Changing node [%s] - attr [%s] not found", aNode->Name().c_str(), nname.c_str());
 		}
 
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->InstName().c_str());
+	    Logger()->WriteFormat("ERROR: Changing node [%s] attr -  node type not supproted", aNode->Name().c_str());
 	}
     }
     else if (ntype == ENt_Trans)
@@ -3065,7 +3084,7 @@ void CAE_Object::ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 
 void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
-    NodeType type = aSpec.AttrNtype(ENa_Type);
+    TNodeType type = aSpec.AttrNtype(ENa_Type);
     string name = aSpec.Name();
     TNodeAttr mattr = ENa_Unknown;
     string attval;
@@ -3082,11 +3101,11 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 	    if (conn != NULL && pair != NULL) {
 		if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
 		{
-		    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName().c_str(), name.c_str(), pairname.c_str());
+		    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", Name().c_str(), name.c_str(), pairname.c_str());
 		}
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName().c_str(), 
+		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", Name().c_str(), 
 			name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
 	    }
 	}
@@ -3095,15 +3114,15 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 	    if (conn != NULL) {
 		if (!conn->Disconnect())
 		{
-		    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]:  failed", name.c_str(), InstName().c_str());
+		    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]:  failed", name.c_str(), Name().c_str());
 		}
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: cannot find", name.c_str(), InstName().c_str()); 
+		Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: cannot find", name.c_str(), Name().c_str()); 
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName().c_str()); 
+	    Logger()->WriteFormat("ERROR: Deleting connection [%s] from  [%s]: unknown spec of node to delete", name.c_str(), Name().c_str()); 
 	}
     }
     else if (type == ENt_Cext) {
@@ -3117,12 +3136,12 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 		}
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Deleting extention from  [%s] - cannot find point [%s]", InstName().c_str(), 
+		Logger()->WriteFormat("ERROR: Deleting extention from  [%s] - cannot find point [%s]", Name().c_str(), 
 			(ext == NULL ? name : pairname).c_str());
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting extention [%s] from  [%s]: unknown spec of node to delete", name.c_str(), InstName().c_str()); 
+	    Logger()->WriteFormat("ERROR: Deleting extention [%s] from  [%s]: unknown spec of node to delete", name.c_str(), Name().c_str()); 
 	}
     }
     else if (type == ENt_State) {
@@ -3130,7 +3149,7 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 	    iStates.erase(name);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", Name().c_str(), name.c_str());
 	}
     }
     else if (type == ENt_Object) {
@@ -3138,14 +3157,14 @@ void CAE_Object::RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 	    iComps.erase(name);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting component from  [%s] - cannot find [%s]", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Deleting component from  [%s] - cannot find [%s]", Name().c_str(), name.c_str());
 	}
     }
     else if (type == ENt_Logspec) {
 	aNode->RemLogSpec();
     }
     else {
-	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName().c_str());
+	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", Name().c_str());
     }
 }
 
@@ -3153,7 +3172,7 @@ void CAE_Object::MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 {
     CAE_ChromoNode& croot = iChromo->Root();
     DesUri src(aSpec.Attr(ENa_Id));
-    NodeType srctype = src.Elems().at(0).first;
+    TNodeType srctype = src.Elems().at(0).first;
     string srcname = src.Elems().at(0).second;
     DesUri dest(aSpec.Attr(ENa_MutNode));
     string destname = dest.Elems().at(0).second;
@@ -3195,7 +3214,7 @@ void CAE_Object::MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 // TODO [YB] To consider keeping connection as object's elem (id required). It would simplilify handling of conn.
 void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr)
 {
-    NodeType type = aCurr.Type();
+    TNodeType type = aCurr.Type();
     string name = aCurr.Name();
     CAE_ChromoNode& chr = iChromo->Root();
     if (type == ENt_Conn) {
@@ -3206,11 +3225,11 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	if (conn != NULL && pair != NULL) {
 	    if (!conn->Disconnect(pair) || !pair->Disconnect(conn))
 	    {
-		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", InstName().c_str(), name.c_str(), pairname.c_str());
+		Logger()->WriteFormat("ERROR: Deleting connection from  [%s]:  [%s] <> [%s] - failed", Name().c_str(), name.c_str(), pairname.c_str());
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", InstName().c_str(), 
+	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s]: [%s] <> [%s] - cannot find [%s]", Name().c_str(), 
 		    name.c_str(), pairname.c_str(), (conn == NULL ? name : pairname).c_str());
 	}
     }
@@ -3224,7 +3243,7 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", InstName().c_str(), 
+	    Logger()->WriteFormat("ERROR: Deleting connection from  [%s] - cannot find connection [%s]", Name().c_str(), 
 		    (ext == NULL ? name : pairname).c_str());
 	}
     }
@@ -3233,7 +3252,7 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	    iStates.erase(name);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Deleting state from  [%s] - cannot find state [%s]", Name().c_str(), name.c_str());
 	}
     }
     else if (type == ENt_Object) {
@@ -3241,7 +3260,7 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	    iComps.erase(name);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Deleting component from  [%s] - cannot find [%s]", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Deleting component from  [%s] - cannot find [%s]", Name().c_str(), name.c_str());
 	}
     }
     else if (type == ENt_Trans) {
@@ -3253,7 +3272,7 @@ void CAE_Object::RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const
 	aNode->RemLogSpec();
     }
     else {
-	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", InstName().c_str());
+	Logger()->WriteFormat("ERROR: Deleting element from  [%s] - unsupported element type for deletion", Name().c_str());
     }
 }
 
@@ -3295,7 +3314,7 @@ void CAE_Object::AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec)
 	    Logger()->WriteFormat("ERROR: Unknown type [%s]", aname.c_str());
 	}
     }
-    aNode->AddLogSpec(event, ldata);
+    aNode->AddLogSpec((TLeBase) event, ldata);
 }
 
 
@@ -3315,7 +3334,7 @@ void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtx
 	    else if (mano.Type() == ENt_Stinp) {
 		CAE_Object* obj = node->GetFbObj(obj);
 		if (obj != NULL) {
-		    AddConn(mano, obj->iInputs);
+		    AddConn(mano, obj->iInputs, ETrue);
 		}
 		else {
 		    CAE_StateBase* state = node->GetFbObj(state);
@@ -3323,12 +3342,12 @@ void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtx
 			CreateStateInp(mano, state);
 		    }
 		    else {
-			Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName().c_str());
+			Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->Name().c_str());
 		    }
 		}
 	    }
 	    else if (mano.Type() == ENt_Soutp) {
-		AddConn(mano, iOutputs);
+		AddConn(mano, iOutputs, EFalse);
 	    }
 	    else if (mano.Type() == ENt_State) {
 		AddState(mano);
@@ -3337,7 +3356,8 @@ void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtx
 		AddConn(mano);
 	    }
 	    else if (mano.Type() == ENt_Cext) {
-		AddExt(mano);
+		//AddExt(mano);
+		AddExt_v1(mano);
 	    }
 	    else if (mano.Type() == ENt_Cextc) {
 		AddExtc(mano);
@@ -3349,16 +3369,18 @@ void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtx
 		AddLogspec(node, mano);
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName().c_str());
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", Name().c_str());
 	    }
 	}
     }
     else if (mno.Type() == ENt_MutRm) 
     {
-	RemoveElem_v1(node, mno);
+	_FAP_ASSERT(0);
+	//RemoveElem_v1(node, mno);
     }
     else if (mno.Type() == ENt_MutChange) 
     {
+	_FAP_ASSERT(0);
 	ChangeAttr_v1(node, mno);
     }
     else if (mno.Type() == ENt_MutChangeCont) 
@@ -3371,7 +3393,7 @@ void CAE_Object::DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtx
     }
     else
     {
-	Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName().c_str());
+	Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", Name().c_str());
     }
 }
 
@@ -3394,7 +3416,7 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
 	    else if (mano.Type() == ENt_Stinp) {
 		CAE_Object* obj = node->GetFbObj(obj);
 		if (obj != NULL) {
-		    AddConn(mano, obj->iInputs);
+		    AddConn(mano, obj->iInputs, ETrue);
 		}
 		else {
 		    CAE_StateBase* state = node->GetFbObj(state);
@@ -3402,12 +3424,12 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
 			CreateStateInp(mano, state);
 		    }
 		    else {
-			Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->InstName().c_str());
+			Logger()->WriteFormat("ERROR: Mutating node [%s] - adding inp not supported", node->Name().c_str());
 		    }
 		}
 	    }
 	    else if (mano.Type() == ENt_Soutp) {
-		AddConn(mano, iOutputs);
+		AddConn(mano, iOutputs, EFalse);
 	    }
 	    else if (mano.Type() == ENt_State) {
 		AddState(mano);
@@ -3428,7 +3450,7 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
 		AddLogspec(node, mano);
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", InstName().c_str());
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown element to be added", Name().c_str());
 	    }
 	    // Change chromo
 	    mnode.AddChild(mano);
@@ -3436,7 +3458,7 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
     }
     else if (mno.Type() == ENt_MutRm) 
     {
-	NodeType type = mno.AttrNtype(ENa_Type);
+	TNodeType type = mno.AttrNtype(ENa_Type);
 	string name = mno.Name();
 	CAE_ChromoNode::Iterator remit = mnode.End();
 	if (mno.AttrExists(ENa_MutChgAttr)) {
@@ -3453,12 +3475,12 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
 	    mnode.RmChild(*remit);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to remove", Name().c_str(), name.c_str());
 	}
     }
     else if (mno.Type() == ENt_MutChange) 
     {
-	NodeType type = mno.AttrNtype(ENa_Type);
+	TNodeType type = mno.AttrNtype(ENa_Type);
 	string name = mno.Name();
 	CAE_ChromoNode::Iterator curr = mnode.Find(type, name);
 	if (curr != mnode.End()) {
@@ -3471,7 +3493,7 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
 	    ChangeChromoAttr(mno, mnode, currn);
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", InstName().c_str(), name.c_str());
+	    Logger()->WriteFormat("ERROR: Mutating object [%s] - cannot find node [%s] to change", Name().c_str(), name.c_str());
 	}
     }
     else if (mno.Type() == ENt_MutChangeCont) 
@@ -3488,7 +3510,7 @@ void CAE_Object::DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aCtxNod
     }
     else
     {
-	Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", InstName().c_str());
+	Logger()->WriteFormat("ERROR: Mutating object [%s] - inappropriate mutation", Name().c_str());
     }
 }
 
@@ -3499,7 +3521,7 @@ void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
     for (CAE_ChromoNode::Iterator rit = mroot.Begin(); rit != mroot.End(); rit++)
     {
 	CAE_ChromoNode rno = (*rit);
-	NodeType rnotype = rno.Type();
+	TNodeType rnotype = rno.Type();
 	if (rnotype == ENt_Object) {
 	    AddObject(rno);
 	    if (!aRunTime) {
@@ -3512,22 +3534,25 @@ void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 	}
 	else {
 	    if (rnotype == ENt_Stinp) {
-		AddConn(rno, iInputs);
+		AddConn(rno, iInputs, ETrue);
 	    }
 	    else if (rnotype == ENt_Soutp) {
-		AddConn(rno, iOutputs);
+		AddConn(rno, iOutputs, EFalse);
 	    }
 	    else if (rnotype == ENt_State) {
 		AddState(rno);
 	    }
 	    else if (rnotype == ENt_Conn) {
-		AddConn(rno);
+		//AddConn(rno);
+		AddConn_v1(rno);
 	    }
 	    else if (rnotype == ENt_Cext) {
-		AddExt(rno);
+		//AddExt(rno);
+		AddExt_v1(rno);
 	    }
 	    else if (rnotype == ENt_Cextc) {
-		AddExtc(rno);
+		//AddExtc(rno);
+		AddExtc_v1(rno);
 	    }
 	    else if (rnotype == ENt_Trans) {
 		AddTrans(rno);
@@ -3539,6 +3564,9 @@ void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 		string snode = rno.Attr(ENa_MutNode);
 		DesUri unode(snode);
 		RmNode(unode);
+	    }
+	    else if (rnotype == ENt_Change) {
+		ChangeAttr_v2(rno);
 	    }
 	    else if (rnotype == ENt_Mut) {
 		TBool emnode = rno.AttrExists(ENa_MutNode);
@@ -3566,11 +3594,11 @@ void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 		}
 		else
 		{
-		    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName().c_str(), mnoden.c_str());
+		    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", Name().c_str(), mnoden.c_str());
 		}
 	    }
 	    else {
-		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", InstName().c_str(), rnotype);
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", Name().c_str(), rnotype);
 	    }
 	    if (!aRunTime) {
 		chrroot.AddChild(rno);
@@ -3591,7 +3619,7 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
     for (CAE_ChromoNode::Iterator rit = mroot.Begin(); rit != mroot.End(); rit++)
     {
 	CAE_ChromoNode rno = (*rit);
-	NodeType rnotype = rno.Type();
+	TNodeType rnotype = rno.Type();
 	if (rnotype == ENt_Object) {
 	    AddObject(rno);
 	    // Attach comp chromo
@@ -3601,11 +3629,11 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 	    }
 	}
 	else if (rnotype == ENt_Stinp) {
-	    AddConn(rno, iInputs);
+	    AddConn(rno, iInputs, ETrue);
 	    chrroot.AddChild(rno);
 	}
 	else if (rnotype == ENt_Soutp) {
-	    AddConn(rno, iOutputs);
+	    AddConn(rno, iOutputs, EFalse);
 	    chrroot.AddChild(rno);
 	}
 	else if (rnotype == ENt_State) {
@@ -3659,11 +3687,11 @@ void CAE_Object::DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 	    }
 	    else
 	    {
-		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", InstName().c_str(), mnoden.c_str());
+		Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown node [%s] to be mutated", Name().c_str(), mnoden.c_str());
 	    }
 	}
 	else {
-	    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", InstName().c_str(), rnotype);
+	    Logger()->WriteFormat("ERROR: Mutating object [%s] - unknown mutation type [%d]", Name().c_str(), rnotype);
 	}
     }
 }
@@ -3693,16 +3721,9 @@ void CAE_Object::Update()
 
 }
 
-void CAE_Object::UnregisterState(CAE_StateBase* aState)
-{
-    map<string, CAE_StateBase*>::iterator it = iStates.find(aState->InstName());
-    _FAP_ASSERT(it != iStates.end());
-    iStates.erase(it);
-}
-
 void CAE_Object::UnregisterComp(CAE_Object* aComp)
 {
-    map<string, CAE_Object*>::iterator it = iComps.find(aComp->InstName());
+    map<string, CAE_Object*>::iterator it = iComps.find(aComp->Name());
     _FAP_ASSERT(it != iComps.end());
     for (vector<CAE_Object*>::iterator oit = iCompsOrd.begin(); oit != iCompsOrd.end(); oit++) {
 	if (*oit == it->second) {
@@ -3752,6 +3773,7 @@ void CAE_Object::AppendCompList(vector<string>& aList, const CAE_Object* aReques
     }
 }
 
+// TODO [YB] To move to NBase
 CAE_NBase* CAE_Object::GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase)
 {
     CAE_NBase* res = NULL;
@@ -3763,16 +3785,39 @@ CAE_NBase* CAE_Object::GetNode(const DesUri& aUri, DesUri::const_elem_iter aPath
 	}
 	else {
 	    res = iComps.count(elem.second) > 0 ? iComps[elem.second] : NULL;
-	    if (res != NULL && ++it != aUri.Elems().end()) {
-		res = res->GetNode(aUri, it);
-	    }
 	}
     }
     else if (elem.first == ENt_State) {
 	res = iStates.count(elem.second) > 0 ? iStates[elem.second] : NULL;
-	if (res != NULL && ++it != aUri.Elems().end()) {
-	    res = res->GetNode(aUri, it);
+    }
+    else if (elem.first == ENt_Stinp) {
+	res = iInputs.count(elem.second) > 0 ? iInputs[elem.second] : NULL;
+    }
+    else if (elem.first == ENt_Soutp) {
+	res = iOutputs.count(elem.second) > 0 ? iOutputs[elem.second] : NULL;
+    }
+    else if (elem.first == ENt_Cext) {
+	for (vector<CAE_Ext*>::const_iterator cit = iExts.begin(); cit != iExts.end(); cit++) {
+	    if ((*cit)->IsMetQuery(aUri)) {
+		res = *cit; break;
+	    }
 	}
+    }
+    else if (elem.first == ENt_Conn) {
+	for (vector<CAE_Conn*>::const_iterator cit = iConns.begin(); cit != iConns.end(); cit++) {
+	    if ((*cit)->IsMetQuery(aUri)) {
+		res = *cit; break;
+	    }
+	}
+    }
+    else if (elem.first == ENt_Trans) {
+	res = &iTransSrc;
+    }
+    else  {
+	res = CAE_EBase::GetNode(aUri, aPathBase);
+    }
+    if (res != NULL && ++it != aUri.Elems().end()) {
+	res = res->GetNode(aUri, it);
     }
     return res;
 }
@@ -3811,7 +3856,7 @@ FAPWS_API CAE_EBase* CAE_Object::FindByName(const string& aName)
     CAE_EBase* res = NULL;
     size_t pos = aName.find(KNameSeparator);
     string tname = aName.substr(0, pos);
-    NodeType type = ENt_Unknown;
+    TNodeType type = ENt_Unknown;
     string name;
     iChromo->Root().ParseTname(tname, type, name);
     if (type == ENt_Object) {
@@ -3927,7 +3972,7 @@ CAE_ConnPointBase* CAE_Object::GetOutpN(const char *aName)
     return res;
 }
 
-
+#if 0
 FAPWS_API void CAE_Object::LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans)
 {
     //_FAP_ASSERT(aTrans || (aInp->Len() == aOut->Len())); // Panic(EFapPan_IncorrLinksSize)); 
@@ -3936,49 +3981,19 @@ FAPWS_API void CAE_Object::LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTran
     aInp->SetInputL("_Inp_1", aOut);
 	aInp->SetTrans(TTransInfo(aTrans));
 }
+#endif
 
-TInt CAE_Object::ChromLen(const TUint8* aChrom) const
-{
-	TInt len = 1;
-	TUint8 num = aChrom[0] & ~KAdp_ObjChromLen_SSD;
-	TUint8 ssd = aChrom[0] & KAdp_ObjChromLen_SSD;
-	if (ssd)
-	{
-		for (TInt i = 0; i < num; i++)
-		{
-			len += ChromLen(aChrom + len);
-		}
-	}
-	else 
-		len += num;
-	return len;
-}
-
-// The inheritor is created by clone the parent and mutate it for now
-// TODO [YB] Incorrect approach. Parent can only clone but not mutate. This should be done by owned system.
-FAPWS_API CAE_Object* CAE_Object::CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan)
-{
-    CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
-    heir->SetType(InstName().c_str());
-    heir->SetChromosome(EChromOper_Copy, iChromX, NULL);
-    // Construct from native parents chromosome
-    heir->ConstructL();
-    // Construct from original chromosome if specified
-    if (aSpec != NULL)
-	heir->ConstructL(aSpec);
-    return heir;
-}
 #if 0 
 // Variant for absolute chromo form
 CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
 {
     CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
-    heir->SetType(InstName());
+    heir->SetType(Name());
     heir->Construct();
     // Set parent
     // TODO [YB] The context is missed here, just name set. To consider, ref discussion in md#sec_desg_chromo_full
     CAE_ChromoNode hroot = heir->Chromo().Root();
-    hroot.SetAttr(ENa_Type, InstName());
+    hroot.SetAttr(ENa_Type, Name());
     // Mutate bare child with original parent chromo
     CAE_ChromoNode root = iChromo->Root();
     heir->SetMutation(root);
@@ -3998,12 +4013,12 @@ CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
 CAE_Object* CAE_Object::CreateHeir(const char *aName, CAE_Object *aMan)
 {
     CAE_Object* heir = new CAE_Object(aName, aMan, iEnv);
-    heir->SetType(InstName().c_str());
+    heir->SetType(Name().c_str());
     heir->Construct();
     // Set parent
     // TODO [YB] The context is missed here, just name set. To consider, ref discussion in md#sec_desg_chromo_full
     CAE_ChromoNode hroot = heir->Chromo().Root();
-    hroot.SetAttr(ENa_Type, InstName());
+    hroot.SetAttr(ENa_Type, Name());
     // Mutate bare child with original parent chromo, mutate run-time only to have clean heir's chromo
     CAE_ChromoNode root = iChromo->Root();
     heir->SetMutation(root);
@@ -4016,13 +4031,13 @@ CAE_StateBase* CAE_Object::GetOutpState(const char* aName)
     CAE_StateBase *res = NULL;
     map<string, CAE_ConnPointBase*>::iterator it = iOutputs.find(aName);
     if (it == iOutputs.end()) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName().c_str(), aName);
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), Name().c_str(), aName);
     }
     else {
 	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
 	res = cp->Srcs()->Pins().begin()->second->GetFbObj(res);
 	if (res == NULL) {
-	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName().c_str(), aName);
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), Name().c_str(), aName);
 	}
     }
     return res;
@@ -4033,13 +4048,13 @@ CAE_StateBase* CAE_Object::GetInpState(const char* aName)
     CAE_StateBase *res = NULL;
     map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aName);
     if (it == iInputs.end()) {
-	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), InstName().c_str(), aName);
+	Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not exists", MansName(1), MansName(0), Name().c_str(), aName);
     }
     else {
 	CAE_ConnPoint *cp = it->second->GetFbObj(cp);
 	res = cp->Srcs()->Pins().begin()->second->GetFbObj(res);
 	if (res == NULL) {
-	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), InstName().c_str(), aName);
+	    Logger()->WriteFormat("State [%s.%s.%s]: Inp [%s] not connected", MansName(1), MansName(0), Name().c_str(), aName);
 	}
     }
     return res;
@@ -4115,9 +4130,9 @@ CSL_ExprBase* CAE_Object::CreateDataExpr(const string& aType)
 
 void CAE_Object::SetTrans(const string& aTrans)
 {
-    iTransSrc.erase();
-    TTransInfo::FormatEtrans(aTrans, iTransSrc);
-    iEnv->Tranex()->EvalTrans(this, this, iTransSrc);
+    iTransSrc.iETrans.erase();
+    TTransInfo::FormatEtrans(aTrans, iTransSrc.iETrans);
+    iEnv->Tranex()->EvalTrans(this, this, iTransSrc.iETrans);
     iTrans = iEnv->Tranex()->Exprs();
 }
 
@@ -4125,18 +4140,11 @@ void CAE_Object::SetBaseViewProxy(MAE_Opv* aProxy, TBool aAsRoot)
 {
     _FAP_ASSERT (iOpv == 0);
     iOpv = aProxy;
-#if 0
-    iOpv->SetObj(&iCtrl);
-    if (aAsRoot) {
-	iOpv->SetRoot(&iCtrl);
-    }
-#endif
 }
 
 void CAE_Object::RemoveBaseViewProxy(MAE_Opv* aProxy)
 {
     _FAP_ASSERT (iOpv == aProxy);
-    //iOpv->UnsetObj(&iCtrl);
     iOpv = NULL;
 }
 
@@ -4160,7 +4168,7 @@ CAE_Object* CAE_Object::FindMutableMangr()
     else {
 	// Check if mgr chromo includes the current node
 	const CAE_ChromoNode& mgroot = iMan->Chromo().Root();
-	CAE_ChromoNode::Const_Iterator mnodeit = mgroot.Find(ENt_Object, InstName());
+	CAE_ChromoNode::Const_Iterator mnodeit = mgroot.Find(ENt_Object, Name());
 	if (mnodeit == mgroot.End()) {
 	    res = iMan;
 	}
@@ -4171,322 +4179,17 @@ CAE_Object* CAE_Object::FindMutableMangr()
     return res;
 }
 
-//*********************************************************
-// CAE_ObjectBa - bit automata
-//*********************************************************
-
-
-FAPWS_API CAE_ObjectBa::CAE_ObjectBa(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo):
-    CAE_Object(aInstName, aMan), iLen(aLen), iTrans(NULL), iNew(NULL), iCurr(NULL), 
-    iInpInfo(aInpInfo), iOutInfo(aOutInfo)
-{
-}
-
-FAPWS_API CAE_ObjectBa::~CAE_ObjectBa()
-{
-    if (iTrans != NULL)
-    {
-	delete[] iTrans;
-	iTrans = NULL;
+TBool CAE_Object::ChangeAttr(TNodeAttr aAttr, const string& aVal) 
+{ 
+    TBool res = EFalse;
+    if (aAttr == ENa_ObjQuiet) {
+	SetQuiet(aVal.compare("yes") == 0);
+	res = ETrue;
     }
-    if (iNew != NULL)
-	{
-		delete[] iNew;
-		iNew = NULL;
-	}
-	if (iCurr != NULL)
-	{
-		delete[] iCurr;
-		iCurr = NULL;
-	}
-}
-
-FAPWS_API CAE_ObjectBa* CAE_ObjectBa::NewL(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo)
-{
-	CAE_ObjectBa* self = new CAE_ObjectBa(aInstName, aMan, aLen, aInpInfo, aOutInfo);
-	self->ConstructL();
-	return self;
-}
-
-FAPWS_API void CAE_ObjectBa::ConstructL()
-{
-	_FAP_ASSERT(iInpInfo < iLen); 
-	CAE_Object::ConstructL();
-	TInt stwnum = iLen?(iLen-1)/32 +1:1;
-	if (iNew == NULL)
-	{
-		iNew = new TUint32[stwnum];
-	}
-	memset(iNew, 0, stwnum*4);
-	if (iCurr == NULL)
-	{
-		iCurr = new TUint32[stwnum];
-	}
-	memset(iCurr, 0, stwnum*4);
-	if (iTrans == NULL)
-	{
-		iTrans = new TUint32[iLen*stwnum];
-	}
-	iInp = (CAE_TState<TInt>*) CAE_State::NewL("Inp", sizeof(TInt), this, TTransInfo());
-	iStInp = (CAE_TState<TInt>*) CAE_State::NewL("StInp", sizeof(TInt), this, CAE_TRANS(UpdateInput));
-	iStInp->AddInputL("_Inp");
-	iStInpReset = (CAE_TState<TUint8>*) CAE_State::NewL("StInpReset", sizeof(TUint8), this, CAE_TRANS(UpdateInpReset));
-	iStInpReset->AddInputL("_InpReset");
-	iInpReset = (CAE_TState<TUint8>*) CAE_State::NewL("InpReset", sizeof(TUint8), this, TTransInfo());
-	iStFitness = (CAE_TState<TInt>*) CAE_State::NewL("Fitness", sizeof(TInt), this, TTransInfo());
-	iOut = (CAE_TState<TInt>*) CAE_State::NewL("Out", sizeof(TInt), this, TTransInfo());
-	iStInp->SetInputL("_Inp", iInp);
-	iStInpReset->SetInputL("_InpReset", iInpReset);
-}
-
-void CAE_ObjectBa::UpdateInput(CAE_StateBase* aState)
-{
-	TInt data = iInp->Value();
-	*iStInp = data;
-}
-
-void CAE_ObjectBa::UpdateInpReset(CAE_StateBase* aState)
-{
-	TUint8 reset = iInpReset->Value();
-	if (reset == KCommand_On)
-	{
-		TInt stwnum = iLen?(iLen-1)/32 +1:1;
-		for (int i = 0; i < stwnum; i++)
-		{
-			iNew[i] = 0;
-		}
-	}
-	*iStInpReset = 0;
-}
-
-FAPWS_API void CAE_ObjectBa::SetTrans(const TUint32* aTrans)
-{
-	if (aTrans == NULL)
-	{
-		SetTransRandomly();
-	}
-	else
-	{
-		TInt stwnum = iLen?(iLen-1)/32 +1:1;
-		for (TInt i = 0; i < iLen; i++)
-		{
-			for (TInt j = 0; j < stwnum; j++)
-				iTrans[stwnum*i+j] = aTrans[stwnum*i+j];
-		}
-	}
-}
-
-void CAE_ObjectBa:: SetTransRandomly()
-{
-	TInt stwnum = iLen?(iLen-1)/32 +1:1;
-	TUint32 mask = (1 << iLen) -1;
-	for (TInt i = 0; i < iLen; i++)
-	{
-		for (TInt j = 0; j < stwnum; j++)
-			iTrans[stwnum*i+j] = (rand() << 17 | rand() << 2 | (rand()&0x3)) & mask ;
-	}
-}
-
-
-FAPWS_API void CAE_ObjectBa::Update()
-{
-	if (iTrans != NULL)
-	{
-		TInt stwnum = iLen?(iLen-1)/32 +1:1;
-		TBool snew = EFalse;
-		TUint32 mask = 0x00000001;
-		for (TInt i = 0; i < iLen; i++)
-		{
-			TInt wdind = i/32;
-			snew = EFalse;
-			TUint32* strans = &(iTrans[stwnum*i]);
-			for (TInt j = 0; j < stwnum; j++)
-			{
-				snew |= strans[j]&~iCurr[j];
-			}
-			iNew[wdind] &= ~ mask;
-			if (snew) iNew[wdind] |= mask;
-			mask = (mask==0x80000000)?0x00000001:mask << 1;
-		}
-		// Added input
-		TInt data = iStInp->Value();
-		stwnum = iInpInfo/32;
-		TUint32 msk = data?1 << (iInpInfo % 32):0;
-		iNew[stwnum] |= msk;
-		// Update output
-		TInt wnum = iOutInfo/32;
-		msk = 1 << (iOutInfo % 32);
-		TUint32 outp = iNew[wnum] & msk;
-		*iOut = outp;
-	}
-	CAE_Object::Update();
-}
-
-FAPWS_API void CAE_ObjectBa::Confirm()
-{
-	TInt stwnum = iLen?(iLen-1)/32 +1:1;
-	if (memcmp(iCurr, iNew, stwnum*4))
-	{
-		SetActive();
-	}
-	memcpy(iCurr, iNew, stwnum*4); // iCurr << iNew
-	CAE_Object::Confirm();
-}
-
-void CAE_ObjectBa::DoMutationOfTrans()
-{
-	// Mutation affects the only one gene in the chromosome
-	// Randomly select the gene index in the chromosome
-	TInt srnd1 = rand();
-	TInt srnd2 = rand();
-	TInt wordidx = (iLen*srnd1)/RAND_MAX; // Index of word in the gene words array 
-	TInt bitidx = (iLen*srnd2)/RAND_MAX; // Index of bit in the gene word 
-	TUint32 mask = 1 << bitidx;
-	iTrans[wordidx] ^= mask;
-	
-}
-
-
-FAPWS_API CAE_ObjectBa* CAE_ObjectBa::CreateNew(const char* aInstName)
-{
-	CAE_ObjectBa* sinheritor = CAE_ObjectBa::NewL(aInstName, iMan, iLen, iInpInfo, iOutInfo);
-	sinheritor->SetTrans(iTrans);
-	sinheritor->DoMutationOfTrans();
-	return sinheritor;
-}
-
-
-// CAE_Link
-
-const char* KLinkInputName = "LinkInput";
-const char* KLinkOutputName = "LinkOutput";
-
-CAE_Link::CAE_Link(const char* aInstName, CAE_Object* aMan):CAE_Object(aInstName, aMan)
-{
-}
-
-FAPWS_API CAE_Link* CAE_Link::NewL(const char* aInstName, CAE_Object* aMan, CAE_State* aInp, CAE_State* aOut)
-{
-	CAE_Link* self = new CAE_Link(aInstName, aMan);
-	self->ConstructL(aInp, aOut);
-	return self;
+    else {
+	res = CAE_EBase::ChangeAttr(aAttr, aVal);
+    }
+    return res;
 };
-
-void CAE_Link::ConstructL(CAE_State* aInp, CAE_State* aOut)
-{
-	CAE_Object::ConstructL();
-//	iInp = CAE_State::NewL(KLinkInputName, aInp, this, NULL, CAE_State::TType_Input);
-//	iOut = CAE_State::NewL(KLinkOutputName, aOut, this, UpdateOutS, CAE_State::TType_Output);
-	iOut->AddInputL("_Inp");
-	iOut->SetInputL("_Inp", iInp);
-};
-
-CAE_Link::~CAE_Link()
-{
-	delete iInp;
-	delete iOut;
-}
-
-void CAE_Link::UpdateOut() { iOut->Set(iInp->iCurr); };
-
-
-// CAE_StateASrv
-
-CAE_StateASrv::CAE_StateASrv(const char* aInstName,CAE_Object* aMan):
-	CAE_Object(aInstName, aMan),
-		iReqMon(NULL)	
-{
-}
-
-FAPWS_API CAE_StateASrv::~CAE_StateASrv()
-{
-	iReqMon->Cancel();
-	delete iReqMon;
-	delete iStCancel;
-	delete iStSetActive;
-	delete iOutStatusPtr;
-	delete iOutStatus;
-	delete iInpSetActive;
-	delete iInpCancel;
-}
-
-FAPWS_API CAE_StateASrv* CAE_StateASrv::NewL(const char* aInstName, CAE_Object* aMan, TInt aPriority)
-{
-	CAE_StateASrv* self = new CAE_StateASrv(aInstName, aMan);
-	self->ConstructL(aPriority);
-	return self;
-}
-
-void CAE_StateASrv::ConstructL(TInt aPriority)
-{
-	CAE_Object::ConstructL();
-	iReqMon = new CAE_ReqMon(aPriority, this);
-	iOutStatusPtr = (CAE_TState<TInt>*) CAE_State::NewL("OStatusPtr", sizeof(void*), this, TTransInfo());
-	iOutStatus = CAE_State::NewL("OStatus", sizeof(TInt), this, TTransInfo());
-	iInpSetActive = (CAE_TState<TUint8>*) CAE_State::NewL("ISetAct", sizeof(TUint8), this, TTransInfo());
-	iInpCancel = (CAE_TState<TUint8>*) CAE_State::NewL("ICancel", sizeof(TUint8), this, TTransInfo());
-	iStSetActive = (CAE_TState<TUint8>*) CAE_State::NewL("SSetAct", sizeof(TUint8), this, CAE_TRANS(UpdateSetActive));
-	iStCancel = (CAE_TState<TUint8>*) CAE_State::NewL("SCancel", sizeof(TUint8), this, CAE_TRANS(UpdateCancel));
-	iStSetActive->AddInputL("_InpSetActive", iInpSetActive); 
-	iStCancel->AddInputL("_InpCancel", iInpCancel);
-	iOutStatusPtr->Set((void*) iReqMon);
-}
-
-void CAE_StateASrv::RunL()
-{
-	iOutStatus->Set(&(iReqMon->iStatus));
-}
-
-void CAE_StateASrv::UpdateSetActive(CAE_StateBase* aState)
-{
-	if (iInpSetActive->Value() > 0)
-	{
-		iReqMon->iStatus = KRequestPending;
-		iReqMon->SetActive();
-	}
-}
-
-void CAE_StateASrv::UpdateCancel(CAE_StateBase* aState)
-{
-	if (iInpCancel->Value() > 0)
-		iReqMon->Cancel();
-}
-
-// CAE_ObjectAs
-
-CAE_ObjectAs::CAE_ObjectAs(const char* aInstName,CAE_Object* aMan):
-	CAE_Object(aInstName, aMan),
-		iReqMon(NULL)	
-{
-}
-
-FAPWS_API CAE_ObjectAs::~CAE_ObjectAs()
-{
-	iReqMon->Cancel();
-	delete iReqMon;
-	delete iStAsStatus;
-}
-
-FAPWS_API CAE_ObjectAs* CAE_ObjectAs::NewL(const char* aInstName, CAE_Object* aMan, TInt aPriority)
-{
-	CAE_ObjectAs* self = new CAE_ObjectAs(aInstName, aMan);
-	self->ConstructL(aPriority);
-	return self;
-}
-
-void CAE_ObjectAs::ConstructL(TInt aPriority)
-{
-	CAE_Object::ConstructL();
-	iReqMon = new CAE_ReqMonAs(aPriority, this);
-	iStAsStatus = (CAE_TState<TInt>*) CAE_State::NewL("SAsStatus", sizeof(TInt), this, TTransInfo());
-	// Need ti init AsStatus with unic value. Otherwise thread AO can quickly set it to KErrNone
-	// so status will become unchanged
-	*(TInt*) (iStAsStatus->iCurr) = KRequestPending + 1;
-}
-
-void CAE_ObjectAs::RunL()
-{
-	iStAsStatus->Set(&(iReqMon->iStatus));
-}
 
 

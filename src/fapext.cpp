@@ -51,7 +51,8 @@ FAPWS_API CAE_Env* CAE_Env::NewL(const TStateInfo** aSinfos, const TTransInfo** 
 
 void CAE_Env::ConstructL(const char* aLogSpecFile, const char *aLogFileName)
 {
-    iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
+    iRoot = CAE_Object::NewL(KRootName, NULL, this);
+    //iRoot = CAE_Object::NewL(KRootName, NULL, (const char *) NULL);
     iLogger = CAE_LogCtrl::NewL(iRoot, aLogSpecFile, aLogFileName);
     iProvider = CAE_Fact::NewL();
     SetActive();
@@ -64,7 +65,8 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
     iProvider = CAE_Fact::NewL();
     iProvider->LoadAllPlugins();
     iTranEx = iProvider->CreateTranEx(Logger());
-    iSystSpec = aSpec;
+    if (aSpec != NULL) 
+	iSystSpec = aSpec;
     // TODO [YB] To consider loading plugins on demand
     iProvider->LoadAllPlugins();
     if (aSinfos != NULL) {
@@ -75,23 +77,29 @@ void CAE_Env::ConstructL(const TStateInfo** aSinfos, const TTransInfo** aTinfos,
     }
 }
 
+// TODO [YB] To integrate into env creation
 void CAE_Env::ConstructSystem()
 {
     // Create root system
     // TODO [YB] Potentially the root also can be inherited form parent
     CAE_ChromoBase *spec = iProvider->CreateChromo();
-    spec->Set(iSystSpec.c_str());
-    const CAE_ChromoNode& root = spec->Root();
-    iRoot = CAE_Object::NewL(root.Name().c_str(), NULL, this);
-    iRoot->SetMutation(root);
-    iRoot->Mutate();
+    if (iSystSpec.empty()) {
+	iRoot = CAE_Object::NewL(KRootName, NULL, this);
+    }
+    else {
+	spec->Set(iSystSpec.c_str());
+	const CAE_ChromoNode& root = spec->Root();
+	iRoot = CAE_Object::NewL(root.Name().c_str(), NULL, this);
+	iRoot->SetMutation(root);
+	iRoot->Mutate();
+    }
     SetActive();
 }
 
 FAPWS_API void CAE_Env::RunL()
 {
-	for (TInt i = 0; i <iLoad; i++)
-	{
+    for (TInt i = 0; i <iLoad; i++)
+    {
 		iStepCount++;
 		iRoot->Update();
 		if (iLogger != NULL)

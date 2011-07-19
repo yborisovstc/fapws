@@ -103,6 +103,8 @@ test=test CD=. filter="*.cpp *.h *.xml *.am" {
   ut_modul_loc.xml
   ut_modul_loc1.xml
   ut_modul_save_tmp.xml
+  ut_mut_deta1.xml
+  ut_mut_deta2.xml
   ut_spec_creat_1.xml
   ut_spec_ext_mut.xml
   Makefile.am

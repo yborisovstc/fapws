@@ -331,7 +331,7 @@ CAE_StateEx::CAE_StateEx(const string& aType, const string& aInstName, CAE_Objec
 	iNew = expr->Clone();
     }
     else {
-	Logger()->WriteFormat("ERROR: Creating state [%s] of type [%s]: type constr not found", InstName(), TypeName());
+	Logger()->WriteFormat("ERROR: Creating state [%s] of type [%s]: type constr not found", Name().c_str(), TypeName());
     }
 }
 

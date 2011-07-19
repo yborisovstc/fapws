@@ -16,7 +16,7 @@
 	<inp id="self"/>
 	<trans> add inp self {1.0,1.0} </trans>
     </state>
-    <conn id="state%test_coord_pf.self" pair="state%test_coord_pf.output"/>
-    <ext id="output" pair="state%test_coord_pf.output"/>
+    <conn id="state:test_coord_pf/inp:self" pair="state:test_coord_pf/out:output"/>
+    <ext id="out:output" pair="state:test_coord_pf/out:output"/>
 </iobject> <!-- main -->
 

@@ -22,77 +22,67 @@
 
 <!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
 
-    <iobject type="none" id="main_test">
-	<mut>
-	    <add>
-		<iobject type="none" id="snail" quiet="yes"> 
-		    <mut>
-			<add>
+<iobject type="none" id="main_test">
+    <iobject type="none" id="snail" quiet="yes"> 
 
-			    <inp id="neighbor">
-				<dest id="coord"/> <dest id="frugal"/> 
-			    </inp>
-			    <out id="coord"/>
-			    <!-- Custom output connection point: contains two pins on srcs: [coord] and [vip] -->
-			    <out id="outp">
-				<src id="coord"/> <src id="frugal"/> 
-			    </out>
+	<inp id="neighbor">
+	    <dest id="coord"/> <dest id="frugal"/> 
+	</inp>
+	<out id="coord"/>
+	<!-- Custom output connection point: contains two pins on srcs: [coord] and [vip] -->
+	<out id="outp">
+	    <src id="coord"/> <src id="frugal"/> 
+	</out>
 
-			    <logspec  event="cre"> <logdata id="new"/> </logspec>
+	<logspec  event="cre"> <logdata id="new"/> </logspec>
 
-			    <state type="StUint32" id="mass" transf="trans_mass" init="2"> 
-				<logspec event="upd"> <logdata id="new"/> </logspec> 
-				<inp id="coord_self"/> <inp id="frugal"/> 
-				<inp id="neighbor"> 
-				    <dest id="coord"/> <dest id="frugal"/> 
-				</inp>
-			    </state>
+	<state type="StUint32" id="mass" transf="trans_mass" init="2"> 
+	    <logspec event="upd"> <logdata id="new"/> </logspec> 
+	    <inp id="coord_self"/> <inp id="frugal"/> 
+	    <inp id="neighbor"> 
+		<dest id="coord"/> <dest id="frugal"/> 
+	    </inp>
+	</state>
 
-			    <state type="StUint32" id="coord" len="4" transf="trans_coord" init="0"> 
-				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-				<inp id="self"/> <inp id="mass"/> 
-			    </state>
+	<state type="StUint32" id="coord" len="4" transf="trans_coord" init="0"> 
+	    <logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+	    <inp id="self"/> <inp id="mass"/> 
+	</state>
 
-			    <state type="StBool" id="frugal" len="4" transf="trans_frugal" init="0"> 
-				<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
-				<inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
-			    </state>
+	<state type="StBool" id="frugal" len="4" transf="trans_frugal" init="0"> 
+	    <logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+	    <inp id="self"/> <inp id="coord"/> <inp id="coord_other"/> 
+	</state>
 
-			    <conn id="state%mass.coord_self" pair="state%coord.output"/> 
-			    <conn id="state%mass.frugal" pair="state%frugal.output"/> 
-			    <conn id="state%coord.self" pair="state%coord.output"/> 
-			    <conn id="state%coord.mass" pair="state%mass.output"/>
-			    <conn id="state%frugal.self" pair="state%frugal.output"/>
-			    <conn id="state%frugal.coord" pair="state%coord.output"/>
+	<conn id="state:mass/inp:coord_self" pair="state:coord/out:output"/> 
+	<conn id="state:mass/inp:frugal" pair="state:frugal/out:output"/> 
+	<conn id="state:coord/inp:self" pair="state:coord/out:output"/> 
+	<conn id="state:coord/inp:mass" pair="state:mass/out:output"/>
+	<conn id="state:frugal/inp:self" pair="state:frugal/out:output"/>
+	<conn id="state:frugal/inp:coord" pair="state:coord/out:output"/>
 
-			    <ext id="neighbor" pair="state%mass.neighbor"/>
-			    <ext id="coord" pair="state%coord.output"/>
-			    <extc id="outp">
-				<srcext id="coord" pair="state%coord.output"/>
-				<srcext id="frugal" pair="state%frugal.output"/>
-			    </extc>
-			    <extc id="neighbor">
-				<dstext id="state%coord" pair="state%frugal.coord_other"/>
-			    </extc>
+	<ext id="inp:neighbor" pair="state:mass/inp:neighbor"/>
+	<ext id="out:coord" pair="state:coord/out:output"/>
+	<extc id="out:outp">
+	    <srcext id="coord" pair="state:coord/out:output"/>
+	    <srcext id="frugal" pair="state:frugal/out:output"/>
+	</extc>
+	<extc id="inp:neighbor">
+	    <dstext id="coord" pair="state:frugal/inp:coord_other"/>
+	</extc>
 
-			</add>
-		    </mut>
-		</iobject> <!-- snail -->
+    </iobject> <!-- snail -->
 
-		<iobject type="snail" id="snail_1" > <mut> <change type="state" id="mass" attr="init" val="7"/> </mut></iobject>
-		<iobject type="snail" id="snail_2" > <mut> <change type="state" id="mass" attr="init" val="3"/> </mut></iobject>
-		<iobject type="snail" id="snail_3" > 
-		    <mut> 
-			<change type="state" id="mass" attr="init" val="16"/> 
-			<change type="state" id="frugal" attr="init" val="True"/> 
-		    </mut>
-		</iobject>
+    <iobject type="snail" id="snail_1" > <chg node="state:mass" attr="init" val="7"/> </iobject>
+    <iobject type="snail" id="snail_2" > <chg node="state:mass" attr="init" val="3"/> </iobject>
+    <iobject type="snail" id="snail_3" > 
+	<chg node="state:mass" attr="init" val="16"/> 
+	<chg node="state:frugal" attr="init" val="True"/> 
+    </iobject>
 
-		<conn id="snail_1.neighbor" pair="snail_2.outp"/><conn id="snail_1.neighbor" pair="snail_3.outp"/>
-		<conn id="snail_2.neighbor" pair="snail_1.outp"/> <conn id="snail_2.neighbor" pair="snail_3.outp"/>
-		<conn id="snail_3.neighbor" pair="snail_1.outp"/> <conn id="snail_3.neighbor" pair="snail_2.outp"/>
+    <conn id="snail_1/inp:neighbor" pair="snail_2/out:outp"/><conn id="snail_1/inp:neighbor" pair="snail_3/out:outp"/>
+    <conn id="snail_2/inp:neighbor" pair="snail_1/out:outp"/> <conn id="snail_2/inp:neighbor" pair="snail_3/out:outp"/>
+    <conn id="snail_3/inp:neighbor" pair="snail_1/out:outp"/> <conn id="snail_3/inp:neighbor" pair="snail_2/out:outp"/>
 
-	    </add>
-	</mut>
-    </iobject> <!-- test -->
+</iobject> <!-- test -->
 

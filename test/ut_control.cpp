@@ -104,7 +104,7 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
 
     TInt logdata = aState->GetLogSpecData(KBaseLe_Trans);
     if (logdata != KBaseDa_None) {
-	aState->Logger()->WriteFormat("Transition [%s.%s.%s]:", aState->MansName(1), aState->MansName(0), aState->InstName());
+	aState->Logger()->WriteFormat("Transition [%s.%s.%s]:", aState->MansName(1), aState->MansName(0), aState->Name().c_str());
     }
 
     // TODO [YB] Consider different method - to check if pair is subj or its upper neighbour and update the pair
@@ -211,9 +211,9 @@ void utcontr_update_contr(CAE_Object* aObject, CAE_StateBase* aState)
 
 void UT_FAP_Contr::setUp()
 {
-    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
-    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
-    iEnv->ConstructSystem();
+//    iEnv = CAE_Env::NewL(NULL, tinfos, KSpecFileName, 1, NULL, KLogFileName);
+//    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+//    iEnv->ConstructSystem();
 }
 
 void UT_FAP_Contr::tearDown()
@@ -226,6 +226,7 @@ void UT_FAP_Contr::test_Contr_main()
 {
     printf("\n === Test of controlling\n");
     CPPUNIT_ASSERT_MESSAGE("This test got incorrect because of migrating to delta chromo", EFalse);
+#if 0
     CAE_Object *order = iEnv->Root()->GetComp("Order");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [Order]", order != 0);
 
@@ -244,6 +245,7 @@ void UT_FAP_Contr::test_Contr_main()
     printf("\n Position: Name = %s, Value = %d\n", pos.MansName(0), ~pos);
     CPPUNIT_ASSERT_MESSAGE("Incorrect data on given postion", strcmp(pos.MansName(0), "Alex") == 0);
     CPPUNIT_ASSERT_MESSAGE("Incorrect data on given postion", ~pos == 7);
+#endif
 }
 
 

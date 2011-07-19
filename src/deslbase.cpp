@@ -1017,7 +1017,7 @@ void CSL_Interpr::Logger::WriteFormat(const char* aFmt,...)
     char buf[CAE_LogRec::KLogRecBufSize] = "";
     va_list list;
     va_start(list,aFmt);
-    sprintf(buf, "Trans [%s, ln %d]: ", iMain.iExpContext->InstName().c_str(), iMain.iLine);
+    sprintf(buf, "Trans [%s, ln %d]: ", iMain.iExpContext->Name().c_str(), iMain.iLine);
     int len = strlen(buf);
     vsprintf(buf+len, aFmt, list);
     iMain.iLogger->WriteRecord(buf);

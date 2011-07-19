@@ -13,12 +13,10 @@
     <iobject type="file:./ut_modul_incr.xml#root" id="ext_mod"/>
 
     <iobject type="incrementor" id="My_Incr">
-	<mut>
-	    <change type="state" id="S_Count" attr="init" val="2"/>
-	</mut>
+	<chg node="state:S_Count" attr="init" val="2"/>
     </iobject> <!-- My_Incr -->
 
-    <ext id="my_incr" pair="My_Incr.output"/>
+    <ext id="out:my_incr" pair="My_Incr/out:output"/>
 
 </iobject> <!-- Test -->
 

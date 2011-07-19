@@ -12,7 +12,7 @@
 
     <iobject type="file:./ut_modul_incr.xml#root/incrementor" id="My_Incr">
     </iobject> <!-- My_Incr -->
-    <ext id="my_incr" pair="My_Incr.output"/>
+    <ext id="out:my_incr" pair="My_Incr/out:output"/>
 
 </iobject> <!-- Test -->
 

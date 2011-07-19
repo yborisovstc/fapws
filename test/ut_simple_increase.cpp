@@ -36,7 +36,7 @@ CFT_Simple::CFT_Simple(const char* aInstName, CAE_Object* aMan):
 
 void CFT_Simple::ConstructL(TInt aStepNumMaxValue)
 {
-    CAE_Object::ConstructL();
+    //CAE_Object::ConstructL();
 
     iStepNum = CAE_TState<TInt>::NewL("StepNum", this, CAE_TRANS(UpdateStep));
     iStepNumMax = CAE_TState<TInt>::NewL("StepNumMax", this, TTransInfo());
@@ -76,7 +76,9 @@ void CFT_Simple::UpdateStep(CAE_StateBase* aState)
 
 void UT_FAP_SimpleIncrease::setUp()
 {
-    iEnv = CAE_Env::NewL(1, KLogSpecFileName);
+    //iEnv = CAE_Env::NewL(1, KLogSpecFileName);
+    iEnv = CAE_Env::NewL(NULL, NULL, NULL, 1, KLogSpecFileName, NULL);
+    iEnv->ConstructSystem();
     CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
 }
 

@@ -78,7 +78,7 @@ enum TCaeMut
 };
 
 
-enum NodeType
+enum TNodeType
 {
     ENt_Unknown = 0,
     ENt_Object = 1,
@@ -106,6 +106,7 @@ enum NodeType
     ENt_MutChangeCont = 25, // Mutation - change of content
     ENt_MutMove = 26, // Mutation - move node
     ENt_Rm = 27,   // Mutation - removal
+    ENt_Change = 28, // Change node attribute
 };
 
 enum TNodeAttr
@@ -122,135 +123,6 @@ enum TNodeAttr
     ENa_MutNode = 10,
     ENa_MutChgAttr = 11,
     ENa_MutChgVal = 12,
-};
-
-
-
-// Adaptive automata programming constants
-
-// Chromosome structure for the objects type A is as following:
-// Chromosome := structure descriptor (SD). 
-// SD := elem_num, (SD, ... SD) | (byte_block, ..., byte_block) If the bytes only then SD- simple SD
-// The type of SD (complex or simple/byte/) is coded in the elem_num, see KAdp_ObjChromLen_SSD
-
-// Length code structure: the most signed bite contains sign of that the element is SD, otherwise - simple bytes set
-const TInt KAdp_ObjChromLen_SSD = 0x80; // Sign of that element id SD
-
-
-// Chromosome of CAE_Object 
-// KAdp_ObjStateVectLen Elements - state codons
-// Each state codon is 4 byte length: State_Type, Input_1, Input_2, Op_Type
-// State_Type (1 byte): access type (7,6 bits), state type (5..0 bits)
-// So it's possible to have 64 states in the state vector
-// Transition info:
-// Element is 3 bytes length- Input1, Input2, operation_code
-// Input1, Input2 value 0xff means "No input"
-
-// Constants for codons are marked as following: 
-// _Ind - index of codon in the chromosome
-// _Len - length of codon in the chromosome
-
-// State byte block length
-const TInt KAdp_ObjStInfoLen = 4;
-
-// Chromosome structure constants
-// Chromosome length 
-const TInt KAdp_ObjChromLen_Ind = 0;
-const TInt KAdp_ObjChromLen_Len = 1;
-// Object chromosome max length
-const TInt KAdp_ObjCromMaxLen = 256;
-// Type of state is coded as following:
-const TUint8 KAdp_ObjStType_Reg = 0x00;  // Regular state, not accessed out of object
-const TUint8 KAdp_ObjStType_Inp = 0x80;  // Input
-const TUint8 KAdp_ObjStType_Out = 0xc0;  // Output
-const TUint8 KAdp_ObjStType_NU =  0x40;  // Not used
-const TUint8 KAdp_ObjStType_AccessMsk = 0xc0;  // Mask of access type
-const TUint8 KAdp_ObjStType_TypeMsk = 0x3f;  // Mask of type
-
-// Codes of states types
-enum TChrStateType
-{
-	ECState_None =		0x00,
-	ECState_Uint8 =		0x01,
-	ECState_Uint32 =	0x02
-};
-
-// Codes of states operation
-enum TChrStateUint8OpType
-{
-	ECStateUint8Op_None =		0x00,  // No operation
-	// Unary
-	ECStateUint8Op_UnarySt =	0x01,  // Unary start
-	ECStateUint8Op_Copy =		0x01,  // Simple transition
-	ECStateUint8Op_UnaryEnd =	0x01,  // Unary end
-	// Binary 
-	ECStateUint8Op_BinSt =		0x02,  // Binary start
-	ECStateUint8Op_Add =		0x02,  // Uint8 + Uint8
-	ECStateUint8Op_Sub =		0x03,  // Uint8 + Uint8
-	ECStateUint8Op_Mpl =		0x04,  // Uint8 + Uint8
-	ECStateUint8Op_Cmp =		0x05,  // Uint8 + Uint8
-	ECStateUint8Op_BinEnd =		0x05,  // Binary End
-	ECStateUint8Op_Max__ =		0x05,  // Maximum code of operation
-};
-
-void Panic(TInt aRes);
-
-class CAE_Base;
-
-class DesUri
-{
-    public:
-	enum TQueryOpr {
-	    EQop_Unknown,
-	    EQop_And
-	};
-	typedef pair<NodeType, string> TElem;
-	typedef pair<TNodeAttr, string> TQueryCnd;
-	typedef pair<TQueryOpr, TQueryCnd> TQueryElem;
-	typedef vector<TElem>::const_iterator const_elem_iter;
-    public:
-	DesUri(const string& aUri);
-	DesUri();
-	DesUri(CAE_Base* aElem, CAE_Base* aBase);
-	const vector<TElem>& Elems() const {return iElems;};
-	const vector<TQueryElem>& QueryElems() const { return iQueryElems;};
-	string GetUri(vector<TElem>::const_iterator aStart) const;
-	string GetUri() const { return GetUri(iElems.begin());};
-	NodeType GetType() const;
-	string GetName() const;
-	void AppendElem(NodeType aType, const string& aName);
-	void PrependElem(NodeType aType, const string& aName);
-	void PrependElem(CAE_Base* aElem, TBool aRec = ETrue, CAE_Base* aBase = NULL);
-	void AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue);
-    protected:
-	void Construct();
-    private:
-	void Parse();
-    private:
-	static map<string, NodeType> iEbNameToNType;
-	string iUri;
-	string iScheme;
-	vector<TElem> iElems;
-	vector<TQueryElem> iQueryElems;
-};
-
-
-
-class CAE_Object;
-class CAE_StateBase;
-class CAE_State;
-
-typedef void (*TTransFun)(CAE_Object* aObject, CAE_StateBase* aState);
-typedef char *(*TLogFormatFun)(CAE_State* aState, TBool aCurr);
-
-
-// Log recorder interface
-class MCAE_LogRec
-{
-public:
-	virtual void WriteRecord(const char* aText) = 0;
-	virtual void WriteFormat(const char* aFmt,...) = 0;
-	virtual void Flush() = 0;
 };
 
 // Logging events
@@ -275,6 +147,93 @@ enum TLdBase
     KBaseDa_Trex = 16,	// Transition expressions
 };
 
+
+
+// Codes of states operation
+enum TChrStateUint8OpType
+{
+	ECStateUint8Op_None =		0x00,  // No operation
+	// Unary
+	ECStateUint8Op_UnarySt =	0x01,  // Unary start
+	ECStateUint8Op_Copy =		0x01,  // Simple transition
+	ECStateUint8Op_UnaryEnd =	0x01,  // Unary end
+	// Binary 
+	ECStateUint8Op_BinSt =		0x02,  // Binary start
+	ECStateUint8Op_Add =		0x02,  // Uint8 + Uint8
+	ECStateUint8Op_Sub =		0x03,  // Uint8 + Uint8
+	ECStateUint8Op_Mpl =		0x04,  // Uint8 + Uint8
+	ECStateUint8Op_Cmp =		0x05,  // Uint8 + Uint8
+	ECStateUint8Op_BinEnd =		0x05,  // Binary End
+	ECStateUint8Op_Max__ =		0x05,  // Maximum code of operation
+};
+
+void Panic(TInt aRes);
+
+class CAE_Base;
+class CAE_NBase;
+
+class DesUri
+{
+    public:
+	enum TQueryOpr {
+	    EQop_Unknown,
+	    EQop_And
+	};
+	typedef pair<TNodeType, string> TElem;
+	typedef pair<TNodeAttr, string> TQueryCnd;
+	typedef pair<TQueryOpr, TQueryCnd> TQueryElem;
+	typedef vector<TElem>::const_iterator const_elem_iter;
+    public:
+	DesUri(const string& aUri);
+	DesUri();
+	DesUri(CAE_NBase* aElem, CAE_NBase* aBase);
+	DesUri(TNodeType aType, const string& aName);
+	const vector<TElem>& Elems() const {return iElems;};
+	const vector<TQueryElem>& QueryElems() const { return iQueryElems;};
+	string GetUri(vector<TElem>::const_iterator aStart) const;
+	string GetUri() const { return GetUri(iElems.begin());};
+	TNodeType GetType() const;
+	string GetName() const;
+	void AppendElem(TNodeType aType, const string& aName);
+	void PrependElem(TNodeType aType, const string& aName);
+	void PrependElem(CAE_NBase* aElem, TBool aRec = ETrue, CAE_NBase* aBase = NULL);
+	void AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue);
+	static const string& NodeAttrName(TNodeAttr aAttr);
+	static TNodeAttr NodeAttr(const string& aAttrName);
+	static const string& LeventName(TLeBase aEvent);
+    protected:
+	static void Construct();
+    private:
+	void Parse();
+    private:
+	static map<string, TNodeType> iEbNameToNType;
+	static map<TLeBase, string> iLeventNames;
+	static map<string, TLeBase> iLevents;
+	string iUri;
+	string iScheme;
+	vector<TElem> iElems;
+	vector<TQueryElem> iQueryElems;
+};
+
+
+
+class CAE_Object;
+class CAE_StateBase;
+class CAE_State;
+
+typedef void (*TTransFun)(CAE_Object* aObject, CAE_StateBase* aState);
+typedef char *(*TLogFormatFun)(CAE_State* aState, TBool aCurr);
+
+
+// Log recorder interface
+class MCAE_LogRec
+{
+public:
+	virtual void WriteRecord(const char* aText) = 0;
+	virtual void WriteFormat(const char* aFmt,...) = 0;
+	virtual void Flush() = 0;
+};
+#if 0
 // Logging spec
 struct TLogSpecBase
 {
@@ -282,6 +241,7 @@ struct TLogSpecBase
     TInt  iEvent;  // Event of logging - TLeBase
     TInt  iData;   // Data to log TLdBase
 };
+#endif
 
 /** Base class for FAP all elements
 */
@@ -304,19 +264,44 @@ class CAE_Base
 class CAE_NBase: public CAE_Base
 {
     public:
-	CAE_NBase(NodeType aNodeType, const string& aInstName): iNodeType(aNodeType), iInstName(aInstName) {};
-	NodeType NType() const { return iNodeType;};
-	const string& InstName() const { return iInstName;};
+	static const char *Type() { return "NBase";}; 
+	CAE_NBase(TNodeType aNodeType, const string& aInstName, CAE_NBase* aOwner = NULL): 
+	    iNodeType(aNodeType), iInstName(aInstName), iOwner(aOwner) {};
+	CAE_NBase(TNodeType aNodeType, CAE_NBase* aOwner = NULL): iNodeType(aNodeType), iOwner(aOwner) {};
+	TNodeType NodeType() const { return iNodeType;};
+	const string& Name() const { return iInstName;};
 	void SetName(const string& aName) { iInstName = aName;};
 	CAE_NBase* GetNode(const string& aUri) { DesUri uri(aUri); return GetNode(uri, uri.Elems().begin());};
 	CAE_NBase* GetNode(const DesUri& aUri) {GetNode(aUri, aUri.Elems().begin());};
 	void RmNode(const string& aUri) {DesUri uri(aUri); RmNode(uri);};
     public:
-	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) = 0;
-	virtual void RmNode(const DesUri& aUri) = 0;
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) { return NULL;};
+	virtual void RmNode(const DesUri& aUri) {};
+	virtual TBool ChangeAttr(TNodeAttr aAttr, const string& aVal);
+	virtual TBool ChangeCont(const string& aVal) { return EFalse;};
+	virtual CAE_NBase* Owner() { return iOwner;};
+	virtual TBool IsMetQuery(const DesUri& aUri) { return EFalse;};
+	// Owners apis
+	virtual void OnElemDeleting(CAE_NBase* aElem) {};
+	virtual void OnElemAdding(CAE_NBase* aElem) {};
     protected:
-	NodeType iNodeType;
+	virtual void *DoGetFbObj(const char *aName);
+    protected:
+	TNodeType iNodeType;
 	string iInstName;
+	CAE_NBase* iOwner;
+};
+
+// Logging spec
+class TLogSpecBase: public CAE_NBase
+{
+    public:
+	TLogSpecBase(TLeBase aEvent, TInt aData, CAE_NBase* aOwner): CAE_NBase(ENt_Logspec, DesUri::LeventName(aEvent), aOwner), 
+	iEvent(aEvent), iData(aData) {};
+	virtual ~TLogSpecBase();
+    public:
+	TLeBase  iEvent;  // Event of logging - TLeBase
+	TInt  iData;   // Data to log TLdBase
 };
 
 class CAE_NotifierBase
@@ -360,7 +345,7 @@ class CAE_EBase: public CAE_NBase
     };
 
     public:
-	CAE_EBase(NodeType aNodeType, const string& aInstName, CAE_Object* aMan);
+	CAE_EBase(TNodeType aNodeType, const string& aInstName, CAE_Object* aMan);
 	virtual ~CAE_EBase();
 	virtual void Confirm() = 0;
 	virtual void Update() = 0;
@@ -376,13 +361,18 @@ class CAE_EBase: public CAE_NBase
 	void SetMan(CAE_Object *aMan) { _FAP_ASSERT (iMan == NULL || iMan == aMan); iMan = aMan;};
 	const char* TypeName() const { return iTypeName;};
 	const char* MansName(TInt aLevel) const;
-	void AddLogSpec(TInt aEvent, TInt aData);
+	void AddLogSpec(TLeBase aEvent, TInt aData);
 	void RemLogSpec();
 	void SetQuiet(TBool aQuiet = ETrue) { iQuiet = aQuiet; };
 	static inline const char *Type(); 
 	inline MCAE_LogRec* Logger();
-	TInt GetLogSpecData(TInt aEvent) const;
+	TInt GetLogSpecData(TLeBase aEvent) const;
+	const map<string, TLogSpecBase*>& LogSpec() const { return iLogSpec;};
 	CAE_Notifier<MAE_EbaseObserver>& Notifier() { return iNotifier;};
+	// From CAE_NBase
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
+	virtual CAE_NBase* Owner() { return (CAE_NBase*) iMan;};
+	virtual void OnElemDeleting(CAE_NBase* aElem);
 protected:
 	// From CAE_Base
 	virtual void *DoGetFbObj(const char *aName);
@@ -393,7 +383,7 @@ protected:
 	/* Element is not "moving" - cannot be activated */
 	TBool iQuiet; 
 	CAE_Object* iMan;
-	vector<TLogSpecBase>* iLogSpec;
+	map<string, TLogSpecBase*> iLogSpec;
 	ENotifier iNotifier;
 };
 
@@ -403,10 +393,11 @@ inline const char *CAE_EBase::Type() { return "EBase";}
 // TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
 // TODO [YB] To enhance connection/extension model
-class CAE_ConnPointBase: public CAE_Base
+class CAE_ConnPointBase: public CAE_NBase
 {
     public:
-	CAE_ConnPointBase(const string aName, CAE_EBase* aMan): iName(aName), iMan(aMan) {};
+	static const char *Type() { return "ConnPointBase";} 
+	CAE_ConnPointBase(TNodeType aNodeType, const string& aName, CAE_EBase* aMan): CAE_NBase(aNodeType, aName), iMan(aMan) {};
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual ~CAE_ConnPointBase() {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
@@ -423,16 +414,19 @@ class CAE_ConnPointBase: public CAE_Base
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
 	virtual TBool SetDisextended();
-	const string& Name() { return iName; };
-	const string& Name() const { return iName; };
-	void SetName(const string& aName) { iName = aName;};
 	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
 	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
 	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
 	const CAE_EBase& Man() const { return *iMan;};
 	CAE_EBase& Man() { return *iMan;};
+	// From CAE_NBase
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) { return NULL;};
+	virtual void RmNode(const DesUri& aUri) {};
+	virtual CAE_NBase* Owner() { return iMan;};
     protected:
-	string iName;
+	// From CAE_Base
+	virtual void *DoGetFbObj(const char *aName);
+    protected:
 	// TODO [YB] To migrate from vector to map
 	vector<CAE_ConnPointBase*> iConns;
 	// References to extending cp only, not extended
@@ -470,7 +464,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 {
     public:
 	//CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
-	CAE_ConnPoint(const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
+	CAE_ConnPoint(TNodeType aNodeType, const string aName, CAE_EBase* aMan, const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, 
 		const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl);
 	virtual ~CAE_ConnPoint();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
@@ -510,7 +504,7 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 class CAE_ConnPointExt: public CAE_ConnPointBase
 {
     public:
-	CAE_ConnPointExt(const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aName, aMan), iRef(NULL) {};
+	CAE_ConnPointExt(TNodeType aNodeType, const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aNodeType, aName, aMan), iRef(NULL) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
@@ -569,7 +563,7 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	};
 
     public:
-	CAE_ConnPointExtC(const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aName, aMan) {};
+	CAE_ConnPointExtC(TNodeType aNodeType, const string aName, CAE_EBase* aMan): CAE_ConnPointBase(aNodeType, aName, aMan) {};
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
@@ -592,14 +586,45 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 
 // Extention
 
-class CAE_Ext: public CAE_NBase
+class CAE_ConnBase: public CAE_NBase
 {
     public:
-	CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair);
-    private:
+	CAE_ConnBase(TNodeType aNodeType, CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
+	virtual ~CAE_ConnBase();
+	TBool IsValid() const { return iIsValid;};
+	// From CAE_NBase
+	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) { return NULL;};
+	virtual void RmNode(const DesUri& aUri) {};
+	virtual TBool IsMetQuery(const DesUri& aUri);
+    protected:
+	virtual TBool Connect() = 0;
+	virtual TBool Disconnect() = 0;
+    protected:
 	CAE_ConnPointBase* iPoint;
 	CAE_ConnPointBase* iPair;
+	TBool iIsValid;
 };
+
+class CAE_Ext: public CAE_ConnBase
+{
+    public:
+	CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
+	virtual ~CAE_Ext();
+    protected:
+	virtual TBool Connect();
+	virtual TBool Disconnect();
+};
+
+class CAE_Conn: public CAE_ConnBase
+{
+    public:
+	CAE_Conn(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
+	virtual ~CAE_Conn();
+    protected:
+	virtual TBool Connect();
+	virtual TBool Disconnect();
+};
+
 
 // Parameters of operation
 struct TOperationInfo
@@ -625,21 +650,38 @@ class CAE_Formatter
 
 // State transition spec 
 // TODO YB iId represents constant Id. Consider universal solution
+#if 0
 class TTransInfo
 {
 public:
-	TTransInfo(): iFun(NULL), iOpInd(0), iHandle(NULL), iId(NULL) {}
-	TTransInfo(TTransFun aFun, const char* aId = NULL, void* aHandle = NULL):
-	    iFun(aFun), iHandle(aHandle), iOpInd(0), iId(aId) {}
+	TTransInfo(): iFun(NULL), iOpInd(0) {}
+	TTransInfo(TTransFun aFun, const char* aId = NULL): iFun(aFun), iOpInd(0), iId(aId) {}
 	TTransInfo(TUint32 aOpInd): iFun(NULL), iOpInd(aOpInd) {}
 	TTransInfo(const string& aETrans);
 	static void FormatEtrans(const string& aTrans, string& aRes);
 public:
 	TTransFun iFun;
-	void* iHandle; // Handle of trans within system chromo
 	string iETrans; // Embedded trans
 	TUint32 iOpInd;
-	const char *iId;	// Unique identificator of Transition
+	const char* iId;
+};
+#endif
+
+class TTransInfo: public CAE_NBase
+{
+public:
+	TTransInfo(CAE_NBase* aOwner = NULL): CAE_NBase(ENt_Trans, aOwner), iFun(NULL), iOpInd(0) {}
+	TTransInfo(TTransFun aFun, const string& aId): CAE_NBase(ENt_Trans, aId), iFun(aFun), iOpInd(0) {}
+	TTransInfo(TTransFun aFun): CAE_NBase(ENt_Trans), iFun(aFun), iOpInd(0) {}
+	TTransInfo(TUint32 aOpInd): CAE_NBase(ENt_Trans), iFun(NULL), iOpInd(aOpInd) {}
+	TTransInfo(const string& aETrans, CAE_NBase* aOwner = NULL);
+	static void FormatEtrans(const string& aTrans, string& aRes);
+	// From CAE_NBase
+	virtual TBool ChangeCont(const string& aVal);
+public:
+	TTransFun iFun;
+	string iETrans; // Embedded trans
+	TUint32 iOpInd;
 };
 
 class CSL_ExprBase;
@@ -717,6 +759,9 @@ public:
 	// From CAE_NBase
 	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
 	virtual void RmNode(const DesUri& aUri);
+	virtual TBool ChangeAttr(TNodeAttr aAttr, const string& aVal);
+	virtual void OnElemDeleting(CAE_NBase* aElem);
+	virtual void OnElemAdding(CAE_NBase* aElem);
 public:
 	const string ValStr() const;
 	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
@@ -900,30 +945,30 @@ class CAE_ChromoNode;
 class MAE_ChromoMdl
 {
     public:
-	virtual NodeType GetType(const void* aHandle) = 0;
-	virtual NodeType GetType(const string& aId) = 0;
+	virtual TNodeType GetType(const void* aHandle) = 0;
+	virtual TNodeType GetType(const string& aId) = 0;
 	virtual void* Parent(const void* aHandle) = 0;
-	virtual void* Next(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* Next(const void* aHandle, TNodeType aType = ENt_Unknown) = 0;
 	virtual void* NextText(const void* aHandle) = 0;
-	virtual void* GetFirstChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
-	virtual void* GetLastChild(const void* aHandle, NodeType aType = ENt_Unknown) = 0;
+	virtual void* GetFirstChild(const void* aHandle, TNodeType aType = ENt_Unknown) = 0;
+	virtual void* GetLastChild(const void* aHandle, TNodeType aType = ENt_Unknown) = 0;
 	virtual void* GetFirstTextChild(const void* aHandle) = 0;
 	virtual char* GetAttr(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual char* GetContent(const void* aHandle) = 0;
 	virtual void  SetContent(const void* aHandle, const string& aContent) = 0;
 	virtual TBool AttrExists(const void* aHandle, TNodeAttr aAttr) = 0;
 	virtual TNodeAttr GetAttrNat(const void* aHandle, TNodeAttr aAttr) = 0;
-	virtual NodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
-	virtual void* AddChild(void* aParent, NodeType aType) = 0;
+	virtual TNodeType GetAttrNt(const void* aHandle, TNodeAttr aAttr) = 0;
+	virtual void* AddChild(void* aParent, TNodeType aType) = 0;
 	virtual void* AddChild(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void* AddChildDef(void* aParent, const void* aHandle, TBool aCopy = ETrue) = 0;
 	virtual void* AddNext(const void* aPrev, const void* aHandle, TBool aCopy = ETrue) = 0;
-	virtual void* AddNext(const void* aPrev, NodeType aNode) = 0;
+	virtual void* AddNext(const void* aPrev, TNodeType aNode) = 0;
 	virtual void RmChild(void* aParent, void* aChild) = 0;
 	virtual void Rm(void* aHandle) = 0;
 	virtual void MoveNextTo(void* aHandle, void* aDest) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, const char* aVal) = 0;
-	virtual void SetAttr(void* aNode, TNodeAttr aType, NodeType aVal) = 0;
+	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeType aVal) = 0;
 	virtual void SetAttr(void* aNode, TNodeAttr aType, TNodeAttr aVal) = 0;
 	virtual void Dump(void* aNode, MCAE_LogRec* aLogRec) = 0;
 	virtual void Save(const string& aFileName) const = 0;
@@ -982,14 +1027,14 @@ class CAE_ChromoNode
 	Const_Iterator Begin() const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle)); };
 	Iterator End() { return Iterator(iMdl, NULL); };
 	Const_Iterator End() const { return Const_Iterator(iMdl, NULL); };
-	Iterator Find(NodeType aNodeType) { return Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
-	Const_Iterator Find(NodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
+	Iterator Find(TNodeType aNodeType) { return Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
+	Const_Iterator Find(TNodeType aNodeType) const { return Const_Iterator(iMdl, iMdl.GetFirstChild(iHandle, aNodeType)); };
 	Iterator FindText() { return Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
 	Const_Iterator FindText() const { return Const_Iterator(iMdl, iMdl.GetFirstTextChild(iHandle)); };
 	void Reset() { iHandle = NULL;};
     public:
-	NodeType Type() { return iMdl.GetType(iHandle); };
-	NodeType Type() const { return iMdl.GetType(iHandle); };
+	TNodeType Type() { return iMdl.GetType(iHandle); };
+	TNodeType Type() const { return iMdl.GetType(iHandle); };
 	const string Name() { return Attr(ENa_Id);};
 	const string Name() const { return Attr(ENa_Id);};
 	const string Attr(TNodeAttr aAttr);
@@ -1000,32 +1045,32 @@ class CAE_ChromoNode
 	TBool AttrExists(TNodeAttr aAttr) const { return iMdl.AttrExists(iHandle, aAttr);};
 	TBool AttrBool(TNodeAttr aAttr) const;
 	TNodeAttr AttrNatype(TNodeAttr aAttr) const { return iMdl.GetAttrNat(iHandle, aAttr); };
-	NodeType AttrNtype(TNodeAttr aAttr) const { return iMdl.GetAttrNt(iHandle, aAttr); };
+	TNodeType AttrNtype(TNodeAttr aAttr) const { return iMdl.GetAttrNt(iHandle, aAttr); };
 	const void* Handle() { return iHandle;};
 	const void* Handle() const { return iHandle;};
 	CAE_ChromoMdlBase& Mdl() const { return iMdl;};
-	CAE_ChromoNode AddChild(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
+	CAE_ChromoNode AddChild(TNodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aType)); };
 	CAE_ChromoNode AddChild(const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
 	    CAE_ChromoNode(iMdl, iMdl.AddChild(iHandle, aNode.Handle(), aCopy)); };
 	CAE_ChromoNode AddChildDef(const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
 	    CAE_ChromoNode(iMdl, iMdl.AddChildDef(iHandle, aNode.Handle(), aCopy)); };
 	CAE_ChromoNode AddNext(const CAE_ChromoNode& aPrev, const CAE_ChromoNode& aNode, TBool aCopy = ETrue) { return 
 	    CAE_ChromoNode(iMdl, iMdl.AddNext(aPrev.Handle(), aNode.Handle(), aCopy)); };
-	CAE_ChromoNode AddNext(NodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddNext(iHandle, aType));};
+	CAE_ChromoNode AddNext(TNodeType aType) { return CAE_ChromoNode(iMdl, iMdl.AddNext(iHandle, aType));};
 	// Be careful while removing node got from iterator. Iterator is not cleaned thus it returns wrong node on ++
 	void RmChild(const CAE_ChromoNode& aChild) { iMdl.RmChild(iHandle, aChild.iHandle); };
 	void Rm() { iMdl.Rm(iHandle); };
 	void SetAttr(TNodeAttr aType, const string& aVal) { iMdl.SetAttr(iHandle, aType, aVal.c_str()); };
-	void SetAttr(TNodeAttr aType, NodeType aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
+	void SetAttr(TNodeAttr aType, TNodeType aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	void SetAttr(TNodeAttr aType, TNodeAttr aVal) { iMdl.SetAttr(iHandle, aType, aVal); };
 	CAE_ChromoNode::Iterator Parent();
 	CAE_ChromoNode::Iterator Find(const string& aName);
-	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName);
-	CAE_ChromoNode::Const_Iterator Find(NodeType aType, const string& aName) const;
-	CAE_ChromoNode::Iterator Find(NodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal = EFalse);
-	CAE_ChromoNode::Iterator Find(NodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
+	CAE_ChromoNode::Iterator Find(TNodeType aType, const string& aName);
+	CAE_ChromoNode::Const_Iterator Find(TNodeType aType, const string& aName) const;
+	CAE_ChromoNode::Iterator Find(TNodeType aType, TNodeAttr aAttr, const string& aAttrVal, TBool aPathVal = EFalse);
+	CAE_ChromoNode::Iterator Find(TNodeType aType, const string& aName, TNodeAttr aAttr, const string& aAttrVal);
 	void Dump(MCAE_LogRec* aLogRec) const { iMdl.Dump(iHandle, aLogRec);};
-	void ParseTname(const string& aTname, NodeType& aType, string& aName);
+	void ParseTname(const string& aTname, TNodeType& aType, string& aName);
 	string GetName(const string& aTname);
 	void MoveNextTo(Iterator& aDest) { iMdl.MoveNextTo(iHandle, aDest.iHandle);};
     private :
@@ -1043,15 +1088,15 @@ class MAE_Chromo
 	virtual void Set(const char *aFileName) = 0;
 	virtual TBool Set(const string& aUri) = 0;
 	virtual void Set(const CAE_ChromoNode& aRoot) = 0;
-	virtual void Init(NodeType aRootType) = 0;
+	virtual void Init(TNodeType aRootType) = 0;
 	virtual void Reset() = 0;
 	virtual void Save(const string& aFileName) const = 0;
     public:
 	// TODO [YB] To move the utils from iface to CAE_ChromoBase or sec utils class
-	static string GetTypeId(NodeType aType);
+	static string GetTypeId(TNodeType aType);
 	static string GetAttrId(TNodeAttr aType);
-	static string GetTName(NodeType aType, const string& aName);
-	static void ParseTname(const string& aTname, NodeType& aType, string& aName);
+	static string GetTName(TNodeType aType, const string& aName);
+	static void ParseTname(const string& aTname, TNodeType& aType, string& aName);
 	static TBool ComparePath(const string& aS1, const string& aS2);
 	static TBool ReplacePathElem(string& aPath, const string& aPathTempl, const string& aNewElem);
 };
@@ -1148,7 +1193,8 @@ public:
 		map<string, CAE_Object*>& Comps() { return iOwner.iComps;};
 		vector<CAE_Object*>& CompsOrd() { return iOwner.iCompsOrd;};
 		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
-		const string& Trans() const { return iOwner.iTransSrc;};
+//		const string& Trans() const { return iOwner.iTransSrc;};
+		const TTransInfo& Trans() const { return iOwner.iTransSrc;};
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const string& aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};
@@ -1164,18 +1210,16 @@ public:
 	inline MCAE_LogRec *Logger();
 	virtual ~CAE_Object();
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const TUint8* aChrom = NULL, MAE_Env* aEnv = NULL);
-	// Variant for Chrom XML. In order for somooth transition to XML chrom.
-	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, const void *aChrom = NULL, MAE_Env* aEnv = NULL);
 	static CAE_Object* NewL(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	// TODO [YB] -DONE- CAE_Object cannot register/unregister just base class because the reristry are for heir of EBase
 	// Object uses type resolver to understand what is to be reg/unreg. Thats why it is impossible to unger 
 	// from EBase destructor (resolver is based on virt funct so isnt working there). To conside specialize reg/unreg. 
+	// TODO [YB] To migrate to NBase apis for adding/deleting element
 	void RegisterCompL(CAE_EBase* aComp);
 	void UnregisterComp(CAE_Object* aComp);
-	void UnregisterState(CAE_StateBase* aState);
 	virtual void Update();
 	virtual void Confirm();
-	void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
+	//void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, CAE_Object* aRequestor = NULL);
 	CAE_Object* GetComp(const string& aUri);
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
@@ -1190,7 +1234,6 @@ public:
 	map<string, CAE_ConnPointBase*>& Outputs() {return iOutputs;};
 	const map<string, CAE_ConnPointBase*>& Outputs() const {return iOutputs;};
 	// Create new inheritor of self. 
-	CAE_Object* CreateNewL(const void* aSpec, const char *aName, CAE_Object *aMan);
 	CAE_Object* CreateHeir(const char *aName, CAE_Object *aMan);
 	void SetMutation(const CAE_ChromoNode& aMuta);
 	MAE_Chromo& Mut() { return *iMut;};
@@ -1213,34 +1256,35 @@ public:
 	CAE_Object* FindMutableMangr();
 	// From CAE_NBase
 	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
+	virtual TBool ChangeAttr(TNodeAttr aAttr, const string& aVal);
 	virtual void RmNode(const DesUri& aUri);
+	virtual void OnElemDeleting(CAE_NBase* aElem);
+	virtual void OnElemAdding(CAE_NBase* aElem);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	void Construct();
-	void ConstructL(const void* aChrom = NULL);
-	void ConstructFromChromXL(const void* aChrom);
-	void SetChromosome(TChromOper aOper = EChromOper_Copy, const void* aChrom1 = NULL, const char* aChrom2 = NULL);
 	virtual void DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTimeOnly = EFalse);
 	virtual void DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime);
 	void DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
 	void DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
 private:
-	// Calculates the length of chromosome
-	TInt ChromLen(const TUint8* aChrom) const;
 	// Get logspec event from string
 	static TInt LsEventFromStr(const char *aStr);
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
 	void CreateStateInp(void* aSpecNode, CAE_StateBase *aState);
 	void CreateStateInp(const CAE_ChromoNode& aSpecNode, CAE_StateBase *aState);
-	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
-	void AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns);
+	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp);
+	void AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp);
 	CAE_Object* AddObject(const CAE_ChromoNode& aNode);
 	void AddState(const CAE_ChromoNode& aSpec);
 	void AddConn(const CAE_ChromoNode& aSpec);
+	void AddConn_v1(const CAE_ChromoNode& aSpec);
 	void AddExt(const CAE_ChromoNode& aSpec);
+	void AddExt_v1(const CAE_ChromoNode& aSpec);
 	void AddExtc(const CAE_ChromoNode& aSpec);
+	void AddExtc_v1(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
@@ -1248,6 +1292,7 @@ private:
 	void MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
+	void ChangeAttr_v2(const CAE_ChromoNode& aSpec);
 	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
 	void ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void ChangeChromoAttr(CAE_ChromoNode& aSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr);
@@ -1258,17 +1303,18 @@ private:
 	map<string, CAE_Object*> iComps;
 	vector<CAE_Object*> iCompsOrd;
 	map<string, CAE_StateBase*> iStates;
-	//vector<CAE_EBase*> iCompReg;
 	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
 	multimap<string, CSL_ExprBase*> iTrans; // Transition module
-	map<string, CAE_Ext*> iExts; // Extentions
+	vector<CAE_Ext*> iExts; // Extentions
+	vector<CAE_Conn*> iConns; // Extentions
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;
-	string iTransSrc;
+	//string iTransSrc;
+	TTransInfo iTransSrc;
 	MAE_Opv* iOpv; // Proxy for base view
 	Ctrl iCtrl; // Controll interface
 };
@@ -1319,92 +1365,6 @@ class MAE_Env
 	virtual MAE_TranEx *Tranex() = 0;
 };
 
-
-// Bit based authomata 
-class CAE_ObjectBa: public CAE_Object
-{
-public:
-	FAPWS_API virtual ~CAE_ObjectBa();
-	FAPWS_API static CAE_ObjectBa* NewL(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo);
-	FAPWS_API void SetTrans(const TUint32* aTrans);
-	FAPWS_API virtual void Update();
-	FAPWS_API virtual void Confirm();
-	CAE_State*  Input() {return iInp;}
-	FAPWS_API CAE_ObjectBa* CreateNew(const char* aInstName);
-	void DoMutationOfTrans();
-protected:
-	FAPWS_API CAE_ObjectBa(const char* aInstName, CAE_Object* aMan, TInt aLen, TInt aInpInfo, TInt aOutInfo);
-	FAPWS_API void ConstructL();
-	CAE_TRANS_DEF(UpdateInput, CAE_ObjectBa);
-	CAE_TRANS_DEF(UpdateInpReset, CAE_ObjectBa);
-	void SetTransRandomly();
-public:
-	CAE_TState<TInt>*	iInp;
-	CAE_TState<TUint8>*	iInpReset;
-	CAE_TState<TInt>*	iOut;
-	// Fitness rate. It's usable for GA
-	CAE_TState<TInt>*	iStFitness; 
-private:
-	CAE_TState<TUint8>*	iStInpReset;
-	CAE_TState<TInt>*	iStInp;
-	TInt iLen;
-	TUint32* iNew;
-	TUint32* iCurr;
-	TUint32* iTrans;
-	TInt iInpInfo; // The bit number in the bit mask
-	TInt iOutInfo; // The bit number in the bit mask
-};
-
-struct TCmd
-{
-	TUint8 iCmd, iId;
-};
-
-class CAE_Link: public CAE_Object
-{
-public:
-	FAPWS_API static CAE_Link* NewL(const char* aInstName, CAE_Object* aReg, CAE_State* aInp, CAE_State* aOut);
-	virtual ~CAE_Link();
-private:
-	CAE_Link(const char* aInstName, CAE_Object* aMan);
-	void ConstructL(CAE_State* aInp, CAE_State* aOut);
-	void UpdateOut();
-	static void UpdateOutS(CAE_Object* aObject, CAE_State* aState) {((CAE_Link*) aObject)->UpdateOut();};
-private:
-	CAE_State*	iOut;
-	CAE_State*	iInp;
-};
-
-
-class CActive;
-class CAE_ReqMon;
-
-
-class CAE_StateASrv: public CAE_Object
-{
-	friend class CAE_ReqMon;
-public:
-	FAPWS_API static CAE_StateASrv* NewL(const char* aInstName, CAE_Object* aMan, TInt aPriority);
-	FAPWS_API virtual ~CAE_StateASrv();
-protected:
-	void ConstructL(TInt aPriority);
-	CAE_StateASrv(const char* aInstName,CAE_Object* aMan);
-	virtual void DoCancel() {};
-	virtual void RunL();
-private:
-	CAE_TRANS_DEF(UpdateSetActive, CAE_StateASrv);
-	CAE_TRANS_DEF(UpdateCancel, CAE_StateASrv);
-public:
-	CAE_TState<TInt>*	iOutStatusPtr;
-	CAE_State*	iOutStatus;
-	CAE_TState<TUint8>*	iInpSetActive;
-	CAE_TState<TUint8>*	iInpCancel;
-private:
-	CAE_ReqMon* iReqMon;
-	CAE_TState<TUint8>*	iStSetActive;
-	CAE_TState<TUint8>*	iStCancel;
-};
-
 class CActive
 {
 public:
@@ -1418,46 +1378,6 @@ public:
 private:
 	TBool isActive;
 	TInt iPriority;
-};
-
-class CAE_ReqMon: public CActive
-{
-public:
-	CAE_ReqMon(TInt aPriority, CAE_StateASrv* aObs): CActive(aPriority), iObs(aObs) {};
-	virtual void DoCancel() {iObs->DoCancel();};
-	virtual void RunL() {iObs->RunL();};
-private:
-	CAE_StateASrv* iObs;
-};
-
-class CAE_ReqMonAs;
-
-class CAE_ObjectAs: public CAE_Object
-{
-	friend class CAE_ReqMonAs;
-public:
-	FAPWS_API static CAE_ObjectAs* NewL(const char* aInstName, CAE_Object* aMan, TInt aPriority);
-	FAPWS_API virtual ~CAE_ObjectAs();
-protected:
-	void ConstructL(TInt aPriority);
-	CAE_ObjectAs(const char* aInstName,CAE_Object* aMan);
-	void DoCancel() {};
-	void RunL();
-protected:
-	CAE_TState<TInt>*	iStAsStatus;
-	CAE_ReqMonAs* iReqMon;
-};
-
-
-class CAE_ReqMonAs: public CActive
-{
-public:
-	CAE_ReqMonAs(TInt aPriority, CAE_ObjectAs* aObs): CActive(aPriority), iObs(aObs) {};
-	virtual void DoCancel() {iObs->DoCancel();};
-	virtual void RunL() {iObs->RunL();};
-	void SetActive() {CActive::SetActive();};
-private:
-	CAE_ObjectAs* iObs;
 };
 
 
