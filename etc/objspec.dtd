@@ -15,24 +15,9 @@
 <!ELEMENT logspec (logdata+)>
 
 <!-- 
-     Mutation
--->
-<!ELEMENT mut (add*, remove*, change*, changecont*, move*)>
-
-<!-- 
      Mutation - addition
 -->
 <!ELEMENT add (inp*, out*, logspec*, trans*, iobject* , state*, conn*, ext*, extc*)>
-
-<!-- 
-     Mutation - removal
--->
-<!ELEMENT remove EMPTY>
-
-<!-- 
-     Mutation - change (attribute)
--->
-<!ELEMENT change EMPTY>
 
 <!-- 
      Mutation - change content
@@ -60,30 +45,8 @@
      The spec contains pointing to parent (attr type) and spec for parents mutation
      Mutation can be adding, deleting, changing, and special mutation
 -->
-<!ELEMENT iobject (inp*, out*, logspec*, trans*, iobject* , state*, state_mut*, conn*, ext*, extc*, mut*, rm*, chg*)>
-
-<!-- object spec: 
-     This is pure chromo of object and normally shouldn't be used in spec
-     inp - object inputs, 
-     out - object outputs
-     logspec - logging spec,
-     object - spec of added object(s),
-     state - spec of added state(s) spec,
-     state_mut - state mutation,
-     conn - connnection(s) 
-     note: inputs and outputs are just leaing-out of internal states and subsystems
-     so "connection" between input and internal state input is leading out state input
-     -->
-<!ELEMENT object (inp*, out*, logspec*, trans*, object* , state*, state_mut*, conn*, ext*, extc*)>
-
-<!-- Object Producing spec -->
-<!ELEMENT prod EMPTY >
+<!ELEMENT iobject (inp*, out*, logspec*, trans*, iobject* , state*, conn*, ext*, extc*, rm*, chg*, changecont*, move*)>
  
-<!--
-<!ELEMENT caeenv (iobject*)>
--->
-
-
 <!-- Removing node -->
 <!ELEMENT rm EMPTY >
 
@@ -132,14 +95,6 @@
 <!-- Logging data: tran - transition expressions, cur - current value, new - new value, dep - pependencies -->
 <!ATTLIST logdata id (trex | cur | new | dep) #REQUIRED>
 
-<!-- Object  attributes:
-     id - instance name,
-     -->
-<!ATTLIST object 
-   id CDATA #REQUIRED
-   quiet (yes) #IMPLIED
->
-
 <!-- Inherited Object  attributes:
      type - parent name,
      id - instance name,
@@ -162,17 +117,6 @@
     type CDATA #IMPLIED
     id CDATA #REQUIRED
     len CDATA #IMPLIED
-    transf CDATA #IMPLIED
-    init CDATA #IMPLIED
->
-
-<!-- State mutation attributes:
-  id - identification of instance
-  transf - transtion function 
-  init - initial value
-  -->
-<!ATTLIST state_mut 
-    id CDATA #REQUIRED
     transf CDATA #IMPLIED
     init CDATA #IMPLIED
 >
@@ -246,48 +190,11 @@
     pair  CDATA #REQUIRED
 >
 
-<!-- Mutation attributes:
-  node - mutated node
-  TODO [YB] Just node Id may not be enough here, because of nou unique ~ [YB] It should be unique, other solution,
-  for instance using type + id is not correct because as node some path can be used. The solution would be to use
-  full qualified path, where for each path element the type can be specified. ~ [YB] Done
-  -->
-<!ATTLIST mut 
-    node CDATA #IMPLIED
->
-
 <!-- Removing node attributes:
   node - mutated node - DES URI
   -->
 <!ATTLIST rm 
     node CDATA #IMPLIED
->
-
-
-<!-- Node  remove attributes:
-     Node is identified by type + id. In case if it is not enough additional attribute can be used
-     by specifying attr type (attr) and value (value)
-     type - node type (object, state etc.),
-     id - node name,
-     attr - type of extra identifier
-     value - value of extra identifier
-     -->
-<!ATTLIST remove 
-   type CDATA #REQUIRED
-   id CDATA #REQUIRED
-   attr CDATA #IMPLIED
-   val CDATA #IMPLIED
->
-
-<!-- Change  attributes:
-     attr - attr name,
-     val - attr value,
-     -->
-<!ATTLIST change
-   type CDATA #REQUIRED
-   id CDATA #REQUIRED
-   attr CDATA #REQUIRED
-   val CDATA #REQUIRED
 >
 
 <!-- Change  attributes:

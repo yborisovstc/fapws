@@ -281,9 +281,11 @@ class CAE_NBase: public CAE_Base
 	virtual TBool ChangeCont(const string& aVal) { return EFalse;};
 	virtual CAE_NBase* Owner() { return iOwner;};
 	virtual TBool IsMetQuery(const DesUri& aUri) { return EFalse;};
+	virtual TBool MoveNode(const DesUri& aNodeUri, const DesUri& aDestUri) { return EFalse;};
 	// Owners apis
 	virtual void OnElemDeleting(CAE_NBase* aElem) {};
 	virtual void OnElemAdding(CAE_NBase* aElem) {};
+	virtual void OnElemChanging(CAE_NBase* aElem, TNodeAttr aAttr = ENa_Unknown) {};
     protected:
 	virtual void *DoGetFbObj(const char *aName);
     protected:
@@ -1189,11 +1191,9 @@ public:
 	{
 	    public:
 		Ctrl(CAE_Object& aOwner): iOwner(aOwner) {}
-		//vector<CAE_EBase*>& CompReg() { return iOwner.iCompReg;};
 		map<string, CAE_Object*>& Comps() { return iOwner.iComps;};
 		vector<CAE_Object*>& CompsOrd() { return iOwner.iCompsOrd;};
 		map<string, CAE_StateBase*>& States() { return iOwner.iStates;};
-//		const string& Trans() const { return iOwner.iTransSrc;};
 		const TTransInfo& Trans() const { return iOwner.iTransSrc;};
 		CAE_Object& Object() { return iOwner;}
 		CAE_EBase* FindByName(const string& aName) { return iOwner.FindByName(aName);};
@@ -1219,7 +1219,6 @@ public:
 	void UnregisterComp(CAE_Object* aComp);
 	virtual void Update();
 	virtual void Confirm();
-	//void LinkL(CAE_StateBase* aInp, CAE_StateBase* aOut, TTransFun aTrans = NULL);
 	CAE_Object* GetComp(const char* aName, CAE_Object* aRequestor = NULL);
 	CAE_Object* GetComp(const string& aUri);
 	// TODO [YB] Implement an access to comp via control iface. FindByName not need this case.
@@ -1258,52 +1257,41 @@ public:
 	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
 	virtual TBool ChangeAttr(TNodeAttr aAttr, const string& aVal);
 	virtual void RmNode(const DesUri& aUri);
+	virtual TBool MoveNode(const DesUri& aNodeUri, const DesUri& aDestUri);
 	virtual void OnElemDeleting(CAE_NBase* aElem);
 	virtual void OnElemAdding(CAE_NBase* aElem);
+	virtual void OnElemChanging(CAE_NBase* aElem, TNodeAttr aAttr = ENa_Unknown);
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	void Construct();
-	virtual void DoMutation(CAE_ChromoNode& aMutSpec, TBool aRunTimeOnly = EFalse);
 	virtual void DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime);
-	void DoMutationMut(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
-	void DoMutationMut_v1(CAE_ChromoNode& aMutNode, CAE_ChromoNode& aTargNode, CAE_EBase* aTargRtNode, TBool aRunTime);
 private:
 	// Get logspec event from string
 	static TInt LsEventFromStr(const char *aStr);
 	// Get logspec data from string
 	static TInt LsDataFromStr(const char *aStr);
-	void CreateStateInp(void* aSpecNode, CAE_StateBase *aState);
 	void CreateStateInp(const CAE_ChromoNode& aSpecNode, CAE_StateBase *aState);
 	void CreateConn(void* aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp);
 	void AddConn(const CAE_ChromoNode& aSpecNode, map<string, CAE_ConnPointBase*>& aConns, TBool aInp);
 	CAE_Object* AddObject(const CAE_ChromoNode& aNode);
 	void AddState(const CAE_ChromoNode& aSpec);
-	void AddConn(const CAE_ChromoNode& aSpec);
 	void AddConn_v1(const CAE_ChromoNode& aSpec);
-	void AddExt(const CAE_ChromoNode& aSpec);
 	void AddExt_v1(const CAE_ChromoNode& aSpec);
-	void AddExtc(const CAE_ChromoNode& aSpec);
 	void AddExtc_v1(const CAE_ChromoNode& aSpec);
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
-	void RemoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void RemoveElem_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
-	void MoveElem(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
-	void ChangeAttr(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void ChangeAttr_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
+	void MoveElem_v1(const CAE_ChromoNode& aSpec);
 	void ChangeAttr_v2(const CAE_ChromoNode& aSpec);
-	void ChangeCont(CAE_EBase* aNode, const CAE_ChromoNode& aSpec, const CAE_ChromoNode& aCurr);
-	void ChangeCont_v1(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
-	void ChangeChromoAttr(CAE_ChromoNode& aSpec, CAE_ChromoNode& aCtxNode, CAE_ChromoNode& aCurr);
+	void ChangeCont_v2(const CAE_ChromoNode& aSpec);
 	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);
 	void SetTrans(const string& aTrans);
+	TBool MergeMutation(const CAE_ChromoNode& aSpec);
+	TBool MergeMutMove(const CAE_ChromoNode& aSpec);
 private:
-	// TODO [YB] To migrate to map
 	map<string, CAE_Object*> iComps;
 	vector<CAE_Object*> iCompsOrd;
 	map<string, CAE_StateBase*> iStates;
-	void* iChromX;		// Chromosome, XML based
 	MAE_Env* iEnv;  // FAP Environment, not owned
 	map<string, CAE_ConnPointBase*> iInputs;
 	map<string, CAE_ConnPointBase*> iOutputs;
@@ -1313,7 +1301,6 @@ private:
 	CAE_ChromoBase *iMut;
 	CAE_ChromoBase *iChromo;
 	ChromoPx iChromoIface;
-	//string iTransSrc;
 	TTransInfo iTransSrc;
 	MAE_Opv* iOpv; // Proxy for base view
 	Ctrl iCtrl; // Controll interface
