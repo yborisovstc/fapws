@@ -67,6 +67,8 @@ void Panic(TInt aRes)
 map<string, TNodeType> DesUri::iEbNameToNType;
 map<TLeBase, string> DesUri::iLeventNames;
 map<string, TLeBase> DesUri::iLevents;
+map<TLdBase, string> DesUri::iLdataNames;
+map<string, TLdBase> DesUri::iLdata;
 
 extern map<string, TNodeType> KNodeTypes;
 extern map<TNodeType, string> KNodeTypesNames;
@@ -76,6 +78,11 @@ extern map<string, TNodeAttr> KNodeAttrs;
 const string& DesUri::NodeAttrName(TNodeAttr aAttr)
 {
     return KNodeAttrsNames[aAttr];
+}
+
+const string& DesUri::NodeTypeName(TNodeType aType)
+{
+    return KNodeTypesNames[aType];
 }
 
 TNodeAttr DesUri::NodeAttr(const string& aAttrName)
@@ -124,12 +131,42 @@ void DesUri::Construct()
 	    iLevents[it->second] = it->first;
 	}
     }
+    if (iLdataNames.size() == 0)
+    {
+	iLdataNames[KBaseDa_None] = "none";
+	iLdataNames[KBaseDa_Curr] = "cur";
+	iLdataNames[KBaseDa_New] = "new";
+	iLdataNames[KBaseDa_Dep] = "dep";
+	iLdataNames[KBaseDa_Trex] = "trex";
+
+	for (map<TLdBase, string>::const_iterator it = iLdataNames.begin(); it != iLdataNames.end(); it++) {
+	    iLdata[it->second] = it->first;
+	}
+    }
 }
 
 const string& DesUri::LeventName(TLeBase aEvent) 
 { 
     if (iLeventNames.size() == 0) Construct(); 
     return iLeventNames[aEvent];
+};
+
+TLeBase DesUri::Levent(const string& aName)
+{ 
+    if (iLevents.size() == 0) Construct(); 
+    return iLevents.count(aName) == 0 ? KBaseLe_None : iLevents[aName];
+};
+
+const string& DesUri::LdataName(TLdBase aData) 
+{ 
+    if (iLdataNames.size() == 0) Construct(); 
+    return iLdataNames[aData];
+};
+
+TLdBase DesUri::Ldata(const string& aName)
+{ 
+    if (iLdata.size() == 0) Construct(); 
+    return iLdata.count(aName) == 0 ? KBaseDa_None : iLdata[aName];
 };
 
 void DesUri::Parse()
@@ -418,6 +455,11 @@ void *CAE_ConnPointBase::DoGetFbObj(const char *aName)
     else {
     }
     return res;
+}
+
+CAE_ConnPointBase::~CAE_ConnPointBase()
+{
+    Owner()->OnElemDeleting(this);
 }
 
 /*
@@ -1009,9 +1051,9 @@ FAPWS_API CAE_EBase::~CAE_EBase()
 {
     if (iTypeName != NULL)
 	free(iTypeName);
+    // TODO [YB] To reimplement this hack
     for (map<string, TLogSpecBase*>::reverse_iterator it = iLogSpec.rbegin(); it != iLogSpec.rend(); ) {
 	map<string, TLogSpecBase*>::reverse_iterator nit = it;
-	nit++;
 	delete (it->second);
 	it = nit;
     }
@@ -1080,6 +1122,44 @@ void CAE_EBase::OnElemDeleting(CAE_NBase* aElem)
 	    iLogSpec.erase(it); 
 	}
     }
+}
+
+TBool CAE_EBase::AddNode(const CAE_ChromoNode& aSpec)
+{
+    TBool res = ETrue;
+    TNodeType ntype = aSpec.Type();
+    if (ntype == ENt_Logspec) {
+	AddLogSpec(aSpec);
+    }
+    else {
+	res = CAE_NBase::AddNode(aSpec);
+    }
+    return res;
+}
+
+void CAE_EBase::AddLogSpec(const CAE_ChromoNode& aSpec)
+{
+    // Set logspec 
+    string aevent = aSpec.Attr(ENa_Logevent);
+    TInt event = DesUri::Levent(aevent);
+    // Get logging data
+    TInt ldata = 0;
+    for (CAE_ChromoNode::Const_Iterator lselemit = aSpec.Begin(); lselemit != aSpec.End(); lselemit++)
+    {
+	CAE_ChromoNode lselem = *lselemit;
+	if (lselem.Type() == ENt_Logdata)
+	{
+	    string adata = lselem.Name();
+	    TInt data = DesUri::Ldata(adata);
+	    ldata |= data;
+	}
+	else
+	{
+	    string aname = lselem.Name();
+	    Logger()->WriteFormat("ERROR: Unknown type [%s]", aname.c_str());
+	}
+    }
+    AddLogSpec((TLeBase) event, ldata);
 }
 
 // Trans inofo
@@ -1287,6 +1367,7 @@ CAE_StateBase* CAE_StateBase::Input(const char* aName)
     return res;
 }
 
+// TODO [YB] Obsolete?
 void CAE_StateBase::AddInputL(const char* aName) 
 {
     TBool exists = iInputs.find(aName) != iInputs.end();
@@ -1302,7 +1383,6 @@ void CAE_StateBase::AddInputL(const char* aName)
     pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = iInputs.insert(pair<string, CAE_ConnPoint*>(aName, cpoint));
     bool bres = res.second;
 }
-
 
 void CAE_StateBase::SetInputL(const char *aName, CAE_StateBase* aState)
 {
@@ -1421,6 +1501,42 @@ multimap<string, CSL_ExprBase*>::iterator CAE_StateBase::GetExprs(const string& 
     return res;
 }
 
+void CAE_StateBase::AddInp(const CAE_ChromoNode& aSpec) 
+{
+    TBool r_dest_spec = EFalse;
+    const string sname = aSpec.Name();
+    const char *name = sname.c_str();
+    if (sname.empty())
+	Logger()->WriteFormat("ERROR: Creating conn [%s,%s]: empty name", Name().c_str(), name);
+    else {
+	if (Inputs().count(name) > 0) {
+	    Logger()->WriteFormat("ERROR: Conn [%s.%s.%s] already exists", MansName(1), MansName(0), Name().c_str(), name);
+	    _FAP_ASSERT(EFalse);
+	}
+	CAE_ConnSlot::Template st, dt;
+	st["_1"] = "State";
+	for (CAE_ChromoNode::Const_Iterator elemit = aSpec.Begin(); elemit != aSpec.End(); elemit++) {
+	    CAE_ChromoNode elem = *elemit;
+	    if (elem.Type() == ENt_CpDest)
+	    {
+		const string sname = elem.Name();
+		const char *name = sname.c_str(); 
+		const string stype = elem.Attr(ENa_Type);
+		const char *type = stype.c_str(); 
+		// Create default templ if type isnt specified
+		dt[name] = type ? type: "State";
+		r_dest_spec = ETrue;
+	    }
+	}
+	if (!r_dest_spec) {
+	    dt["_1"] = "State";
+	}
+	CAE_ConnPoint *cpoint = new CAE_ConnPoint(ENt_Stinp, name, this, st, dt);
+	cpoint->Srcs()->SetPin("_1", this);
+	pair<map<string, CAE_ConnPointBase*>::iterator, bool> res = Inputs().insert(pair<string, CAE_ConnPointBase*>(name, cpoint));
+    }
+}
+
 CAE_NBase* CAE_StateBase::GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase)
 {
     CAE_NBase* res = NULL;
@@ -1467,6 +1583,18 @@ TBool CAE_StateBase::ChangeAttr(TNodeAttr aAttr, const string& aVal)
     return res;
 };
 
+TBool CAE_StateBase::AddNode(const CAE_ChromoNode& aSpec)
+{
+    TBool res = ETrue;
+    TNodeType ntype = aSpec.Type();
+    if (ntype == ENt_Stinp) {
+	AddInp(aSpec);
+    }
+    else {
+	res = CAE_EBase::AddNode(aSpec);
+    }
+    return res;
+}
 
 // ******************************************************************************
 // CAE_State - state handling owned data
@@ -2020,13 +2148,13 @@ FAPWS_API CAE_Object::~CAE_Object()
 	iMan->UnregisterComp(this);
     // Use reverse because the nodes request unregistering within destructors
     for (map<string, CAE_StateBase*>::reverse_iterator it = iStates.rbegin(); it != iStates.rend(); ) {
-	map<string, CAE_StateBase*>::reverse_iterator nit = it++;
+	map<string, CAE_StateBase*>::reverse_iterator nit = it;
 	delete it->second;
 	it = nit;
     }
     iStates.clear();
     for (map<string, CAE_Object*>::reverse_iterator it = iComps.rbegin(); it != iComps.rend(); ) {
-	map<string, CAE_Object*>::reverse_iterator nit = it++;
+	map<string, CAE_Object*>::reverse_iterator nit = it;
 	delete it->second;
 	it = nit;
     }
@@ -2071,6 +2199,16 @@ void CAE_Object::OnElemDeleting(CAE_NBase* aElem)
 	_FAP_ASSERT(it != iComps.end());
 	iComps.erase(it);
     }
+    else if (nt == ENt_Stinp) {
+	map<string, CAE_ConnPointBase*>::iterator it = iInputs.find(aElem->Name());
+	_FAP_ASSERT(it != iInputs.end());
+	iInputs.erase(it);
+    }
+    else if (nt == ENt_Soutp) {
+	map<string, CAE_ConnPointBase*>::iterator it = iOutputs.find(aElem->Name());
+	_FAP_ASSERT(it != iOutputs.end());
+	iOutputs.erase(it);
+    }
     else {
 	CAE_NBase::OnElemDeleting(aElem);
     }
@@ -2089,6 +2227,16 @@ void CAE_Object::OnElemAdding(CAE_NBase* aElem)
 	CAE_Object* elem = aElem->GetFbObj(elem);
 	_FAP_ASSERT(elem != NULL && iComps.count(elem->Name()) == 0);
 	iComps.insert(pair<string, CAE_Object*>(elem->Name(), elem));
+    }
+    else if (nt == ENt_Stinp) {
+	CAE_ConnPointBase* elem = aElem->GetFbObj(elem);
+	_FAP_ASSERT(elem != NULL && iInputs.count(elem->Name()) == 0);
+	iInputs.insert(pair<string, CAE_ConnPointBase*>(elem->Name(), elem));
+    }
+    else if (nt == ENt_Soutp) {
+	CAE_ConnPointBase* elem = aElem->GetFbObj(elem);
+	_FAP_ASSERT(elem != NULL && iOutputs.count(elem->Name()) == 0);
+	iOutputs.insert(pair<string, CAE_ConnPointBase*>(elem->Name(), elem));
     }
     else {
 	CAE_NBase::OnElemAdding(aElem);
@@ -2388,6 +2536,27 @@ void CAE_Object::RmNode(const DesUri& aUri)
     }
 }
 
+void CAE_Object::MutAddNode(const CAE_ChromoNode& aSpec)
+{
+    TBool res = ETrue;
+    string snode = aSpec.Attr(ENa_MutNode);
+    DesUri unode(snode);
+    CAE_NBase* node = CAE_NBase::GetNode(unode);
+    if (node != NULL) {
+	for (CAE_ChromoNode::Const_Iterator mit = aSpec.Begin(); mit != aSpec.End() && res; mit++)
+	{
+	    const CAE_ChromoNode& mno = (*mit);
+	    res = node->AddNode(mno);
+	}
+	if (!res) {
+	    Logger()->WriteFormat("ERROR: Adding node into [%s] - failure", snode.c_str());
+	}
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Adding node: cannot find [%s]", snode.c_str());
+    }
+}
+
 void CAE_Object::ChangeAttr_v2(const CAE_ChromoNode& aSpec)
 {
     string snode = aSpec.Attr(ENa_MutNode);
@@ -2679,6 +2848,9 @@ void CAE_Object::DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime)
 	    }
 	    else if (rnotype == ENt_Logspec) {
 		AddLogspec(this, rno);
+	    }
+	    else if (rnotype == ENt_MutAdd) {
+		MutAddNode(rno);
 	    }
 	    else if (rnotype == ENt_Rm) {
 		string snode = rno.Attr(ENa_MutNode);
@@ -3134,11 +3306,17 @@ void CAE_Object::SetEbaseObsRec(CAE_Base* aObs)
 // heir's chromo. Ref to md#sec_desg_mut_exnode for more info
 CAE_Object* CAE_Object::FindMutableMangr()
 {
-    CAE_Object* res = NULL;
-    if (iMan == NULL) {
+    CAE_Object* res = FindDeattachedMangr();
+    if (res == NULL) {
 	res = this;
     }
-    else {
+    return res;
+}
+
+CAE_Object* CAE_Object::FindDeattachedMangr()
+{
+    CAE_Object* res = NULL;
+    if (iMan != NULL) {
 	// Check if mgr chromo includes the current node
 	const CAE_ChromoNode& mgroot = iMan->Chromo().Root();
 	CAE_ChromoNode::Const_Iterator mnodeit = mgroot.Find(ENt_Object, Name());
@@ -3146,7 +3324,7 @@ CAE_Object* CAE_Object::FindMutableMangr()
 	    res = iMan;
 	}
 	else {
-	    res = iMan->FindMutableMangr();
+	    res = iMan->FindDeattachedMangr();
 	}
     }
     return res;

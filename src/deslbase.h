@@ -132,6 +132,24 @@ class CSL_EfFld: public CSL_ExprBase
 };
 
 
+class CSL_EfAnd: public CSL_ExprBase
+{
+    public:
+	CSL_EfAnd(): CSL_ExprBase("TBool TBool TBool") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAnd(*this);};
+};
+
+class CSL_EfEqInt: public CSL_ExprBase
+{
+    public:
+	CSL_EfEqInt(): CSL_ExprBase("TBool TInt TInt") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfEqInt(*this);};
+};
+
 class CSL_EfLtInt: public CSL_ExprBase
 {
     public:
@@ -306,6 +324,15 @@ class CSL_EfSubInt: public CSL_ExprBase
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfSubInt(*this);};
+};
+
+class CSL_EfMplInt: public CSL_ExprBase
+{
+    public:
+	CSL_EfMplInt(): CSL_ExprBase("TInt TInt TInt") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfMplInt(*this);};
 };
 
 class CSL_EfDivInt: public CSL_ExprBase

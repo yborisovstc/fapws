@@ -199,8 +199,12 @@ class DesUri
 	void PrependElem(CAE_NBase* aElem, TBool aRec = ETrue, CAE_NBase* aBase = NULL);
 	void AppendQueryElem(TQueryOpr aOpr, TNodeAttr aAttr, const string& aValue);
 	static const string& NodeAttrName(TNodeAttr aAttr);
+	static const string& NodeTypeName(TNodeType aType);
 	static TNodeAttr NodeAttr(const string& aAttrName);
 	static const string& LeventName(TLeBase aEvent);
+	static TLeBase Levent(const string& aName);
+	static const string& LdataName(TLdBase aData);
+	static TLdBase Ldata(const string& aName);
     protected:
 	static void Construct();
     private:
@@ -209,6 +213,8 @@ class DesUri
 	static map<string, TNodeType> iEbNameToNType;
 	static map<TLeBase, string> iLeventNames;
 	static map<string, TLeBase> iLevents;
+	static map<TLdBase, string> iLdataNames;
+	static map<string, TLdBase> iLdata;
 	string iUri;
 	string iScheme;
 	vector<TElem> iElems;
@@ -261,6 +267,7 @@ class CAE_Base
 // Possible problem here is that there is no full relation between chromo nodes and runtime nodes
 // For instance ENt_Cext, ENt_Conn. To consider if it makes sense to have such nodes in runtime
 
+class CAE_ChromoNode;
 class CAE_NBase: public CAE_Base
 {
     public:
@@ -282,6 +289,7 @@ class CAE_NBase: public CAE_Base
 	virtual CAE_NBase* Owner() { return iOwner;};
 	virtual TBool IsMetQuery(const DesUri& aUri) { return EFalse;};
 	virtual TBool MoveNode(const DesUri& aNodeUri, const DesUri& aDestUri) { return EFalse;};
+	virtual TBool AddNode(const CAE_ChromoNode& aSpec) { return EFalse;};
 	// Owners apis
 	virtual void OnElemDeleting(CAE_NBase* aElem) {};
 	virtual void OnElemAdding(CAE_NBase* aElem) {};
@@ -375,7 +383,9 @@ class CAE_EBase: public CAE_NBase
 	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase);
 	virtual CAE_NBase* Owner() { return (CAE_NBase*) iMan;};
 	virtual void OnElemDeleting(CAE_NBase* aElem);
+	virtual TBool AddNode(const CAE_ChromoNode& aSpec);
 protected:
+	void AddLogSpec(const CAE_ChromoNode& aSpec);
 	// From CAE_Base
 	virtual void *DoGetFbObj(const char *aName);
 protected:
@@ -401,7 +411,7 @@ class CAE_ConnPointBase: public CAE_NBase
 	static const char *Type() { return "ConnPointBase";} 
 	CAE_ConnPointBase(TNodeType aNodeType, const string& aName, CAE_EBase* aMan): CAE_NBase(aNodeType, aName), iMan(aMan) {};
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
-	virtual ~CAE_ConnPointBase() {};
+	virtual ~CAE_ConnPointBase();
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
 	virtual TBool Disconnect() = 0;
@@ -764,6 +774,7 @@ public:
 	virtual TBool ChangeAttr(TNodeAttr aAttr, const string& aVal);
 	virtual void OnElemDeleting(CAE_NBase* aElem);
 	virtual void OnElemAdding(CAE_NBase* aElem);
+	virtual TBool AddNode(const CAE_ChromoNode& aSpec);
 public:
 	const string ValStr() const;
 	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
@@ -771,6 +782,7 @@ public:
 protected:
 	virtual void *DoGetFbObj(const char *aName);
 	void ConstructL();
+	void AddInp(const CAE_ChromoNode& aSpec);
 	virtual char* DataToStr(TBool aCurr) const = 0;
 	virtual void DataFromStr(const char* aStr, void *aData) const = 0;
 	virtual void DoSet(void* aData) = 0;
@@ -1266,6 +1278,7 @@ protected:
 	CAE_Object(const char* aInstName, CAE_Object* aMan, MAE_Env* aEnv = NULL);
 	void Construct();
 	virtual void DoMutation_v1(CAE_ChromoNode& aMutSpec, TBool aRunTime);
+	CAE_Object* FindDeattachedMangr();
 private:
 	// Get logspec event from string
 	static TInt LsEventFromStr(const char *aStr);
@@ -1282,6 +1295,7 @@ private:
 	void AddTrans(const CAE_ChromoNode& aSpec);
 	void AddLogspec(CAE_EBase* aNode, const CAE_ChromoNode& aSpec);
 	void MoveElem_v1(const CAE_ChromoNode& aSpec);
+	void MutAddNode(const CAE_ChromoNode& aSpec);
 	void ChangeAttr_v2(const CAE_ChromoNode& aSpec);
 	void ChangeCont_v2(const CAE_ChromoNode& aSpec);
 	void ChangeChromoCont(const CAE_ChromoNode& aSpec, CAE_ChromoNode& aCurr);

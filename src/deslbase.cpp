@@ -462,7 +462,38 @@ void CSL_EfInp::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::
     }
 }
 
-void CSL_EfLtInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
+void CSL_EfAnd::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	TBool x,y;
+	CSL_EfTBool::FromStr(x,iArgs[0]->Data());
+	CSL_EfTBool::FromStr(y,aArg.Data());
+	TBool res = x && y;
+	aRes = new CSL_EfTBool(res);
+    }
+}
+
+void CSL_EfEqInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	TInt x,y;
+	CSL_EfTInt::FromStr(x,iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y,aArg.Data());
+	TBool res = x == y;
+	aRes = new CSL_EfTBool(res);
+    }
+}
+
+void CSL_EfLtInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
 {
     if (iType.size() > 2) {
 	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
@@ -559,6 +590,23 @@ void CSL_EfSubInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string
 	CSL_EfTInt::FromStr(x, iArgs[0]->Data());
 	CSL_EfTInt::FromStr(y, aArg.Data());
 	res = x - y;
+	aRes = new CSL_ExprBase("TInt", CSL_EfTInt::ToStr(res));
+    }
+}
+
+
+void CSL_EfMplInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	TInt x,y, res = 0;
+	CSL_EfTInt::FromStr(x, iArgs[0]->Data());
+	CSL_EfTInt::FromStr(y, aArg.Data());
+	if (y != 0)
+	    res = x * y;
 	aRes = new CSL_ExprBase("TInt", CSL_EfTInt::ToStr(res));
     }
 }
@@ -773,6 +821,7 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     SetExprEmb("add", new CSL_EfAddFloat());
     SetExprEmb("sub", new CSL_EfSubInt());
     SetExprEmb("div", new CSL_EfDivInt());
+    SetExprEmb("mpl", new CSL_EfMplInt());
     SetExprEmb("inp", new CSL_EfInp("* String"));
     //SetExprEmb("inp", new CSL_EfInp("TInt String"));
     //SetExprEmb("inp", new CSL_EfInp("TVectF String"));
@@ -781,6 +830,8 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     //SetExprEmb("set", new CSL_EfSet("TVectF TVectF"));
     SetExprEmb("if", new CSL_EfIf("TInt TInt TInt TBool"));
     SetExprEmb("if", new CSL_EfIf("* * * TBool"));
+    SetExprEmb("and", new CSL_EfAnd());
+    SetExprEmb("eq", new CSL_EfEqInt());
     SetExprEmb("lt", new CSL_EfLtInt());
     SetExprEmb("lt", new CSL_EfLtFloat());
     SetExprEmb("le", new CSL_EfLeFloat());
