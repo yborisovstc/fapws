@@ -405,6 +405,7 @@ inline const char *CAE_EBase::Type() { return "EBase";}
 // TODO [YB] Actually only CAE_ConnPoint is used. Do we need iface CAE_ConnPointBase?
 // Base class for connection points
 // TODO [YB] To enhance connection/extension model
+// TODO [YB] To replace iConns, iExts with CAE_Conn, CAE_Ext. Ref to UC_CONN_08
 class CAE_ConnPointBase: public CAE_NBase
 {
     public:
@@ -527,14 +528,13 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
 	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	void Set(CAE_ConnPointBase *aConnPoint);
-	void Unset();
-	CAE_ConnPointBase* Ref() {return iRef;};
+	vector<CAE_ConnPointBase*>& Ref() {return iRef;};
 	static const char *Type() {return "ConnPointExt";}; 
     protected:
 	virtual void *DoGetFbObj(const char *aName);
     private:
-	CAE_ConnPointBase* iRef;
+	// Updated to multipoint  - ref UC_CONN_07
+	vector<CAE_ConnPointBase*> iRef;
 };
 
 // 
@@ -1211,6 +1211,7 @@ public:
 		CAE_EBase* FindByName(const string& aName) { return iOwner.FindByName(aName);};
 		CAE_Object* Mangr() { return iOwner.iMan;};
 		CAE_Object::Ctrl& GetCtrl(CAE_Object* aObj) { return aObj->iCtrl;};
+		MAE_Env* Env() { return iOwner.iEnv;};
 	    public:
 		CAE_Object& iOwner;
 	};
@@ -1352,6 +1353,7 @@ class MAE_Provider
 	virtual CAE_ChromoBase* CreateChromo() const = 0;
 	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const = 0;
 	virtual MAE_Opv* CreateViewProxy() = 0;
+	virtual void GetRegisteredStates(vector<const TStateInfo*>& aInfo) const = 0;
 };
 
 // FAP environment interface

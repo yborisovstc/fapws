@@ -1032,6 +1032,11 @@ MAE_Opv* CAE_ProviderGen::CreateViewProxy()
     return NULL;
 }
 
+void CAE_ProviderGen::GetRegisteredStates(vector<const TStateInfo*>& aInfo) const
+{
+    aInfo.insert(aInfo.end(), iStateInfos->begin(), iStateInfos->end());
+}
+
 //*********************************************************
 // Chromosome manager for XML based chromosome
 //*********************************************************
@@ -1447,3 +1452,11 @@ void CAE_Fact::AddProvider(CAE_ProviderBase* aProv)
 	iProviders[aProv->Name()] = aProv;
     }
 }
+
+void CAE_Fact::GetRegisteredStates(vector<const TStateInfo*>& aInfo) const
+{
+    for (map<string, CAE_ProviderBase*>::const_iterator it = iProviders.begin(); it != iProviders.end(); it++) {
+	it->second->GetRegisteredStates(aInfo);
+    }
+}
+

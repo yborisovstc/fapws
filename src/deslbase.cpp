@@ -413,7 +413,6 @@ void CSL_EfFld::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::
 }
 
 
-
 void CSL_EfInp::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
 {
     string name = aArg.Data();
@@ -700,30 +699,22 @@ void CSL_EfString::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string
 
 void CSL_EfTBool::FromStr(TBool& aData, const string& aStr)
 {
-    if (aStr.compare("True") == 0) 
-	aData = ETrue;
-    else if (aStr.compare("False") == 0) 
-	aData = EFalse;
-    else {
-	// TODO [YB] To handle
-	aData = EFalse;
-    }
+    aData = (aStr.compare(0, 4, "True") == 0) || (aStr.compare(0, 4, "true") == 0);
 }
 
 string CSL_EfTBool::ToStr(const TBool& aData)
 {
-    int buflen = 10;
-    char* buf = (char *) malloc(buflen);
-    memset(buf, 0, buflen);
-    sprintf(buf, "%s", aData ? "True" : "False");
-    string res(buf);
-    free(buf);
-    return res;
+    return aData ? "True" : "False";
 }
 
-void CSL_EfTBool::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
+void CSL_EfTBool::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
 {
-    aRes = new CSL_ExprBase("TInt", aArg.Data());
+    aRes = Clone();
+    aRes->AcceptArg();
+    TBool res;
+    FromStr(res, aArg.Data());
+    aRes->SetData(ToStr(res));
 }
 
 void CSL_EfVectF::FromStr(CF_TdVectF& aData, const string& aStr)
@@ -840,6 +831,7 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     SetExprEmb("count", new CSL_EfCount("TInt"));
     SetExprEmb("Struct", new CSL_EfStruct());
     SetExprEmb("Struct", "-", new CSL_EfStruct());
+    SetExprEmb("TBool", new CSL_EfTBool());
     SetExprEmb("TInt", new CSL_EfTInt());
     SetExprEmb("Float", new CSL_EfFloat());
     SetExprEmb("String", new CSL_EfString());
@@ -847,6 +839,7 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
 
     // Set datatypes map
     KStateDataTypes["StInt"] = "TInt";
+    KStateDataTypes["StBool"] = "TBool";
     KStateDataTypes["StVectF"] = "TVectF";
 }
 

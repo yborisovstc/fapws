@@ -184,7 +184,7 @@ template<> void CAE_TState<TBool>::DataFromStr(const char* aStr, void *aData) co
 {
     TBool* data = (TBool*) aData;
     *data = EFalse;
-    if (strcmp(aStr, "True") == 0 || strcmp(aStr, "true") == 0 || strcmp(aStr, "1") == 0)
+    if (strncmp(aStr, "True", 4) == 0 || strncmp(aStr, "true", 4) == 0 || strncmp(aStr, "1", 1) == 0)
 	*data = ETrue;
 }
 

@@ -79,6 +79,7 @@ class CAE_Fact: public MAE_Provider
 	virtual CAE_ChromoBase* CreateChromo() const;
 	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const;
 	virtual MAE_Opv* CreateViewProxy();
+	virtual void GetRegisteredStates(vector<const TStateInfo*>& aInfo) const;
     protected:
 	FAPWS_API CAE_Fact();
 	FAPWS_API void ConstructL();
@@ -109,6 +110,7 @@ class CAE_ProviderGen: public CAE_ProviderBase
 	virtual CAE_ChromoBase* CreateChromo() const;
 	virtual CAE_TranExBase* CreateTranEx(MCAE_LogRec* aLogger) const;
 	virtual MAE_Opv* CreateViewProxy();
+	virtual void GetRegisteredStates(vector<const TStateInfo*>& aInfo) const;
     private:
 	void RegisterFormatter(int aUid, TLogFormatFun aFun);
 	const TStateInfo* GetStateInfo(const char *aType) const;

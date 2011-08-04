@@ -215,6 +215,18 @@ class CSL_EfAddVectF: public CSL_ExprBase
 	virtual CSL_ExprBase* Clone() { return new CSL_EfAddVectF(*this);};
 };
 
+class CSL_EfTBool: public CSL_ExprBase
+{
+    public:
+	CSL_EfTBool(): CSL_ExprBase("TBool -") {};
+	CSL_EfTBool(TBool aData): CSL_ExprBase("TBool", ToStr(aData)) {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	static string ToStr(const TBool& aData);
+	static void FromStr(TBool& aData, const string& aStr);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfTBool(*this);};
+};
+
 class CSL_EfTInt: public CSL_ExprBase
 {
     public:
@@ -248,21 +260,6 @@ class CSL_EfString: public CSL_ExprBase
 		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfString(*this);};
 };
-
-class CSL_EfTBool: public CSL_ExprBase
-{
-    public:
-	CSL_EfTBool(): CSL_ExprBase("TBool") {};
-	CSL_EfTBool(const string& aData): CSL_ExprBase("TBool", aData) {};
-	CSL_EfTBool(TBool& aData): CSL_ExprBase("TBool", ToStr(aData)) {};
-	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
-		CSL_ExprBase*& aRes, const string& aReqType);
-	static string ToStr(const TBool& aData);
-	static void FromStr(TBool& aData, const string& aStr);
-	virtual CSL_ExprBase* Clone() { return new CSL_EfTBool(*this);};
-};
-
-
 
 class CF_TdVectF;
 class CSL_EfVectF: public CSL_ExprBase

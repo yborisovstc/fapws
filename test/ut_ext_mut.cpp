@@ -131,7 +131,8 @@ void UT_FAP_ExtMut::test_ExtMut_deta1()
 
     CAE_ConnPointBase* c_incr = iEnv->Root()->GetOutpN("my_incr");
     CPPUNIT_ASSERT_MESSAGE("Fail to get [my_incr] output", c_incr != 0);
-    CAE_StateBase* sb_incr = c_incr->GetSrcPin("_1")->GetFbObj(sb_incr);
+    CAE_Base* b_incr = c_incr->GetSrcPin("_1");
+    CAE_StateBase* sb_incr = b_incr->GetFbObj(sb_incr);
     CPPUNIT_ASSERT_MESSAGE("Fail to get [c_incr._1] src pin state", sb_incr != 0);
     CAE_TState<TInt>& s_incr = *sb_incr;
     CPPUNIT_ASSERT_MESSAGE("Incorrect [c_incr._1] value", ~s_incr == 42);

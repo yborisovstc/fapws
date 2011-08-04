@@ -500,7 +500,7 @@ TBool CAE_ConnPoint::ConnectConnPoint(CAE_ConnPoint *aConnPoint)
 
 TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint) 
 {
-    TBool res = EFalse;
+    TBool res = ETrue;
     // Try to get connection
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
@@ -509,15 +509,24 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
 	    iConns.push_back(pair);
     }
     else {
-	// Probably it's commutating extention
-	CAE_ConnPointExtC *pec = aConnPoint->GetFbObj(pec); 
-	if (pec != NULL) {
-	    // Connect all the dests pins
-	    TBool res1 = ETrue;
-	    for (map<string, string>::iterator id = iDestsTempl.begin(); id != iDestsTempl.end() && res1; id++) {
-		res1 = ConnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
+	CAE_ConnPointExt *pex = aConnPoint->GetFbObj(pex); 
+	if (pex !=  NULL)
+	{
+	    for (vector<CAE_ConnPointBase*>::iterator it = pex->Ref().begin(); it != pex->Ref().end() && res; it++) {
+		res = Connect(*it);
 	    }
-	    res = res1;
+	}
+	else {
+	    // Probably it's commutating extention
+	    CAE_ConnPointExtC *pec = aConnPoint->GetFbObj(pec); 
+	    if (pec != NULL) {
+		// Connect all the dests pins
+		TBool res1 = ETrue;
+		for (map<string, string>::iterator id = iDestsTempl.begin(); id != iDestsTempl.end() && res1; id++) {
+		    res1 = ConnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
+		}
+		res = res1;
+	    }
 	}
     }
     return res;
@@ -683,41 +692,29 @@ void *CAE_ConnPointExt::DoGetFbObj(const char *aName)
 	res = this;
     else { 
 	res = CAE_ConnPointBase::DoGetFbObj(aName);
-	if (res == NULL && iRef != NULL)
-	    res = iRef->GetFbObj(aName);
+	if (res == NULL && iRef.size() == 1)
+	    res = iRef.at(0)->GetFbObj(aName);
     }
     return res;
 }
 
-// TODO [YB] Is it used?
-void CAE_ConnPointExt::Set(CAE_ConnPointBase *aConnPoint) 
-{
-    _FAP_ASSERT(iRef != NULL);
-    iRef = aConnPoint;
-}
-    
-void CAE_ConnPointExt::Unset() 
-{
-    iRef = NULL;
-}
-
 TBool CAE_ConnPointExt::Connect(CAE_ConnPointBase *aConnPoint) 
 {
-    TBool res = EFalse;
-    if (iRef != NULL) {
-	res = iRef->Connect(aConnPoint);
-	if (res) {
-	    iConns.push_back(aConnPoint);
-	}
+    TBool res = ETrue;
+    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
+	res = (*it)->Connect(aConnPoint);
+    }
+    if (res) {
+	iConns.push_back(aConnPoint);
     }
     return res;
 }
 
 TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide) 
 {
-    TBool res = EFalse;
-    if (iRef != NULL) {
-	res = iRef->Disconnect(aConnPoint);
+    TBool res = ETrue;
+    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
+	res = (*it)->Disconnect(aConnPoint);
     }
     if (res) {
 	TBool found = EFalse;
@@ -727,15 +724,18 @@ TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide
 	    }
 	    res = found;
 	}
-	return res;
     }
+    return res;
 }
 
-TBool CAE_ConnPointExt::Disconnect()
+TBool CAE_ConnPointExt::Disconnect() 
 {
     TBool res = ETrue;
-    if (iRef != NULL) {
-	res = iRef->Disconnect();
+    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
+	res = (*it)->Disconnect();
+    }
+    if (res) {
+	iConns.clear();
     }
     return res;
 }
@@ -743,22 +743,25 @@ TBool CAE_ConnPointExt::Disconnect()
 TBool CAE_ConnPointExt::Extend(CAE_ConnPointBase *aConnPoint) 
 {
     TBool res = EFalse;
-    if (iRef == NULL) { 
-	iRef = aConnPoint;
-       	res = ETrue;
-    }
+    iRef.push_back(aConnPoint);
+    res = ETrue;
     return res;
 };
 
 CAE_Base* CAE_ConnPointExt::GetSrcPin(const char* aName)
 {
-    return iRef == NULL? NULL: iRef->GetSrcPin(aName);
+    CAE_Base* res = NULL;
+    if (iRef.size() == 1) {
+	CAE_ConnPointBase* cp = iRef.at(0);
+       	res = cp->GetSrcPin(aName);
+    }
+    return res;
 }
 
 void CAE_ConnPointExt::DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin)
 {
-    if (iRef == NULL) { 
-	iRef->DisconnectPin(aPin, aPair, aPairPin);
+    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end(); it++) {
+	(*it)->DisconnectPin(aPin, aPair, aPairPin);
     }
 }
 
@@ -771,12 +774,15 @@ TBool CAE_ConnPointExt::SetExtended(CAE_ConnPointBase *aConnPoint)
 TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
 {
     TBool res = EFalse;
-    if (iRef == aConnPoint) { 
-	if (!aOneSide) {
-	    aConnPoint->SetDisextended(this, ETrue);
+    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end(); it++) {
+	if ((*it) == aConnPoint) { 
+	    if (!aOneSide) {
+		aConnPoint->SetDisextended(this, ETrue);
+	    }
+	    iRef.erase(it);
+	    res = ETrue;
+	    break;
 	}
-	iRef = NULL;
-       	res = ETrue;
     }
     return res;
 }
@@ -2411,7 +2417,12 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
     }
     string ainit = aSpec.Attr(ENa_StInit);
     const char *init = ainit.c_str();
-    state = prov->CreateStateL(stype, name, this);  
+    if (iStates.count(name) == 0) {
+	state = prov->CreateStateL(stype, name, this);  
+    }
+    else {
+	Logger()->WriteFormat("ERROR: Creating state [%s]: state with such name already exists", name);
+    }
     if (state == NULL)
 	Logger()->WriteFormat("ERROR: Creating state [%s] failed", name);
     else
