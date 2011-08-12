@@ -406,6 +406,7 @@ inline const char *CAE_EBase::Type() { return "EBase";}
 // Base class for connection points
 // TODO [YB] To enhance connection/extension model
 // TODO [YB] To replace iConns, iExts with CAE_Conn, CAE_Ext. Ref to UC_CONN_08
+class CAE_ConnBase;
 class CAE_ConnPointBase: public CAE_NBase
 {
     public:
@@ -413,23 +414,30 @@ class CAE_ConnPointBase: public CAE_NBase
 	CAE_ConnPointBase(TNodeType aNodeType, const string& aName, CAE_EBase* aMan): CAE_NBase(aNodeType, aName), iMan(aMan) {};
 	static TBool Connect(CAE_ConnPointBase *aP1, CAE_ConnPointBase *aP2) { return aP1->Connect(aP2) && aP2->Connect(aP1);};
 	virtual ~CAE_ConnPointBase();
+	void AddConn(CAE_ConnBase* aConn);
+	void RmConn(CAE_ConnBase* aConn);
+	TBool Connect(CAE_ConnBase* aConn);
+	TBool Disconnect(CAE_ConnBase* aConn);
+	TBool Extend(CAE_ConnBase* aConn);
+	TBool Disextend(CAE_ConnBase* aConn);
+	TBool SetExtended(CAE_ConnBase* aConn);
+	TBool SetDisextended(CAE_ConnBase* aConn);
 	virtual TBool Connect(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
-	virtual TBool Disconnect() = 0;
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint) = 0;
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) = 0;
 	virtual CAE_Base* GetSrcPin(const char* aName) = 0;
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
-	virtual TBool Disextend();
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) = 0;
 	// Extention is directed relation, so use separate methods for "slave"
 	// TODO [YB] Consider of necessity of separate methods for extention slave
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint) = 0;
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) = 0;
-	virtual TBool SetDisextended();
-	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
-	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
-	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint) = 0;
+	const vector<CAE_ConnBase*>& Conns() { return iConns; };
+	const vector<CAE_ConnBase*>& Conns() const { return iConns; };
+//	const vector<CAE_ConnPointBase*>& Conns() { return iConns; };
+//	const vector<CAE_ConnPointBase*>& Conns() const { return iConns; };
+//	const vector<CAE_ConnPointBase*>& Exts() const { return iExts; };
 	const CAE_EBase& Man() const { return *iMan;};
 	CAE_EBase& Man() { return *iMan;};
 	// From CAE_NBase
@@ -441,9 +449,10 @@ class CAE_ConnPointBase: public CAE_NBase
 	virtual void *DoGetFbObj(const char *aName);
     protected:
 	// TODO [YB] To migrate from vector to map
-	vector<CAE_ConnPointBase*> iConns;
+	//vector<CAE_ConnPointBase*> iConns;
+	vector<CAE_ConnBase*> iConns;
 	// References to extending cp only, not extended
-	vector<CAE_ConnPointBase*> iExts;
+//	vector<CAE_ConnPointBase*> iExts;
 	CAE_EBase* iMan;
 };
 
@@ -484,14 +493,11 @@ class CAE_ConnPoint: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disconnect();
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disextend() { return CAE_ConnPointBase::Disextend();};
-	virtual TBool SetDisextended() { return CAE_ConnPointBase::SetDisextended();};
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnSlot*>& Dests() {return iDests; };
 	CAE_ConnSlot* Slot(TInt aInd) {return iDests.at(aInd); };
 	CAE_ConnSlot* Srcs() {return iSrcs;};
@@ -522,12 +528,11 @@ class CAE_ConnPointExt: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin) { return EFalse;};
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disconnect();
+	virtual TBool  Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint);
 	vector<CAE_ConnPointBase*>& Ref() {return iRef;};
 	static const char *Type() {return "ConnPointExt";}; 
     protected:
@@ -580,12 +585,11 @@ class CAE_ConnPointExtC: public CAE_ConnPointBase
 	virtual TBool ConnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual void DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair, const char* aPairPin);
 	virtual CAE_Base* GetSrcPin(const char* aName);
-	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disconnect();
+	virtual TBool Disconnect(CAE_ConnPointBase *aConnPoint);
 	virtual TBool Extend(CAE_ConnPointBase *aConnPoint);
 	virtual TBool SetExtended(CAE_ConnPointBase *aConnPoint);
-	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse);
-	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide = EFalse) {};
+	virtual TBool SetDisextended(CAE_ConnPointBase *aConnPoint);
+	virtual TBool Disextend(CAE_ConnPointBase *aConnPoint) {};
 	SlotTempl& Templ() { return iSlotTempl;};
 	vector<Slot>& Slots() { return iSlots; };
 	static const char *Type() {return "ConnPointExtC";}; 
@@ -604,6 +608,9 @@ class CAE_ConnBase: public CAE_NBase
 	CAE_ConnBase(TNodeType aNodeType, CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
 	virtual ~CAE_ConnBase();
 	TBool IsValid() const { return iIsValid;};
+	virtual void OnCpDelete(CAE_ConnPointBase* aCp) = 0;
+	CAE_ConnPointBase* Point() { return iPoint; };
+	CAE_ConnPointBase* Pair() { return iPair; };
 	// From CAE_NBase
 	virtual CAE_NBase* GetNode(const DesUri& aUri, DesUri::const_elem_iter aPathBase) { return NULL;};
 	virtual void RmNode(const DesUri& aUri) {};
@@ -622,6 +629,7 @@ class CAE_Ext: public CAE_ConnBase
     public:
 	CAE_Ext(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
 	virtual ~CAE_Ext();
+	virtual void OnCpDelete(CAE_ConnPointBase* aCp);
     protected:
 	virtual TBool Connect();
 	virtual TBool Disconnect();
@@ -632,6 +640,7 @@ class CAE_Conn: public CAE_ConnBase
     public:
 	CAE_Conn(CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner);
 	virtual ~CAE_Conn();
+	virtual void OnCpDelete(CAE_ConnPointBase* aCp);
     protected:
 	virtual TBool Connect();
 	virtual TBool Disconnect();

@@ -427,24 +427,23 @@ TBool CAE_ConnSlot::IsEmpty() const
 
 // Connection point base
 
-TBool CAE_ConnPointBase::Disextend()
+void CAE_ConnPointBase::AddConn(CAE_ConnBase* aConn)
 {
-    TBool res = ETrue;
-    for (vector<CAE_ConnPointBase*>::iterator it = iExts.begin(); it != iExts.end() && !res; it++) {
-	res = Disextend(*it);
+    for (vector<CAE_ConnBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+	_FAP_ASSERT(aConn != *it);
     }
-    return res;
+    iConns.push_back(aConn);
 }
 
-TBool CAE_ConnPointBase::SetDisextended()
+void CAE_ConnPointBase::RmConn(CAE_ConnBase* aConn)
 {
-    TBool res = ETrue;
-    for (vector<CAE_ConnPointBase*>::reverse_iterator it = iExts.rbegin(); it != iExts.rend() && res; ++it) {
-	res = SetDisextended(*it);
+    for (vector<CAE_ConnBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+	if (aConn == *it) {
+	    iConns.erase(it);
+	    break;
+	}
     }
-    return res;
 }
-
 
 void *CAE_ConnPointBase::DoGetFbObj(const char *aName)
 {
@@ -460,8 +459,71 @@ void *CAE_ConnPointBase::DoGetFbObj(const char *aName)
 CAE_ConnPointBase::~CAE_ConnPointBase()
 {
     Owner()->OnElemDeleting(this);
+    for (vector<CAE_ConnBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
+	(*it)->OnCpDelete(this);
+    }
+    iConns.clear();
 }
 
+TBool CAE_ConnPointBase::Connect(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Point() == this || aConn->Pair() == this);
+    TBool res = EFalse;
+    res = Connect(aConn->Point() == this ? aConn->Pair() : aConn->Point());
+    if (res) {
+	AddConn(aConn);
+    }
+    return res;
+}
+
+TBool CAE_ConnPointBase::Extend(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Point() == this);
+    TBool res = EFalse;
+    res = Extend(aConn->Pair());
+    if (res) {
+	AddConn(aConn);
+    }
+    return res;
+}
+
+TBool CAE_ConnPointBase::SetExtended(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Pair() == this);
+    TBool res = EFalse;
+    res = SetExtended(aConn->Point());
+    if (res) {
+	AddConn(aConn);
+    }
+    return res;
+}
+
+TBool CAE_ConnPointBase::Disconnect(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Point() == this || aConn->Pair() == this);
+    TBool res = EFalse;
+    res = Disconnect(aConn->Point() == this ? aConn->Pair() : aConn->Point());
+    RmConn(aConn);
+    return res;
+}
+
+TBool CAE_ConnPointBase::Disextend(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Point() == this);
+    TBool res = EFalse;
+    res = Disextend(aConn->Pair());
+    RmConn(aConn);
+    return res;
+}
+
+TBool CAE_ConnPointBase::SetDisextended(CAE_ConnBase* aConn)
+{
+    _FAP_ASSERT(aConn->Pair() == this);
+    TBool res = EFalse;
+    res = SetDisextended(aConn->Point());
+    RmConn(aConn);
+    return res;
+}
 /*
 CAE_ConnPoint::CAE_ConnPoint(const map<string, CAE_ConnSlot::templ_elem>& aSrcsTempl, const map<string, CAE_ConnSlot::templ_elem>& aDestsTempl): 
     iSrcsTempl(aSrcsTempl), iDestsTempl(aDestsTempl) 
@@ -479,8 +541,6 @@ CAE_ConnPoint::CAE_ConnPoint(TNodeType aNodeType, const string aName, CAE_EBase*
 
 CAE_ConnPoint::~CAE_ConnPoint() 
 {
-    Disconnect();
-    SetDisextended();
 }
 
 void *CAE_ConnPoint::DoGetFbObj(const char *aName)
@@ -505,8 +565,6 @@ TBool CAE_ConnPoint::Connect(CAE_ConnPointBase *aConnPoint)
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
 	res = ConnectConnPoint(pair);
-	if (res)
-	    iConns.push_back(pair);
     }
     else {
 	CAE_ConnPointExt *pex = aConnPoint->GetFbObj(pex); 
@@ -613,42 +671,19 @@ TBool CAE_ConnPoint::DisconnectConnPoint(CAE_ConnPoint *aConnPoint)
 		    srce->SetActive();
 		}
 		dest.Pins()[did] = NULL;
-		for (vector<CAE_ConnPointBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
-		    if ((*it) == aConnPoint) {
-			iConns.erase(it); break;
-		    }
-		}
 	    }
 	}
     }
     return res;
 }
 
-TBool CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide) 
+TBool CAE_ConnPoint::Disconnect(CAE_ConnPointBase *aConnPoint) 
 {
     TBool res = EFalse;
     CAE_ConnPoint *pair = aConnPoint->GetFbObj(pair); 
     if (pair != NULL ) {
 	// Disconnect conn point
 	res = DisconnectConnPoint(pair);
-    }
-    if (!aOneSide) {
-	aConnPoint->Disconnect(this, ETrue);
-    }
-    for (vector<CAE_ConnPointBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
-	if ((*it) == aConnPoint) {
-	    iConns.erase(it); break;
-	}
-    }
-    return res;
-}
-
-
-TBool CAE_ConnPoint::Disconnect()
-{
-    TBool res = ETrue;
-    for (vector<CAE_ConnPointBase*>::reverse_iterator it = iConns.rbegin(); it != iConns.rend() && res; ++it) {
-	res = Disconnect(*it);
     }
     return res;
 }
@@ -661,25 +696,15 @@ TBool CAE_ConnPoint::Extend(CAE_ConnPointBase *aConnPoint)
 
 TBool CAE_ConnPoint::SetExtended(CAE_ConnPointBase *aConnPoint)
 {
-    iExts.push_back(aConnPoint);
     return ETrue;
 }
 
-TBool CAE_ConnPoint::SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPoint::SetDisextended(CAE_ConnPointBase *aConnPoint)
 {
-    TBool res = EFalse;
-    if (!aOneSide) {
-	aConnPoint->Disextend(this, ETrue);
-    }
-    for (vector<CAE_ConnPointBase*>::iterator it = iExts.begin(); it != iExts.end(); it++) {
-	if ((*it) == aConnPoint) {
-	    iExts.erase(it); break;
-	}
-    }
-    return res;
+    return ETrue;
 }
 
-TBool CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPoint::Disextend(CAE_ConnPointBase *aConnPoint)
 {
     _FAP_ASSERT(0);
     return EFalse;
@@ -704,38 +729,14 @@ TBool CAE_ConnPointExt::Connect(CAE_ConnPointBase *aConnPoint)
     for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
 	res = (*it)->Connect(aConnPoint);
     }
-    if (res) {
-	iConns.push_back(aConnPoint);
-    }
     return res;
 }
 
-TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide) 
+TBool CAE_ConnPointExt::Disconnect(CAE_ConnPointBase *aConnPoint) 
 {
     TBool res = ETrue;
     for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
 	res = (*it)->Disconnect(aConnPoint);
-    }
-    if (res) {
-	TBool found = EFalse;
-	for (vector<CAE_ConnPointBase*>::iterator it = iConns.begin(); it != iConns.end(); it++) {
-	    if ((*it) == aConnPoint) {
-		iConns.erase(it); found = ETrue; break;
-	    }
-	    res = found;
-	}
-    }
-    return res;
-}
-
-TBool CAE_ConnPointExt::Disconnect() 
-{
-    TBool res = ETrue;
-    for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end() && res; it++) {
-	res = (*it)->Disconnect();
-    }
-    if (res) {
-	iConns.clear();
     }
     return res;
 }
@@ -767,18 +768,14 @@ void CAE_ConnPointExt::DisconnectPin(const char* aPin, CAE_ConnPointBase *aPair,
 
 TBool CAE_ConnPointExt::SetExtended(CAE_ConnPointBase *aConnPoint)
 {
-    iExts.push_back(aConnPoint);
     return ETrue;
 }
 
-TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint)
 {
     TBool res = EFalse;
     for (vector<CAE_ConnPointBase*>::iterator it = iRef.begin(); it != iRef.end(); it++) {
 	if ((*it) == aConnPoint) { 
-	    if (!aOneSide) {
-		aConnPoint->SetDisextended(this, ETrue);
-	    }
 	    iRef.erase(it);
 	    res = ETrue;
 	    break;
@@ -787,14 +784,9 @@ TBool CAE_ConnPointExt::Disextend(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
     return res;
 }
 
-TBool CAE_ConnPointExt::SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPointExt::SetDisextended(CAE_ConnPointBase *aConnPoint)
 {
     TBool res = EFalse;
-    for (vector<CAE_ConnPointBase*>::iterator it = iExts.begin(); it != iExts.end(); it++) {
-	if ((*it) == aConnPoint) {
-	    iExts.erase(it); res = ETrue; break;
-	}
-    }
     return res;
 }
 
@@ -825,19 +817,13 @@ TBool CAE_ConnPointExtC::Connect(CAE_ConnPointBase *aConnPoint)
     return res;
 }
 
-TBool CAE_ConnPointExtC::Disconnect(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPointExtC::Disconnect(CAE_ConnPointBase *aConnPoint)
 {
     TBool res = ETrue;
     // Disconnect all the bus pins
     for (map<string, SlotTempl::slot_templ_elem>::iterator id = Templ().Dests().begin(); id != Templ().Dests().end(); id++) {
 	DisconnectPin(id->first.c_str(), aConnPoint, id->first.c_str());
     }
-    return res;
-}
-
-TBool CAE_ConnPointExtC::Disconnect()
-{
-    TBool res = EFalse;
     return res;
 }
 
@@ -903,11 +889,10 @@ TBool CAE_ConnPointExtC::Extend(CAE_ConnPointBase *aConnPoint)
 
 TBool CAE_ConnPointExtC::SetExtended(CAE_ConnPointBase *aConnPoint)
 {
-    iExts.push_back(aConnPoint);
     return ETrue;
 }
 
-TBool CAE_ConnPointExtC::SetDisextended(CAE_ConnPointBase *aConnPoint, TBool aOneSide)
+TBool CAE_ConnPointExtC::SetDisextended(CAE_ConnPointBase *aConnPoint)
 {
     _FAP_ASSERT(0);
     return EFalse;
@@ -936,7 +921,7 @@ CAE_ConnPointExtC::Slot::Slot(const SlotTempl& aTempl)
 
 CAE_ConnBase::CAE_ConnBase(TNodeType aNodeType, CAE_ConnPointBase* aPoint, CAE_ConnPointBase* aPair, CAE_NBase* aOwner): 
     CAE_NBase(aNodeType, aPoint->Name(), aOwner), 
-    iPoint(aPoint), iPair(aPair)
+    iPoint(aPoint), iPair(aPair), iIsValid(EFalse)
 {
 }
 
@@ -984,18 +969,48 @@ CAE_Ext::~CAE_Ext()
 {
     if (iIsValid) {
 	Disconnect();
+	iIsValid = EFalse;
     }
 }
 
 TBool CAE_Ext::Connect()
 {
-    return (iPoint->Extend(iPair) && iPair->SetExtended(iPoint));
+    _FAP_ASSERT(!iIsValid);
+    TBool res = EFalse;
+    //res = (iPoint->Extend(iPair) && iPair->SetExtended(iPoint));
+    res = (iPoint->Extend(this) && iPair->SetExtended(this));
+#if 0
+    if (res) {
+	iPoint->AddConn(this);
+	iPair->AddConn(this);
+    }
+#endif
+    return res;
 }
 
 TBool CAE_Ext::Disconnect()
 {
-    return iPoint->Disextend(iPair, ETrue) && iPair->SetDisextended();
+    TBool res = EFalse;
+    if (iIsValid) {
+	res = iPoint->Disextend(this) && iPair->SetDisextended(this);
+	iIsValid = EFalse;
+    }
+    return res;
 }
+
+void CAE_Ext::OnCpDelete(CAE_ConnPointBase* aCp)
+{
+    _FAP_ASSERT(aCp == iPoint || aCp == iPair);
+    if (aCp == iPoint) {
+	iPair->SetDisextended(this);
+    }
+    else {
+	iPoint->Disextend(this);
+    }
+    iIsValid = EFalse;
+    delete this;
+}
+
 
 // Connection 
 
@@ -1009,18 +1024,39 @@ CAE_Conn::~CAE_Conn()
 {
     if (iIsValid) {
 	Disconnect();
+	iIsValid = EFalse;
     }
 }
 
 TBool CAE_Conn::Connect()
 {
-    return (iPoint->Connect(iPair) && iPair->Connect(iPoint));
+    _FAP_ASSERT(!iIsValid);
+    return (iPoint->Connect(this) && iPair->Connect(this));
 }
 
 TBool CAE_Conn::Disconnect()
 {
-    return iPoint->Disconnect(iPair, ETrue) && iPair->Disconnect(iPoint, ETrue);
+    TBool res = EFalse;
+    if (iIsValid) {
+	res = iPoint->Disconnect(this) && iPair->Disconnect(this);
+	iIsValid = EFalse;
+    }
+    return res;
 }
+
+void CAE_Conn::OnCpDelete(CAE_ConnPointBase* aCp)
+{
+    _FAP_ASSERT(aCp == iPoint || aCp == iPair);
+    if (aCp == iPoint) {
+	iPair->Disconnect(this);
+    }
+    else {
+	iPoint->Disconnect(this);
+    }
+    iIsValid = EFalse;
+    delete this;
+}
+
 
 
 // CAE_EBase

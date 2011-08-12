@@ -194,6 +194,12 @@
 	    <listitem>SYSTEM removes systems's subsystem as component.</listitem>
 	    </itemizedlist>
 	</sect2>
+	<sect2 id="sec_conn_07"><title>UC_CONN_07 USER creates system with several states and an input, 
+		and connect the input to states inputes.</title>
+	    <simpara>It shall be allowed to connect system input (extention) to many inputes of states</simpara>
+	</sect2>
+	<sect2 id="sec_conn_08"><title>UC_CONN_08 USER removes connection point - SYSTEM removes assosiated connections/extentions.</title>
+	</sect2>
     </sect1>
 
     <sect1 id="sec_views"><title>Views</title>
@@ -292,6 +298,11 @@
 	    <simpara>STUDIO initially manages DES environment, that provides system ticks (creates root system).  </simpara>
 	    <simpara>USER asks STUDIO to open system spec stored as the file on local file system. 
 		STUDIO allows USER to select file on filesystem, create system from the spec and add it to the root.  </simpara>
+	</sect2>
+	<sect2 id="sec_studio_04"><title>FAP_UC_ST_04 USER edits system by changing parent of component. USER recreates system.</title>
+	    <simpara>USER changes parent of some of component of system. To make the change actual for this components USER needs
+		to recreate the system. USER request STUDIO to recreate the system. STUDIO recreates the system, the USER can see
+		the changes in the component.</simpara>
 	</sect2>
     </sect1>
 
