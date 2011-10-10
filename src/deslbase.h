@@ -122,6 +122,24 @@ class CSL_EfStruct: public CSL_ExprBase
 	map<string, felem> iFields;
 };
 
+// Generic vector. Arguments of constructor are: (ElemType Size)
+class CSL_EfVectG: public CSL_ExprBase
+{
+    public:
+	typedef pair<string, int> felem;
+    public:
+	CSL_EfVectG(): CSL_ExprBase("TVectG -"), iSize(0) {};
+	CSL_EfVectG(const string& aElemType, TInt aSize);
+	CSL_EfVectG(const CSL_EfVectG& aExpr): CSL_ExprBase(aExpr), iSize(aExpr.iSize), iElemType(aExpr.iElemType) {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, 
+		CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfVectG(*this);};
+	virtual string ToString();
+    public:
+	string iElemType;
+	TInt iSize;
+};
+
 class CSL_EfFld: public CSL_ExprBase
 {
     public:
@@ -213,6 +231,26 @@ class CSL_EfAddVectF: public CSL_ExprBase
 	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 		CSL_ExprBase*& aRes, const string& aReqType);
 	virtual CSL_ExprBase* Clone() { return new CSL_EfAddVectF(*this);};
+};
+
+// Addition of generic vector
+class CSL_EfSmulVectG: public CSL_ExprBase
+{
+    public:
+	CSL_EfSmulVectG(): CSL_ExprBase("Float TVectG TVectG") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfSmulVectG(*this);};
+};
+
+// Scalar multiplication of generic vector
+class CSL_EfAddVectG: public CSL_ExprBase
+{
+    public:
+	CSL_EfAddVectG(): CSL_ExprBase("TVectG TVectG TVectG") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfAddVectG(*this);};
 };
 
 class CSL_EfTBool: public CSL_ExprBase

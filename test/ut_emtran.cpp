@@ -24,6 +24,7 @@ class UT_FAP_Emtran : public CPPUNIT_NS::TestFixture
     CPPUNIT_TEST_SUITE(UT_FAP_Emtran);
     CPPUNIT_TEST(test_Emtran_main);
     CPPUNIT_TEST(test_Emtran_vect);
+    CPPUNIT_TEST(test_Emtran_vectgf);
     CPPUNIT_TEST_SUITE_END();
 public:
     virtual void setUp();
@@ -31,6 +32,7 @@ public:
 private:
     void test_Emtran_main();
     void test_Emtran_vect();
+    void test_Emtran_vectgf();
 private:
     CAE_Env* iEnv;
 };
@@ -129,6 +131,51 @@ void UT_FAP_Emtran::test_Emtran_vect()
     CAE_TState<CF_TdVectF>& s_incr = *sb_incr;
     CPPUNIT_ASSERT_MESSAGE("Incorrect [c_incr._1] value", ~s_incr == CF_TdVectF(41.0, 43.0));
 
+
+    delete iEnv;
+}
+
+
+void UT_FAP_Emtran::test_Emtran_vectgf()
+{
+    printf("\n === Test of embedded trans - generic vector\n");
+
+    iEnv = CAE_Env::NewL(NULL, tinfos, "ut_emtran_vectgf.xml", 1, NULL, "ut_emtran_vectgf.log");
+    CPPUNIT_ASSERT_MESSAGE("Fail to create CAE_Env", iEnv != 0);
+    iEnv->ConstructSystem();
+
+    for (TInt i=0; i<40; i++)
+    {
+        iEnv->Step();
+    }
+    // Check result of sums
+    CAE_ConnPointBase* c_incr = iEnv->Root()->GetOutpN("output");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [output] output", c_incr != 0);
+    CAE_StateBase* sb_incr = c_incr->GetSrcPin("_1")->GetFbObj(sb_incr);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [c_incr._1] src pin state", sb_incr != NULL);
+    CAE_StateEx* s_incr = sb_incr->GetFbObj(s_incr);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [c_incr._1] ext state", s_incr != NULL);
+    CSL_ExprBase& e_incr = s_incr->Value();
+    string scoord_0 = e_incr.Args()[0]->Data();
+    string scoord_1 = e_incr.Args()[1]->Data();
+    string scoord_2 = e_incr.Args()[2]->Data();
+    float coord_0, coord_1, coord_2;
+    sscanf(scoord_0.c_str(), "%f", &coord_0);
+    sscanf(scoord_1.c_str(), "%f", &coord_1);
+    sscanf(scoord_2.c_str(), "%f", &coord_2);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [incr.output] value", coord_0 == 41.0 && coord_1 == 83.0 && coord_2 == 125.0);
+    // Check scalar multiplication
+    CAE_ConnPointBase* c_smult = iEnv->Root()->GetOutpN("outp_smult");
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [outp_smult] output", c_smult != 0);
+    CAE_StateBase* sb_smult = c_smult->GetSrcPin("_1")->GetFbObj(sb_smult);
+    CPPUNIT_ASSERT_MESSAGE("Fail to get [c_smult._1] src pin state", sb_smult != NULL);
+    CAE_StateEx* s_smult = sb_smult->GetFbObj(s_smult);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [c_smult._1] ext state", s_smult != NULL);
+    CSL_ExprBase& e_smult = s_smult->Value();
+    string str_smult = e_smult.Data();
+    float res_smult;
+    sscanf(str_smult.c_str(), "%f", &res_smult);
+    CPPUNIT_ASSERT_MESSAGE("Incorrect [incr.outp_smult] value", res_smult == 283.0);
 
     delete iEnv;
 }

@@ -400,6 +400,13 @@ string CSL_EfStruct::ToString()
 }
 
 
+CSL_EfVectG::CSL_EfVectG(const string& aElemType, TInt aSize): CSL_ExprBase("TVectG"), iElemType(aElemType), iSize(aSize)
+{
+    for (TInt i = 0; i < iSize; i++) {
+	iType.push_back(iElemType);
+    }
+}
+
 void CSL_EfFld::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
 	CSL_ExprBase*& aRes, const string& aReqType)
 {
@@ -412,6 +419,128 @@ void CSL_EfFld::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::
     }
 }
 
+void CSL_EfVectG::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iElemType.empty()) {
+	// Not defined, applying spec
+	CSL_EfVectG* res  = (CSL_EfVectG*) Clone();
+	res->iType.pop_back();
+	vector<string> spec;
+	ParseTerms(aArg.Data(), spec);
+	if (spec.size() < 1 || spec.size() > 2) {
+	    // Format should be TVectf (<Type> <Len>) <elements>
+	    aEnv.Logger()->WriteFormat("Vector constructor: Incorrect spec");
+	}
+	else {
+	    res->iElemType = spec.at(0);
+	    if (spec.size() == 2) {
+		CSL_EfTInt::FromStr(res->iSize, spec.at(1));
+		for (TInt i = 0; i < res->iSize; i++) {
+		    res->iType.push_back(res->iElemType);
+		}
+	    }
+	}
+	res->ApplyArgs(aEnv, aArgs, aArgr, aRes, aReqType);
+    }
+    else {
+	// Applying fields data 
+	CSL_EfVectG* res  = (CSL_EfVectG*) Clone();
+	res->AcceptArg(aArg);
+	if (iType.size() > 2) {
+	    res->ApplyArgs(aEnv, aArgs, aArgr, aRes, aReqType);
+	}
+	else
+	    aRes = res;
+    }
+}
+
+
+string CSL_EfVectG::ToString()
+{
+    string res("{");
+    for (vector<CSL_ExprBase*>::iterator it = iArgs.begin(); it != iArgs.end(); it++) {
+	res += ((it == iArgs.begin()) ? "" : ",") +  (*it)->ToString();
+    }
+    return res + "}";
+}
+
+void CSL_EfAddVectG::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	CSL_ExprBase& arg0 = *(iArgs[0]);
+	CSL_EfVectG* arg0v = (CSL_EfVectG*) &arg0;
+	CSL_ExprBase& arg1 = aArg;
+	CSL_EfVectG* res = new CSL_EfVectG(arg0v->iElemType, arg0v->iSize);
+	for (TInt i = 0; i < res->iSize; i++) {
+	    // Get add expression for element's type
+	    CSL_ExprBase* addexp = aEnv.GetExpr("add", "~1 " + res->iElemType)->Clone();
+	    CSL_ExprBase* arg0elt = arg0.Args()[i];
+	    CSL_ExprBase* arg1elt = arg1.Args()[i];
+	    addexp->AcceptArg(*arg0elt);
+	    CSL_ExprBase* elemres = NULL;
+	    addexp->Apply(aEnv, aArgs, aArgr, *arg1elt, elemres, res->iElemType);
+	    res->AcceptArg(*elemres);
+	}
+	aRes = res;
+    }
+}
+
+// [YB] TODO To try to implement smul with result type given from args
+/*
+void CSL_EfSmulVectG::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	CSL_ExprBase& arg0 = *(iArgs[0]);
+	CSL_EfVectG* arg0v = (CSL_EfVectG*) &arg0;
+	CSL_ExprBase& arg1 = aArg;
+	CSL_ExprBase* addexp = aEnv.GetExpr("add", "~1 " + res->iElemType)->Clone();
+	CSL_ExprBase* res = aEnv.GetExpr(res->iElemType);
+	res->AcceptArg(*sumarg);
+	for (TInt i = 0; i < res->iSize; i++) {
+	    // Get add expression for element's type
+	    CSL_ExprBase* mplr = aEnv.GetExpr("mpl", "~1 " + res->iElemType)->Clone();
+	    CSL_ExprBase* arg0elt = arg0.Args()[i];
+	    CSL_ExprBase* arg1elt = arg1.Args()[i];
+	    mplr->AcceptArg(*arg0elt);
+	    CSL_ExprBase* elemres = NULL;
+	    mplr->Apply(aEnv, aArgs, aArgr, *arg1elt, elemres, res->iElemType);
+	    res->AcceptArg(*mpl);
+	}
+	aRes = res;
+    }
+}
+*/
+void CSL_EfSmulVectG::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+	CSL_ExprBase*& aRes, const string& aReqType)
+{
+    if (iType.size() > 2) {
+	CSL_ExprBase::Apply(aEnv, aArgs, aArgr, aArg, aRes, aReqType);
+    }
+    else {
+	CSL_ExprBase& arg0 = *(iArgs[0]);
+	CSL_EfVectG* arg0v = (CSL_EfVectG*) &arg0;
+	CSL_ExprBase& arg1 = aArg;
+	float sum = 0.0;
+	for (TInt i = 0; i < arg0v->iSize; i++) {
+	    float x,y;
+	    CSL_ExprBase* arg0elt = arg0.Args()[i];
+	    CSL_ExprBase* arg1elt = arg1.Args()[i];
+	    CSL_EfFloat::FromStr(x, arg0elt->Data());
+	    CSL_EfFloat::FromStr(y, arg1elt->Data());
+	    sum += x * y;
+	}
+	aRes = new CSL_EfFloat(sum);
+    }
+}
 
 void CSL_EfInp::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
 {
@@ -810,9 +939,11 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     SetExprEmb("add", new CSL_EfAddInt());
     SetExprEmb("add", new CSL_EfAddVectF());
     SetExprEmb("add", new CSL_EfAddFloat());
+    SetExprEmb("add", new CSL_EfAddVectG());
     SetExprEmb("sub", new CSL_EfSubInt());
     SetExprEmb("div", new CSL_EfDivInt());
     SetExprEmb("mpl", new CSL_EfMplInt());
+    SetExprEmb("smul", new CSL_EfSmulVectG());
     SetExprEmb("inp", new CSL_EfInp("* String"));
     //SetExprEmb("inp", new CSL_EfInp("TInt String"));
     //SetExprEmb("inp", new CSL_EfInp("TVectF String"));
@@ -836,11 +967,13 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     SetExprEmb("Float", new CSL_EfFloat());
     SetExprEmb("String", new CSL_EfString());
     SetExprEmb("Fld", new CSL_EfFld());
+    SetExprEmb("TVectG", new CSL_EfVectG());
 
     // Set datatypes map
     KStateDataTypes["StInt"] = "TInt";
     KStateDataTypes["StBool"] = "TBool";
     KStateDataTypes["StVectF"] = "TVectF";
+    KStateDataTypes["TVectG"] = "TVectG";
 }
 
 CSL_Interpr::~CSL_Interpr()

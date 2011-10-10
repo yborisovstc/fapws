@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+
+<!-- Unit test for embedded generic vector of float -->
+<!--
+     -->
+
+<!DOCTYPE  iobject SYSTEM "/usr/share/fapws/conf/objspec.dtd"> 
+
+<iobject type="none" id="main">
+    <out id="output"/>
+    <out id="outp_smult"/>
+    <logspec  event="cre"> <logdata id="new"/> </logspec>
+    <logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+    <state type="TVectG" id="incr" init="(Float 3) 1.0 3.0 5.0">
+	<logspec  event="cre"> <logdata id="new"/> </logspec>
+	<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+	<inp id="self"/>
+	<trans> add inp self TVectG (Float 3) 1.0 2.0 3.0</trans>
+    </state>
+
+    <state type="Float" id="smult" init="0.0">
+	<logspec  event="cre"> <logdata id="new"/> </logspec>
+	<logspec event="upd"> <logdata id="cur"/> <logdata id="new"/> </logspec> 
+	<inp id="inp1"/>
+	<trans> smul inp inp1 TVectG (Float 3) 2.0 1.0 1.0</trans>
+    </state>
+    <conn id="state:incr/inp:self" pair="state:incr/out:output"/>
+    <conn id="state:smult/inp:inp1" pair="state:incr/out:output"/>
+    <ext id="out:output" pair="state:incr/out:output"/>
+    <ext id="out:outp_smult" pair="state:smult/out:output"/>
+</iobject> <!-- main -->
+
