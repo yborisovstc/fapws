@@ -34,3 +34,9 @@ CSL_ExprBase* CAE_TaDesl::GetExpr(const string& aTerm, const string& aRtype)
 {
     return iInterpr->GetExpr(aTerm, aRtype);
 }
+
+void CAE_TaDesl::GetConstructors(vector<string>& aRes)
+{
+    iInterpr->GetConstructors(aRes);
+}
+

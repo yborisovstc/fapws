@@ -25,6 +25,7 @@ class MSL_ExprEnv
 	virtual string ContextType() = 0;
 	virtual string DataType(CAE_StateBase& aState) = 0;
 	virtual MCAE_LogRec *Logger() = 0;
+	virtual void GetConstructors(vector<string>& aRes) {};
 };
 
 class CSL_ExprBase: public CAE_Base
@@ -446,6 +447,7 @@ class CSL_Interpr: public MSL_ExprEnv
 	virtual string ContextType();
 	virtual string DataType(CAE_StateBase& aState);
 	virtual MCAE_LogRec *Logger() { return &iELogger;};
+	virtual void GetConstructors(vector<string>& aRes);
     private:
 	static string GetStateDataType(const string& aStateType);
     private:

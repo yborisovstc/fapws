@@ -16,6 +16,7 @@ class CAE_TaDesl: public CAE_TranExBase
 	virtual void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans);
 	virtual const multimap<string, CSL_ExprBase*>& Exprs();
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype);
+	virtual void GetConstructors(vector<string>& aRes);
 	static const char *Type() {return "TaDesl";}; 
     private:
 	virtual void *DoGetFbObj(const char *aName);

@@ -1159,6 +1159,7 @@ class MAE_TranEx
 	virtual void EvalTrans(MAE_TransContext* aContext, CAE_EBase* aExpContext, const string& aTrans) = 0;
 	virtual const multimap<string, CSL_ExprBase*>& Exprs() = 0;
 	virtual CSL_ExprBase* GetExpr(const string& aTerm, const string& aRtype) = 0;
+	virtual void GetConstructors(vector<string>& aRes) = 0;
 };
 
 // Executable agent base 

@@ -1200,3 +1200,14 @@ void CSL_Interpr::Logger::WriteFormat(const char* aFmt,...)
     iMain.iLogger->WriteRecord(buf);
 }
 
+void CSL_Interpr::GetConstructors(vector<string>& aRes)
+{
+    for (multimap<string, CSL_ExprBase*>::iterator it = iExprsEmb.begin(); it != iExprsEmb.end(); it++) {
+	CSL_ExprBase* elem = it->second;
+	if (it->first.compare(elem->RType()) == 0) {
+	    aRes.push_back(elem->Name());
+	}
+    }
+    
+}
+
