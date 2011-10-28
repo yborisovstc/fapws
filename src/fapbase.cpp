@@ -1479,6 +1479,10 @@ TBool CAE_StateBase::SetTrans(TTransInfo aTinfo)
 	return ETrue;
 };
 
+void CAE_StateBase::SetInit(const string& aInit)
+{
+    iInit = aInit;
+}
 
 void CAE_StateBase::DoTrans() 
 {
@@ -1615,6 +1619,8 @@ TBool CAE_StateBase::ChangeAttr(TNodeAttr aAttr, const string& aVal)
 { 
     TBool res = EFalse;
     if (aAttr == ENa_StInit) {
+	SetInit(aVal);
+	// [YB] TODO To consider if it is correct to set value on Init mutation
 	SetFromStr(aVal.c_str());
 	Confirm();
 	res = ETrue;
@@ -2517,6 +2523,7 @@ void CAE_Object::AddState(const CAE_ChromoNode& aSpec)
 	    }
 	}
 	if (init != NULL) {
+	    state->iInit = ainit;
 	    CAE_StateCtr* ctr = state->GetFbObj(ctr);
 	    if (ctr != NULL) {
 		CAE_Object* obj = (strcmp(init, "self") == 0) ? this: GetComp(init);

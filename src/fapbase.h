@@ -786,6 +786,8 @@ public:
 	virtual TBool AddNode(const CAE_ChromoNode& aSpec);
 public:
 	const string ValStr() const;
+	const string& Init() const { return iInit;};
+	void SetInit(const string& aInit);
 	void SetFromStr(const string& aStr) { DoSetFromStr(aStr.c_str());};
 	inline MCAE_LogRec *Logger();
 protected:
@@ -808,6 +810,7 @@ protected:
 	TTransInfo iTrans;
 	map<string, CAE_ConnPointBase*> iInputs;
 	CAE_ConnPointBase* iOutput;
+	string iInit;
 };
 
 inline const char *CAE_StateBase::Type() { return "StateBase";} 
