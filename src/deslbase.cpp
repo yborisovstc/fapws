@@ -754,6 +754,12 @@ void CSL_EfDivInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string
     }
 }
 
+void CSL_EfRandInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
+{
+    TInt res = rand();
+    aRes = new CSL_EfTInt(res);
+}
+
 
 void CSL_EfTInt::FromStr(TInt& aData, const string& aStr)
 {
@@ -932,7 +938,9 @@ void CSL_EfCount::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>
 static map<string, string> KStateDataTypes;
 
 CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this), iContext(NULL)
-{
+{ 
+    // Initialize random seed 
+    srand ( time(NULL) );
     iRootExpr = new CSL_ExprBase();
     // Register embedded function
     SetExprEmb("TVectF", new CSL_EfVectF());
@@ -943,6 +951,7 @@ CSL_Interpr::CSL_Interpr(MCAE_LogRec* aLogger): iLogger(aLogger), iELogger(*this
     SetExprEmb("sub", new CSL_EfSubInt());
     SetExprEmb("div", new CSL_EfDivInt());
     SetExprEmb("mpl", new CSL_EfMplInt());
+    SetExprEmb("rand", new CSL_EfRandInt());
     SetExprEmb("smul", new CSL_EfSmulVectG());
     SetExprEmb("inp", new CSL_EfInp("* String"));
     //SetExprEmb("inp", new CSL_EfInp("TInt String"));

@@ -380,6 +380,15 @@ class CSL_EfDivInt: public CSL_ExprBase
 	virtual CSL_ExprBase* Clone() { return new CSL_EfDivInt(*this);};
 };
 
+class CSL_EfRandInt: public CSL_ExprBase
+{
+    public:
+	CSL_EfRandInt(): CSL_ExprBase("TInt") {};
+	virtual void Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, 
+		CSL_ExprBase*& aRes, const string& aReqType);
+	virtual CSL_ExprBase* Clone() { return new CSL_EfRandInt(*this);};
+};
+
 class CSL_EfAddFloat: public CSL_ExprBase
 {
     public:
