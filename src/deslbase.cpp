@@ -754,6 +754,12 @@ void CSL_EfDivInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string
     }
 }
 
+CSL_EfRandInt::CSL_EfRandInt(): CSL_ExprBase("TInt")
+{
+    TInt res = rand() - RAND_MAX/2;
+    SetData(CSL_EfTInt::ToStr(res));
+}
+
 void CSL_EfRandInt::Apply(MSL_ExprEnv& aEnv, vector<string>& aArgs, vector<string>::iterator& aArgr, CSL_ExprBase& aArg, CSL_ExprBase*& aRes, const string& aReqType)
 {
     TInt res = rand();

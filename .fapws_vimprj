@@ -132,7 +132,7 @@ fap-vm-gtk=/home/yborisov/projects/fap/git/fap-vm-gtk CD=. filter="*" {
   files
   rules
  }
- src=src CD=. filter="*.h *.cpp *.dtd Makefile.am" {
+ src=src CD=. filter="*.h *.cpp *.xml Makefile.am" {
   vmstates.h
   vmwindow.h
   vmstates.cpp

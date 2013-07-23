@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<iobject id="Test" type="none">
+  <out id="my_incr"/>
+  <logspec event="cre">
+
+    <logdata id="new"/>
+
+  </logspec>
+  <iobject id="My_Incr" type="file:./ut_modul_incr.xml#root/incrementor"/>
+  <ext id="out:my_incr" pair="My_Incr/out:output"/>
+</iobject>
